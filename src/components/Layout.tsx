@@ -1,4 +1,3 @@
-// Layout.tsx
 import React, { ReactNode } from "react";
 import NavBar from "./Navbar";
 
@@ -8,9 +7,10 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-[#1a191f]">
+    <div className="relative bg-[#1a191f]">
+      {/* Remove min-h-screen and flex-col unless you're building a full-height layout */}
       <NavBar />
-      <main className="flex-grow">{children}</main>
+      {children}
     </div>
   );
 };
