@@ -28,22 +28,22 @@ export default function AuthLayout({ heading, subheading, children, side }: Prop
         <div className="max-w-xl w-full">
           <div ref={cardRef} className="rounded-2xl bg-white text-black ring-1 ring-neutral-200 shadow-sm">
             <div className="px-6 pt-6">
-              <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <div className="flex items-center justify-center gap-2 text-sm text-neutral-500">
                 <span className="size-2 rounded-full bg-lime-400" />
-                <span>Sign Up</span>
+                <span className="font-semibold text-md">Sign Up</span>
               </div>
               <div className="mt-4">
-                <h1 className="text-4xl font-bold leading-tight text-neutral-900">
+                <h1 className="text-2xl md:text-4xl font-bold leading-tight text-neutral-900 text-center">
                   {heading}
                 </h1>
                 {subheading && (
-                  <p className="mt-3 text-neutral-500 max-w-md text-sm">
+                  <p className="mt-3 text-neutral-500 max-w-md text-sm text-center mx-auto">
                     {subheading}
                   </p>
                 )}
               </div>
             </div>
-            <div className="p-6 pt-4">
+            <div className="p-16 pt-4">
               {children}
             </div>
           </div>

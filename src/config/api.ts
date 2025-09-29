@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { getIdToken } from 'firebase/auth'
+import { auth } from './firebase'
 
 export const apiClient = axios.create({
   baseURL: 'https://limes-develop.onrender.com/api',
@@ -10,8 +12,21 @@ export const apiClient = axios.create({
 
 // Request interceptor for auth tokens
 apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken')
+  async (config) => {
+    let token: string | null = null
+    try {
+      const currentUser = auth.currentUser
+      if (currentUser) {
+        token = await getIdToken(currentUser)
+      }
+    } catch {
+      // ignore token fetch errors, will fall back to localStorage
+    }
+
+    if (!token) {
+      token = localStorage.getItem('authToken')
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

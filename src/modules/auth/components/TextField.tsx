@@ -1,4 +1,5 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import clsx from 'classnames'
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
@@ -38,10 +39,13 @@ const TextField = forwardRef<HTMLInputElement, Props>(
               type="button"
               aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
               onClick={() => setPasswordVisible((v) => !v)}
-              className="px-3 text-neutral-400 hover:text-neutral-200"
+              className="px-3 text-neutral-400 hover:text-neutral-600"
             >
-              {/* Simple eye icon substitute */}
-              {isPasswordVisible ? '🙈' : '👁️'}
+              {isPasswordVisible ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
             </button>
           )}
         </div>
