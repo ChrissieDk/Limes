@@ -204,32 +204,34 @@ function SimCard({ sim }: { sim: SimCard }) {
   );
 }
 
-// Plan Details Component
+// Plan Details Component (stacked)
 function PlanDetails({ sim }: { sim: SimCard }) {
   return (
-    <div className="bg-neutral-100 rounded-xl p-4">
-      <h4 className="text-neutral-900 font-semibold text-base mb-4">Sim Details</h4>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-green-400 rounded-lg p-3">
-          <div className="text-white text-xs font-medium mb-1">Mobile data</div>
-          <div className="text-white font-bold text-lg">{sim.plan.mobileData}</div>
+    <div className="bg-white rounded-2xl p-5">
+      <h4 className="text-neutral-900 font-extrabold text-2xl mb-4">Sim Details</h4>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-lime-400 rounded-2xl p-4">
+          <div className="text-neutral-900 text-sm font-medium mb-1">Mobile data</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.mobileData}</div>
         </div>
-        <div className="bg-purple-500 rounded-lg p-3">
-          <div className="text-white text-xs font-medium mb-1">Airtime</div>
-          <div className="text-white font-bold text-lg">{sim.plan.airtime}</div>
+        <div className="bg-purple-400 rounded-2xl p-4">
+          <div className="text-neutral-900 text-sm font-medium mb-1">Airtime</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.airtime}</div>
         </div>
-        <div className="bg-blue-500 rounded-lg p-3">
-          <div className="text-white text-xs font-medium mb-1">Messaging</div>
-          <div className="text-white font-bold text-lg">{sim.plan.messaging}</div>
+        <div className="bg-blue-500 rounded-2xl p-4">
+          <div className="text-neutral-900 text-sm font-medium mb-1">Messaging</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.messaging}</div>
         </div>
-        <div className="bg-pink-500 rounded-lg p-3">
-          <div className="text-white text-xs font-medium mb-1">Phone</div>
-          <div className="text-white font-bold text-lg">{sim.plan.phone}</div>
+        <div className="bg-pink-400 rounded-2xl p-4">
+          <div className="text-neutral-900 text-sm font-medium mb-1">Phone</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.phone}</div>
         </div>
       </div>
     </div>
   );
 }
+
+// SimRow removed; using stacked SimCard + PlanDetails
 
 // Current Plan Component
 function CurrentPlan({ plan, className }: { plan: Plan; className?: string }) {
@@ -262,21 +264,21 @@ function CurrentPlan({ plan, className }: { plan: Plan; className?: string }) {
             <img src="/images/data.png" alt="Mobile data" className="w-5 h-5" />
             <span>Mobile data</span>
           </div>
-          <div className="text-neutral-900 font-extrabold text-xl">{plan.mobileData}</div>
+          <div className="text-neutral-900 font-semibold text-xl">{plan.mobileData}</div>
         </div>
         <div className="bg-blue-500 rounded-2xl p-4">
           <div className="flex items-center space-x-2 text-neutral-900 text-sm mb-1.5">
             <img src="/images/sms.png" alt="Messaging" className="w-5 h-5" />
             <span>Messaging</span>
           </div>
-          <div className="text-neutral-900 font-extrabold text-xl">{plan.messaging}</div>
+          <div className="text-neutral-900 font-semibold text-xl">{plan.messaging}</div>
         </div>
         <div className="bg-pink-400 rounded-2xl p-4 col-span-2">
           <div className="flex items-center space-x-2 text-neutral-900 text-sm mb-1.5">
             <Phone className="w-4 h-4" />
             <span>Phone</span>
           </div>
-          <div className="text-neutral-900 font-extrabold text-xl">{plan.phone}</div>
+          <div className="text-neutral-900 font-semibold text-xl">{plan.phone}</div>
         </div>
       </div>
 
