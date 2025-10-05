@@ -5,13 +5,7 @@ import {
   ChevronRight, 
   MoreHorizontal, 
   ExternalLink, 
-  Plus,
-  Send,
-  User,
-  MessageSquare,
   Phone,
-  Zap,
-  Database,
   Star,
 } from 'lucide-react';
 
@@ -240,183 +234,202 @@ function PlanDetails({ sim }: { sim: SimCard }) {
 // Current Plan Component
 function CurrentPlan({ plan, className }: { plan: Plan; className?: string }) {
   return (
-    <div className={`bg-neutral-800 rounded-xl p-6 h-full border border-neutral-700 ${className ?? ''}`}> 
+    <div className={`bg-neutral-800 rounded-2xl p-6 h-full border border-neutral-700 ${className ?? ''}`}> 
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-white font-semibold text-lg">Current Plan</h3>
         <div className="flex items-center space-x-2">
-          <span className="bg-neutral-200 text-neutral-900 text-xs px-2 py-1 rounded">SIM 1</span>
-          <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-lime-400 rounded-full"></div>
-            <span className="text-lime-600 text-xs font-medium">Subscription</span>
-          </div>
+          <h3 className="text-white font-semibold text-lg">Current Plan</h3>
+          <span className="bg-white text-neutral-900 text-xs px-2.5 py-1 rounded-full">SIM1</span>
+        </div>
+        <div className="inline-flex items-center space-x-2 bg-neutral-900 border border-neutral-700 px-3 py-1 rounded-full">
+          <span className="w-2 h-2 rounded-full bg-lime-400" />
+          <span className="text-white text-xs font-medium">Subscription</span>
         </div>
       </div>
-      
-      <div className="flex items-start space-x-4 mb-6">
-        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-          <Zap className="w-6 h-6 text-gray-900" />
+
+      {/* Plan title */}
+      <div className="flex items-center space-x-2 mb-6">
+        <div className="w-12 h-12 bg-transparent rounded-xl flex items-center justify-center">
+          <img src="/images/plan_logo.png" alt="Plan" className="w-7 h-7" />
         </div>
-        <div>
-          <h4 className="text-white font-bold text-lg">{plan.name}</h4>
-        </div>
+        <h4 className="text-white font-bold text-xl">{plan.name}</h4>
       </div>
-      
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-green-500 rounded-xl p-4">
-          <div className="flex items-center space-x-2 text-white text-sm mb-2">
-            <Database className="w-4 h-4" />
+
+      {/* Feature tiles */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-lime-400 rounded-2xl p-4">
+          <div className="flex items-center space-x-2 text-neutral-900 text-sm mb-1.5">
+            <img src="/images/data.png" alt="Mobile data" className="w-5 h-5" />
             <span>Mobile data</span>
           </div>
-          <div className="text-white font-bold text-lg">{plan.mobileData}</div>
+          <div className="text-neutral-900 font-extrabold text-xl">{plan.mobileData}</div>
         </div>
-        <div className="bg-blue-500 rounded-xl p-4">
-          <div className="flex items-center space-x-2 text-white text-sm mb-2">
-            <MessageSquare className="w-4 h-4" />
+        <div className="bg-blue-500 rounded-2xl p-4">
+          <div className="flex items-center space-x-2 text-neutral-900 text-sm mb-1.5">
+            <img src="/images/sms.png" alt="Messaging" className="w-5 h-5" />
             <span>Messaging</span>
           </div>
-          <div className="text-white font-bold text-lg">{plan.messaging}</div>
+          <div className="text-neutral-900 font-extrabold text-xl">{plan.messaging}</div>
         </div>
-        <div className="bg-pink-500 rounded-xl p-4 col-span-2">
-          <div className="flex items-center space-x-2 text-white text-sm mb-2">
+        <div className="bg-pink-400 rounded-2xl p-4 col-span-2">
+          <div className="flex items-center space-x-2 text-neutral-900 text-sm mb-1.5">
             <Phone className="w-4 h-4" />
             <span>Phone</span>
           </div>
-          <div className="text-white font-bold text-lg">{plan.phone}</div>
+          <div className="text-neutral-900 font-extrabold text-xl">{plan.phone}</div>
         </div>
       </div>
-      
-      <div className="flex space-x-3 mb-6">
-        <button className="flex-1 bg-green-400 text-gray-900 py-2 px-4 rounded-lg font-medium hover:bg-green-300 transition-colors flex items-center justify-center">
-          <span>Edit</span>
-          <ChevronRight className="w-4 h-4 ml-1" />
-        </button>
-        <button className="flex-1 border border-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors">
-          View Billing
-        </button>
-      </div>
-      
-      <div className="text-center">
-        <div className="text-neutral-400 text-sm mb-1">Plan pricing</div>
-        <div className="text-white font-bold text-2xl">R{plan.price}</div>
+
+      {/* Actions and pricing */}
+      <div className="flex items-end justify-between">
+        {/* Button block with offset shadow frame */}
+        <div className="relative">
+          <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl bg-neutral-900" />
+          <div className="relative bg-white rounded-2xl p-2 flex items-center space-x-3">
+            <button className="bg-lime-400 text-neutral-900 py-2 px-4 rounded-xl font-medium hover:bg-lime-300 transition-colors inline-flex items-center">
+              <span>Edit</span>
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </button>
+            <button className="bg-white text-neutral-900 py-2 px-4 rounded-xl font-medium border-2 border-neutral-900 hover:bg-neutral-100 transition-colors">
+              View Billing
+            </button>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <div className="text-neutral-400 text-sm mb-1">Plan pricing</div>
+          <div className="text-white font-bold text-3xl">R{plan.price}</div>
+        </div>
       </div>
     </div>
   );
 }
 
 // Wallet Component
-function Wallet({ className }: { className?: string }) {
-  return (
-    <div className={`bg-lime-400 rounded-xl p-6 relative overflow-hidden border-2 border-lime-500 h-full ${className ?? ''}`}>
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-gray-900 font-semibold text-lg">Wallet</h3>
-          <ExternalLink className="w-5 h-5 text-gray-900" />
-        </div>
+// function Wallet({ className }: { className?: string }) {
+//   return (
+//     <div className={`bg-lime-400 rounded-xl p-6 relative overflow-hidden border-2 border-lime-500 h-full ${className ?? ''}`}>
+//       <div className="relative z-10">
+//         <div className="flex items-center justify-between mb-4">
+//           <h3 className="text-gray-900 font-semibold text-lg">Wallet</h3>
+//           <ExternalLink className="w-5 h-5 text-gray-900" />
+//         </div>
         
-        <div className="mb-4">
-          <div className="text-lime-900/90 text-sm mb-2">My balance</div>
-          <div className="text-neutral-900 font-bold text-5xl mb-3">R250.60</div>
-          <div className="flex items-center space-x-2">
-            <div className="bg-neutral-900 text-white text-xs px-3 py-1 rounded-full">
-              R11.50 in 🍋 Limes
-            </div>
-          </div>
-        </div>
+//         <div className="mb-4">
+//           <div className="text-lime-900/90 text-sm mb-2">My balance</div>
+//           <div className="text-neutral-900 font-bold text-5xl mb-3">R250.60</div>
+//           <div className="flex items-center space-x-2">
+//             <div className="bg-neutral-900 text-white text-xs px-3 py-1 rounded-full">
+//               R11.50 in 🍋 Limes
+//             </div>
+//           </div>
+//         </div>
         
-        <div className="flex items-center space-x-2 mb-6">
-          <div className="text-neutral-700 text-sm">Lowest remittance transfer fee in SA!</div>
-          <div className="w-4 h-4 bg-gray-700 rounded-full flex items-center justify-center">
-            <span className="text-white text-xs">?</span>
-          </div>
-        </div>
+//         <div className="flex items-center space-x-2 mb-6">
+//           <div className="text-neutral-700 text-sm">Lowest remittance transfer fee in SA!</div>
+//           <div className="w-4 h-4 bg-gray-700 rounded-full flex items-center justify-center">
+//             <span className="text-white text-xs">?</span>
+//           </div>
+//         </div>
         
-        <div className="flex space-x-3">
-          <button className="flex items-center space-x-2 bg-neutral-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-neutral-800 transition-colors">
-            <Plus className="w-4 h-4" />
-            <span>Add Money</span>
-          </button>
-          <button className="flex items-center space-x-2 border-2 border-neutral-900 text-neutral-900 px-4 py-2 rounded-lg font-medium hover:bg-neutral-900 hover:text-white transition-colors">
-            <Send className="w-4 h-4" />
-            <span>Send Money</span>
-          </button>
-        </div>
-      </div>
+//         <div className="flex space-x-3">
+//           <button className="flex items-center space-x-2 bg-neutral-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-neutral-800 transition-colors">
+//             <Plus className="w-4 h-4" />
+//             <span>Add Money</span>
+//           </button>
+//           <button className="flex items-center space-x-2 border-2 border-neutral-900 text-neutral-900 px-4 py-2 rounded-lg font-medium hover:bg-neutral-900 hover:text-white transition-colors">
+//             <Send className="w-4 h-4" />
+//             <span>Send Money</span>
+//           </button>
+//         </div>
+//       </div>
       
-      {/* Decorative elements - dashed border effect */}
-      <div className="absolute inset-2 border-2 border-dashed border-gray-700 rounded-lg opacity-30"></div>
+//       {/* Decorative elements - dashed border effect */}
+//       <div className="absolute inset-2 border-2 border-dashed border-gray-700 rounded-lg opacity-30"></div>
       
-      {/* Background circles */}
-      <div className="absolute bottom-4 right-4 opacity-20">
-        <div className="w-24 h-24 border-4 border-white rounded-full"></div>
-        <div className="absolute top-2 left-2 w-16 h-16 border-2 border-white rounded-full"></div>
-      </div>
-    </div>
-  );
-}
+//       {/* Background circles */}
+//       <div className="absolute bottom-4 right-4 opacity-20">
+//         <div className="w-24 h-24 border-4 border-white rounded-full"></div>
+//         <div className="absolute top-2 left-2 w-16 h-16 border-2 border-white rounded-full"></div>
+//       </div>
+//     </div>
+//   );
+// }
 
 // Bundle Card Component
 function BundleCard({ bundle }: { bundle: Bundle }) {
-  const getBundleStyles = () => {
-    switch (bundle.type) {
-      case 'flex':
-        return 'bg-yellow-400 text-gray-900';
-      case 'lite':
-        return 'bg-blue-500 text-white';
-      case '3-month':
-        return 'bg-purple-500 text-white';
-      default:
-        return 'bg-gray-600 text-white';
-    }
-  };
+  const isFlex = bundle.type === 'flex';
+  const isLite = bundle.type === 'lite';
+  const isThreeMonth = bundle.type === '3-month';
+
+  const containerClasses = (() => {
+    if (isFlex) return 'bg-yellow-400';
+    if (isLite) return 'bg-blue-500';
+    if (isThreeMonth) return 'bg-purple-400';
+    return 'bg-gray-600';
+  })();
+
+  const titleIcon = (() => {
+    if (isFlex) return '/images/star.png';
+    if (isLite) return '/images/plan_logo.png';
+    if (isThreeMonth) return '/images/bundle_3.png';
+    return '/images/plan-line.png';
+  })();
 
   return (
-    <div className={`${getBundleStyles()} rounded-xl p-4 relative min-h-[200px]`}>
-      {bundle.featured && (
-        <div className="flex justify-end mb-2">
-          <Star className="w-5 h-5 text-yellow-600" />
+    <div className={`${containerClasses} relative rounded-2xl p-6 min-h-[220px] border-2 border-neutral-900 overflow-hidden`}> 
+      {/* Decorative plus cluster */}
+      <div className="absolute top-3 right-4 text-neutral-900/70 select-none">
+        <div className="leading-3">
+          <span>+</span>
+          <span className="ml-2">+</span>
+          <span className="ml-2">+</span>
         </div>
-      )}
-
-      <h4 className="font-bold text-lg mb-4">{bundle.name}</h4>
-
-      <div className="space-y-2 mb-4">
-        <div className="flex items-start space-x-2">
-          <div className="w-4 h-4 bg-white bg-opacity-20 rounded-full flex items-center justify-center mt-0.5">
-            <div className="w-2 h-2 bg-current rounded-full"></div>
-          </div>
-          <span className="text-sm leading-tight">{bundle.dayData}</span>
+        <div className="leading-3 mt-1">
+          <span>+</span>
+          <span className="ml-2">+</span>
         </div>
-        {bundle.nightData && (
-          <div className="flex items-start space-x-2">
-            <div className="w-4 h-4 bg-white bg-opacity-20 rounded-full flex items-center justify-center mt-0.5">
-              <div className="w-2 h-2 bg-current rounded-full"></div>
-            </div>
-            <span className="text-sm leading-tight">{bundle.nightData}</span>
+      </div>
+
+      {/* Title */}
+      <div className="flex items-center mb-4">
+        <img src={titleIcon} alt="bundle icon" className="w-6 h-6 mr-2" />
+        <h4 className="text-neutral-900 font-extrabold text-2xl">{bundle.name}</h4>
+      </div>
+
+      {/* Bullet list */}
+      <div className="space-y-3 mb-6 max-w-[80%]">
+        <div className="flex items-start">
+          <img src="/images/plan_line.png" alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
+          <span className="text-neutral-900 text-base leading-snug">{bundle.dayData}</span>
+        </div>
+        {bundle.cashback && (
+          <div className="flex items-start">
+            <img src="/images/plan_line.png" alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
+            <span className="text-neutral-900 text-base leading-snug">{bundle.cashback}</span>
           </div>
         )}
-        {bundle.cashback && (
-          <div className="flex items-start space-x-2">
-            <div className="w-4 h-4 bg-white bg-opacity-20 rounded-full flex items-center justify-center mt-0.5">
-              <div className="w-2 h-2 bg-current rounded-full"></div>
-            </div>
-            <span className="text-sm leading-tight">{bundle.cashback}</span>
+        {bundle.nightData && !bundle.cashback && (
+          <div className="flex items-start">
+            <img src="/images/plan_line.png" alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
+            <span className="text-neutral-900 text-base leading-snug">{bundle.nightData}</span>
           </div>
         )}
       </div>
 
-      {/* Person image for featured bundle */}
-      {bundle.hasImage && (
-        <div className="absolute bottom-4 right-4">
-          <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center">
-            <User className="w-8 h-8 text-white" />
-          </div>
-        </div>
+      {/* Pointing man image */}
+      {isFlex && (
+        <img src="/images/pointing_man.png" alt="Pointing man" className="pointer-events-none select-none absolute -bottom-6 -right-4 h-44 object-contain" />
       )}
 
-      <button className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-colors py-2 px-4 rounded-lg font-medium flex items-center justify-center space-x-2">
-        <span>View Bundle</span>
-        <ExternalLink className="w-4 h-4" />
-      </button>
+      {/* CTA with offset shadow */}
+      <div className="relative inline-block">
+        <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl bg-neutral-900" />
+        <button className="relative bg-white text-neutral-900 border-2 border-neutral-900 rounded-2xl px-4 py-2 font-semibold inline-flex items-center">
+          <span>View Bundle</span>
+          <ExternalLink className="w-4 h-4 ml-2" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -548,15 +561,15 @@ function Dashboard() {
           </div>
         </section>
 
-        {/* Bottom Section - three equal sections with equal heights in gray block */}
-        <section className="bg-neutral-800 border border-neutral-700 rounded-2xl p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+      {/* Bottom Section - two equal sections (wallet removed) */}
+      <section className="bg-neutral-800 border border-neutral-700 rounded-2xl p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <div className="flex flex-col">
               <CurrentPlan plan={mockCurrentPlan} className="flex-1" />
             </div>
-            <div className="flex flex-col">
+            {/* <div className="flex flex-col">
               <Wallet className="flex-1" />
-            </div>
+            </div> */}
             <div className="flex flex-col">
               <div className="grid grid-cols-1 gap-4 flex-1">
                 <BundleCard bundle={mockBundles[0]} />
