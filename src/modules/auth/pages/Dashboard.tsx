@@ -8,15 +8,11 @@ import {
   Plus,
   Send,
   User,
-  Smartphone,
   MessageSquare,
   Phone,
   Zap,
   Database,
   Star,
-  CheckCircle,
-  Clock,
-  XCircle
 } from 'lucide-react';
 
 // Types
@@ -146,22 +142,22 @@ function StatusBadge({ status }: { status: Transaction['status'] }) {
     }
   };
 
-  const getStatusIcon = () => {
+  const getStatusDotClass = () => {
     switch (status) {
       case 'Success':
-        return <CheckCircle className="w-3 h-3" />;
+        return 'bg-green-400';
       case 'In Progress':
-        return <Clock className="w-3 h-3" />;
+        return 'bg-yellow-400';
       case 'Failed':
-        return <XCircle className="w-3 h-3" />;
+        return 'bg-red-400';
       default:
-        return null;
+        return 'bg-gray-400';
     }
   };
 
   return (
-    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusStyles()}`}>
-      {getStatusIcon()}
+    <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusStyles()}`}>
+      <span className={`w-2.5 h-2.5 rounded-full ${getStatusDotClass()}`} />
       <span>{status}</span>
     </div>
   );
@@ -173,8 +169,8 @@ function SimCard({ sim }: { sim: SimCard }) {
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-8 bg-green-400 rounded flex items-center justify-center">
-            <Smartphone className="w-5 h-5 text-gray-900" />
+          <div className="w-12 h-8 rounded overflow-hidden border border-neutral-600">
+            <img src="/images/limes_sim.png" alt="Limes SIM" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="flex items-center space-x-2 mb-1">
