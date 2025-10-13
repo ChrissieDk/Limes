@@ -2,8 +2,10 @@ import axios from 'axios'
 import { getIdToken } from 'firebase/auth'
 import { auth } from './firebase'
 
+const isDev = import.meta.env.DEV
+
 export const apiClient = axios.create({
-  baseURL: 'https://limes-develop.onrender.com/api',
+  baseURL: isDev ? '/api' : 'https://limes-production.up.railway.app/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -41,7 +43,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken')
-      window.location.href = '/signin'
+      const pathname = window.location.pathname
+      const isPublicRoute = pathname === '/' || pathname.startsWith('/signin') || pathname.startsWith('/signup')
+      if (!isPublicRoute) {
+        window.location.href = '/signin'
+      }
     }
     return Promise.reject(error)
   }

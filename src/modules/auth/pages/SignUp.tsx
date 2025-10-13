@@ -40,7 +40,8 @@ export default function SignUp() {
     setSubmitting(true)
     try {
       const cred = await firebaseAuthService.signUpWithEmailPassword({ email: values.email, password: values.password })
-      await cred.user.getIdToken(true)
+      const idToken = await cred.user.getIdToken(true)
+      localStorage.setItem('authToken', idToken)
 
       const displayName = cred.user.displayName?.trim() || ''
       const [firstNameFromDisplay, ...rest] = displayName.split(' ').filter(Boolean)

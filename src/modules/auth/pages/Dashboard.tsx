@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import TopUpModal from '../components/TopUpModal';
 import DashboardNavbar from '../components/DashboardNavbar';
+import { catalogService } from '../../catalog/services/catalogService';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -158,7 +160,7 @@ function StatusBadge({ status }: { status: Transaction['status'] }) {
 }
 
 // SIM Card Component
-function SimCard({ sim }: { sim: SimCard }) {
+function SimCard({ sim, onTopUp }: { sim: SimCard; onTopUp: (sim: SimCard) => void }) {
   return (
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
@@ -193,7 +195,7 @@ function SimCard({ sim }: { sim: SimCard }) {
       </div>
 
       <div className="flex space-x-2">
-        <button className="flex-1 bg-green-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-300 transition-colors">
+        <button onClick={() => onTopUp(sim)} className="flex-1 bg-green-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-300 transition-colors">
           Top Up +
         </button>
         <button className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
@@ -306,57 +308,6 @@ function CurrentPlan({ plan, className }: { plan: Plan; className?: string }) {
     </div>
   );
 }
-
-// Wallet Component
-// function Wallet({ className }: { className?: string }) {
-//   return (
-//     <div className={`bg-lime-400 rounded-xl p-6 relative overflow-hidden border-2 border-lime-500 h-full ${className ?? ''}`}>
-//       <div className="relative z-10">
-//         <div className="flex items-center justify-between mb-4">
-//           <h3 className="text-gray-900 font-semibold text-lg">Wallet</h3>
-//           <ExternalLink className="w-5 h-5 text-gray-900" />
-//         </div>
-        
-//         <div className="mb-4">
-//           <div className="text-lime-900/90 text-sm mb-2">My balance</div>
-//           <div className="text-neutral-900 font-bold text-5xl mb-3">R250.60</div>
-//           <div className="flex items-center space-x-2">
-//             <div className="bg-neutral-900 text-white text-xs px-3 py-1 rounded-full">
-//               R11.50 in 🍋 Limes
-//             </div>
-//           </div>
-//         </div>
-        
-//         <div className="flex items-center space-x-2 mb-6">
-//           <div className="text-neutral-700 text-sm">Lowest remittance transfer fee in SA!</div>
-//           <div className="w-4 h-4 bg-gray-700 rounded-full flex items-center justify-center">
-//             <span className="text-white text-xs">?</span>
-//           </div>
-//         </div>
-        
-//         <div className="flex space-x-3">
-//           <button className="flex items-center space-x-2 bg-neutral-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-neutral-800 transition-colors">
-//             <Plus className="w-4 h-4" />
-//             <span>Add Money</span>
-//           </button>
-//           <button className="flex items-center space-x-2 border-2 border-neutral-900 text-neutral-900 px-4 py-2 rounded-lg font-medium hover:bg-neutral-900 hover:text-white transition-colors">
-//             <Send className="w-4 h-4" />
-//             <span>Send Money</span>
-//           </button>
-//         </div>
-//       </div>
-      
-//       {/* Decorative elements - dashed border effect */}
-//       <div className="absolute inset-2 border-2 border-dashed border-gray-700 rounded-lg opacity-30"></div>
-      
-//       {/* Background circles */}
-//       <div className="absolute bottom-4 right-4 opacity-20">
-//         <div className="w-24 h-24 border-4 border-white rounded-full"></div>
-//         <div className="absolute top-2 left-2 w-16 h-16 border-2 border-white rounded-full"></div>
-//       </div>
-//     </div>
-//   );
-// }
 
 // Bundle Card Component
 function BundleCard({ bundle }: { bundle: Bundle }) {
@@ -512,6 +463,39 @@ function TransactionHistory({ transactions, className }: { transactions: Transac
 // Main Dashboard Component
 function Dashboard() {
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalSim, setModalSim] = useState<SimCard | null>(null);
+
+  // TEMP: Log catalog endpoints to verify connectivity
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true });
+        if (!cancelled) console.log('[Catalog] getCategoryTree', tree);
+      } catch (err) {
+        if (!cancelled) console.error('[Catalog] getCategoryTree error', err);
+      }
+
+      try {
+        const byId = await catalogService.getCategoryById('data_bundles');
+        if (!cancelled) console.log('[Catalog] getCategoryById(data_bundles)', byId);
+      } catch (err) {
+        if (!cancelled) console.error('[Catalog] getCategoryById error', err);
+      }
+
+      try {
+        const search = await catalogService.searchCategoryProducts('website', { page: 1, limit: 20 });
+        if (!cancelled) console.log('[Catalog] searchCategoryProducts(website)', search);
+      } catch (err) {
+        if (!cancelled) console.error('[Catalog] searchCategoryProducts error', err);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const nextSim = () => {
     setCurrentSimIndex((prev) => (prev + 1) % mockSimCards.length);
@@ -523,6 +507,12 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
+      <TopUpModal 
+        open={modalOpen}
+        onClose={() => setModalOpen(false)} 
+        phoneNumber={modalSim?.phoneNumber}
+        phoneNumbers={mockSimCards.map((s) => s.phoneNumber)}
+      />
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Top Section - My Sims and Transaction History (equal height within gray block) */}
         <section className="bg-neutral-800 border border-neutral-700 rounded-2xl p-6">
@@ -552,7 +542,7 @@ function Dashboard() {
               </div>
             </div>
 
-            <SimCard sim={mockSimCards[currentSimIndex]} />
+            <SimCard sim={mockSimCards[currentSimIndex]} onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }} />
             <PlanDetails sim={mockSimCards[currentSimIndex]} />
           </div>
 

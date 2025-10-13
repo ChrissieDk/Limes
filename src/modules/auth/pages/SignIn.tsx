@@ -29,7 +29,9 @@ export default function SignIn() {
     setSubmitError(null)
     setSubmitting(true)
     try {
-      await firebaseAuthService.signInWithEmailPassword(values)
+      const cred = await firebaseAuthService.signInWithEmailPassword(values)
+      const idToken = await cred.user.getIdToken(true)
+      localStorage.setItem('authToken', idToken)
       navigate('/dashboard')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to sign in'
