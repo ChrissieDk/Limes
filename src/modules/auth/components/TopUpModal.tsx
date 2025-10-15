@@ -46,10 +46,10 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-xl mx-4 overflow-hidden rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
+      <div className="relative w-full max-w-lg sm:max-w-xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div className="grid place-items-center size-8 rounded-lg bg-neutral-900 text-white">▣</div>
             <div>
@@ -60,7 +60,8 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
           <button aria-label="Close" className="size-10 grid place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 text-2xl" onClick={onClose}>×</button>
         </div>
 
-        <div className="px-5 pt-4 pb-5 space-y-5">
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-5 pt-4 pb-5 space-y-5">
           <div className="flex items-center justify-center gap-3">
             <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'data' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('data')}>Data</button>
             <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'airtime' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('airtime')}>Airtime</button>
@@ -175,6 +176,7 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
               <span>Top-up</span>
               <span>→</span>
             </button>
+          </div>
           </div>
         </div>
       </div>

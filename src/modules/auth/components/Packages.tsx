@@ -1,13 +1,44 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
-import { catalogService } from '../../catalog/services/catalogService'
 import type { CatalogProduct } from '../../../types'
 import Button from './Button'
 
 export default function Packages() {
-  const [products, setProducts] = useState<CatalogProduct[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const products = useMemo<CatalogProduct[]>(
+    () => [
+      {
+        id: 'pkg-mobile-starter',
+        sku: 'MOB-START',
+        name: 'Starter Mobile',
+        description: 'Prepaid SIM with 2GB data, 50 minutes, 100 SMS. Perfect for light usage.',
+        price: 99,
+        brand: 'Limes Mobile',
+        displayOrder: 1,
+        isAdHoc: false,
+      },
+      {
+        id: 'pkg-mobile-value',
+        sku: 'MOB-VALUE',
+        name: 'Value 10GB',
+        description: '10GB data, 200 minutes, 500 SMS. Best monthly value.',
+        price: 299,
+        brand: 'Limes Mobile',
+        displayOrder: 2,
+        isAdHoc: false,
+      },
+      {
+        id: 'pkg-mobile-unlimited',
+        sku: 'MOB-UNLIM',
+        name: 'Unlimited Max',
+        description: 'Unlimited calls to SA networks + 30GB data FUP + Unlimited SMS.',
+        price: 599,
+        brand: 'Limes Mobile',
+        displayOrder: 3,
+        isAdHoc: false,
+      },
+    ],
+    []
+  )
 
   const glowRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -50,24 +81,6 @@ export default function Packages() {
     }
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      try {
-        const res = await catalogService.searchCategoryProducts('website', { page: 1, limit: 20 })
-        if (!cancelled) setProducts(res.data)
-      } catch (e) {
-        if (!cancelled) setError('Failed to load packages')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    run()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const featured = useMemo(() => {
     return [...products]
       .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.price - b.price)
@@ -100,13 +113,7 @@ export default function Packages() {
 
         <div className="relative mx-auto max-w-6xl px-6 lg:px-10 py-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {loading && (
-              <div className="col-span-1 lg:col-span-3 text-center text-neutral-400">Loading packages…</div>
-            )}
-            {error && (
-              <div className="col-span-1 lg:col-span-3 text-center text-red-400">{error}</div>
-            )}
-            {!loading && !error && featured.map((p, idx) => (
+            {featured.map((p, idx) => (
               <div
                 key={p.id}
                 className={`rounded-2xl p-6 lg:p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] ${idx === 0 ? 'bg-[#5BA0FF]' : idx === 1 ? 'bg-[#B8FF5B]' : 'bg-[#D8B0FF]'} min-h-[320px]`}

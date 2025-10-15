@@ -55,7 +55,7 @@ export default function SignUp() {
         firstName,
         lastName,
       })
-      navigate('/dashboard')
+      navigate('/dashboard/packages')
     } catch (err: unknown) {
       let message = 'Failed to sign up'
       if (err && typeof err === 'object') {
@@ -73,7 +73,7 @@ export default function SignUp() {
           lowerMessage.includes('exist') || lowerMessage.includes('duplicate') || lowerMessage.includes('already')
 
         if (status === 409 || (status === 400 && looksLikeAlreadyExists)) {
-          navigate('/dashboard')
+          navigate('/dashboard/packages')
           return
         }
       }
