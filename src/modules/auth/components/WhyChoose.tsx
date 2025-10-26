@@ -5,7 +5,7 @@ export default function WhyChoose() {
     <section id="why" className="mx-auto max-w-6xl px-6 pb-24">
       <div className="flex items-center justify-center">
         <h2 className="font-grotesque font-bold text-white text-[34px] sm:text-[44px] md:text-[52px] text-center leading-[1.05]">
-          For <img src="/images/people.png" alt="people" className="inline-block align-middle h-10 sm:h-12 md:h-14 mx-2 -rotate-2" /> who want more from their mobile.
+          For <img src={`${import.meta.env.BASE_URL}images/people.png`} alt="people" className="inline-block align-middle h-10 sm:h-12 md:h-14 mx-2 -rotate-2" /> who want more from their mobile.
         </h2>
       </div>
 
@@ -21,7 +21,7 @@ export default function WhyChoose() {
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_0.72fr_1fr_1fr] gap-2 items-stretch">
         <div className="rounded-2xl bg-yellow-300 text-black p-6 md:col-span-1 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60">
           <div>
-            <img src="/images/sms.png" alt="icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
+            <img src={`${import.meta.env.BASE_URL}images/sms.png`} alt="icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
             <h4 className="font-semibold text-lg">Get cash back every
               <br /> time you top up.</h4>
             <p className="mt-3 text-sm text-black/70 font-manrope">
@@ -33,12 +33,12 @@ export default function WhyChoose() {
         </div>
 
         <div className="h-full rounded-2xl overflow-hidden shadow-[6px_6px_0_0_rgba(0,0,0,0.7)]">
-          <img src="/images/man_block.png" alt="Pointing man" className="h-full w-full object-cover" />
+          <img src={`${import.meta.env.BASE_URL}images/man_block.png`} alt="Pointing man" className="h-full w-full object-cover" />
         </div>
 
         <div className="rounded-2xl bg-pink-300 text-black p-6 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60">
           <div>
-            <img src="/images/data.png" alt="plan icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
+            <img src={`${import.meta.env.BASE_URL}images/data.png`} alt="plan icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
             <h4 className="font-semibold text-lg">Build your plan. Only pay
               <br /> for what you need.</h4>
             <p className="mt-3 text-sm text-black/70 font-manrope">
@@ -51,7 +51,7 @@ export default function WhyChoose() {
 
         <div className="rounded-2xl bg-purple-300 text-black p-6 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60">
           <div>
-            <img src="/images/bundle_3.png" alt="wallet icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
+            <img src={`${import.meta.env.BASE_URL}images/bundle_3.png`} alt="wallet icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
             <h4 className="font-semibold text-lg">Data, banking, and
               <br /> remittances — all in one.</h4>
             <p className="mt-3 text-sm text-black/70 font-manrope">

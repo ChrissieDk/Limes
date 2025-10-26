@@ -166,7 +166,7 @@ function SimCard({ sim, onTopUp }: { sim: SimCard; onTopUp: (sim: SimCard) => vo
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-8 rounded overflow-hidden border border-neutral-600">
-            <img src="/images/limes_sim.png" alt="Limes SIM" className="w-full h-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}images/limes_sim.png`} alt="Limes SIM" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="flex items-center space-x-2 mb-1">
@@ -254,7 +254,7 @@ function CurrentPlan({ plan, className }: { plan: Plan; className?: string }) {
       {/* Plan title */}
       <div className="flex items-center space-x-2 mb-6">
         <div className="w-12 h-12 bg-transparent rounded-xl flex items-center justify-center">
-          <img src="/images/plan_logo.png" alt="Plan" className="w-7 h-7" />
+          <img src={`${import.meta.env.BASE_URL}images/plan_logo.png`} alt="Plan" className="w-7 h-7" />
         </div>
         <h4 className="text-white font-bold text-xl">{plan.name}</h4>
       </div>
@@ -263,14 +263,14 @@ function CurrentPlan({ plan, className }: { plan: Plan; className?: string }) {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-lime-400 rounded-2xl p-4">
           <div className="flex items-center space-x-2 text-neutral-900 text-sm mb-1.5">
-            <img src="/images/data.png" alt="Mobile data" className="w-5 h-5" />
+            <img src={`${import.meta.env.BASE_URL}images/data.png`} alt="Mobile data" className="w-5 h-5" />
             <span>Mobile data</span>
           </div>
           <div className="text-neutral-900 font-semibold text-xl">{plan.mobileData}</div>
         </div>
         <div className="bg-blue-500 rounded-2xl p-4">
           <div className="flex items-center space-x-2 text-neutral-900 text-sm mb-1.5">
-            <img src="/images/sms.png" alt="Messaging" className="w-5 h-5" />
+            <img src={`${import.meta.env.BASE_URL}images/sms.png`} alt="Messaging" className="w-5 h-5" />
             <span>Messaging</span>
           </div>
           <div className="text-neutral-900 font-semibold text-xl">{plan.messaging}</div>
@@ -323,10 +323,10 @@ function BundleCard({ bundle }: { bundle: Bundle }) {
   })();
 
   const titleIcon = (() => {
-    if (isFlex) return '/images/star.png';
-    if (isLite) return '/images/plan_logo.png';
-    if (isThreeMonth) return '/images/bundle_3.png';
-    return '/images/plan-line.png';
+    if (isFlex) return `${import.meta.env.BASE_URL}images/star.png`;
+    if (isLite) return `${import.meta.env.BASE_URL}images/plan_logo.png`;
+    if (isThreeMonth) return `${import.meta.env.BASE_URL}images/bundle_3.png`;
+    return `${import.meta.env.BASE_URL}images/plan-line.png`;
   })();
 
   return (
@@ -346,25 +346,25 @@ function BundleCard({ bundle }: { bundle: Bundle }) {
 
       {/* Title */}
       <div className="flex items-center mb-4">
-        <img src={titleIcon} alt="bundle icon" className="w-6 h-6 mr-2" />
+          <img src={titleIcon} alt="bundle icon" className="w-6 h-6 mr-2" />
         <h4 className="text-neutral-900 font-extrabold text-2xl">{bundle.name}</h4>
       </div>
 
       {/* Bullet list */}
       <div className="space-y-3 mb-6 max-w-[80%]">
         <div className="flex items-start">
-          <img src="/images/plan_line.png" alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
+          <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
           <span className="text-neutral-900 text-base leading-snug">{bundle.dayData}</span>
         </div>
         {bundle.cashback && (
           <div className="flex items-start">
-            <img src="/images/plan_line.png" alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
+            <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
             <span className="text-neutral-900 text-base leading-snug">{bundle.cashback}</span>
           </div>
         )}
         {bundle.nightData && !bundle.cashback && (
           <div className="flex items-start">
-            <img src="/images/plan_line.png" alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
+            <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="bullet" className="w-7 h-5 mr-3 mt-0.5" />
             <span className="text-neutral-900 text-base leading-snug">{bundle.nightData}</span>
           </div>
         )}
@@ -372,7 +372,7 @@ function BundleCard({ bundle }: { bundle: Bundle }) {
 
       {/* Pointing man image */}
       {isFlex && (
-        <img src="/images/pointing_man.png" alt="Pointing man" className="pointer-events-none select-none absolute -bottom-6 -right-4 h-44 object-contain" />
+        <img src={`${import.meta.env.BASE_URL}images/pointing_man.png`} alt="Pointing man" className="pointer-events-none select-none absolute -bottom-6 -right-4 h-44 object-contain" />
       )}
 
       {/* CTA with offset shadow */}

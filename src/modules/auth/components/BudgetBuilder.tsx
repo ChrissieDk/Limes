@@ -6,13 +6,13 @@ export default function BudgetBuilder() {
       <h3 className="text-center font-grotesque font-bold text-white text-2xl md:text-3xl">What is your budget?</h3>
 
       <div className="mt-6 flex items-center justify-center gap-5 md:gap-8">
-        <img src="/images/squigle.png" alt="squiggle" className="h-6 sm:h-8" />
-        <img src="/images/heading_left.png" alt="heading left" className="h-10 sm:h-12" />
+        <img src={`${import.meta.env.BASE_URL}images/squigle.png`} alt="squiggle" className="h-6 sm:h-8" />
+        <img src={`${import.meta.env.BASE_URL}images/heading_left.png`} alt="heading left" className="h-10 sm:h-12" />
         <div className="bg-neutral-800 text-white rounded-2xl px-8 py-4 text-2xl md:text-3xl font-semibold tracking-wide">
           R115
         </div>
-        <img src="/images/heading_right.png" alt="heading right" className="h-10 sm:h-12" />
-        <img src="/images/squigle_green.png" alt="green squiggle" className="h-6 sm:h-8" />
+        <img src={`${import.meta.env.BASE_URL}images/heading_right.png`} alt="heading right" className="h-10 sm:h-12" />
+        <img src={`${import.meta.env.BASE_URL}images/squigle_green.png`} alt="green squiggle" className="h-6 sm:h-8" />
       </div>
 
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
@@ -67,12 +67,12 @@ export default function BudgetBuilder() {
 
           <div className="mt-8 grid grid-cols-[140px_1fr] gap-6 items-center">
             <div className="h-[120px] w-[140px] rounded-2xl overflow-hidden">
-              <img src="/images/signin.png" alt="preview" className="h-full w-full object-cover" />
+              <img src={`${import.meta.env.BASE_URL}images/signin.png`} alt="preview" className="h-full w-full object-cover" />
             </div>
             <div className="text-white">
               <div className="flex items-center gap-4">
                 <div className="size-14 rounded-full grid place-items-center bg-lime-700/40 ring-1 ring-lime-500/40">
-                  <img src="/images/plan_logo.png" alt="lime" className="h-8 w-8" />
+                  <img src={`${import.meta.env.BASE_URL}images/plan_logo.png`} alt="lime" className="h-8 w-8" />
                 </div>
                 <div>
                   <div className="text-neutral-300">This package will earn you</div>

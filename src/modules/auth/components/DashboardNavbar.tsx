@@ -30,7 +30,7 @@ export default function DashboardNavbar() {
         <nav className="w-full rounded-xl bg-neutral-800 text-white border border-neutral-700">
           <div className="grid grid-cols-3 items-center px-4 py-2.5">
           <div className="flex items-center">
-            <img src="/images/Logo.png" alt="Limes" className="h-8" />
+            <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-8" />
           </div>
 
           <div className="hidden md:flex items-center justify-center">

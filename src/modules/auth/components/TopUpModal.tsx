@@ -154,7 +154,7 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
             <div className="text-neutral-600 text-sm">Phone number to top-up</div>
             <div className="relative">
               <button className="w-full flex items-center gap-2 rounded-xl ring-1 ring-neutral-300 px-3 py-2 bg-white text-left" onClick={() => setIsPhoneMenuOpen((v) => !v)}>
-                <img src="/images/plan_logo.png" alt="limes" className="h-6 w-6" />
+                <img src={`${import.meta.env.BASE_URL}images/plan_logo.png`} alt="limes" className="h-6 w-6" />
                 <span className="flex-1 text-neutral-900">{selectedPhoneNumber}</span>
                 <span className={`text-neutral-400 transition-transform text-2xl leading-none ${isPhoneMenuOpen ? 'rotate-180' : ''}`}>▾</span>
               </button>

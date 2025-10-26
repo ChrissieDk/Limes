@@ -55,7 +55,7 @@ export default function SignIn() {
       }
       side={
         <div className="h-full w-full rounded-3xl overflow-hidden border border-neutral-700/60">
-          <img src="/images/signin.png" alt="Sign in" className="h-full w-full object-cover" />
+          <img src={`${import.meta.env.BASE_URL}images/signin.png`} alt="Sign in" className="h-full w-full object-cover" />
         </div>
       }
     >

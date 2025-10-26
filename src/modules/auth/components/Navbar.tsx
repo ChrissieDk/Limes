@@ -25,13 +25,13 @@ export default function Navbar() {
       <nav className="mx-auto max-w-6xl rounded-xl bg-white text-black shadow-sm ring-1 ring-neutral-200">
         <div className="flex items-center justify-between px-5 py-2.5">
           <div className="flex items-center gap-8">
-            <img src="/images/Logo.png" alt="Limes" className="h-10" />
+            <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-10" />
           </div>
 
           <ul className="hidden md:flex gap-6 text-[15px]">
             {navItems.map((item) => (
               <li key={item.href}>
-                <a href={item.href} className="group inline-flex flex-col items-center">
+                <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group inline-flex flex-col items-center">
                   <span className="font-medium transition-colors duration-200 group-hover:text-neutral-900">{item.label}</span>
                   <span className={`mt-1 size-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${item.dot}`} />
                 </a>
@@ -40,7 +40,7 @@ export default function Navbar() {
           </ul>
 
           <div className="hidden md:block w-36">
-            <a href="/contact"><Button variant="primary">Contact Us</Button></a>
+            <a href={`${import.meta.env.BASE_URL}contact`}><Button variant="primary">Contact Us</Button></a>
           </div>
 
           <button aria-label="Menu" className="md:hidden inline-flex items-center justify-center size-10 rounded-lg ring-1 ring-neutral-200 hover:bg-neutral-100 transition" onClick={() => setOpen((v) => !v)}>
@@ -56,7 +56,7 @@ export default function Navbar() {
           <ul className="px-5 pb-4 space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
-                <a href={item.href} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-neutral-100 transition">
+                <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-neutral-100 transition">
                   <div className="flex items-center gap-3">
                     <span className={`size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${item.dot}`} />
                     <span className="text-sm font-medium">{item.label}</span>
@@ -65,7 +65,7 @@ export default function Navbar() {
                 </a>
               </li>
             ))}
-            <li className="pt-2"><a href="/contact"><Button variant="primary" className="w-full">Contact Us</Button></a></li>
+            <li className="pt-2"><a href={`${import.meta.env.BASE_URL}contact`}><Button variant="primary" className="w-full">Contact Us</Button></a></li>
           </ul>
         </div>
       </nav>

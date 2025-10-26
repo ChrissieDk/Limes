@@ -41,7 +41,7 @@ export default function Hero() {
 
       <div className="hidden lg:flex h-full items-center">
         <div className="relative w-full h-full min-h-[460px] rounded-3xl overflow-hidden border border-neutral-700/60">
-          <img src="/images/signin.png" alt="Limes preview" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={`${import.meta.env.BASE_URL}images/signin.png`} alt="Limes preview" className="absolute inset-0 h-full w-full object-cover" />
         </div>
       </div>
     </section>

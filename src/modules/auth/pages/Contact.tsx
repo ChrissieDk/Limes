@@ -52,7 +52,7 @@ export default function Contact() {
 
           {/* Side visual */}
           <div className="relative w-full rounded-3xl overflow-hidden border border-neutral-700/60 min-h-[360px]">
-            <img src="/images/signup.png" alt="contact" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}images/signup.png`} alt="contact" className="absolute inset-0 h-full w-full object-cover" />
           </div>
         </div>
       </section>
@@ -61,16 +61,16 @@ export default function Contact() {
       <footer className="mx-auto max-w-6xl px-6 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
           <div>
-            <img src="/images/Logo.png" alt="Limes" className="h-9" />
+            <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-9" />
             <p className="mt-4 text-sm text-neutral-400">Stay connected. Earn cash back. Own your money.</p>
           </div>
           <div>
             <div className="text-sm text-neutral-400 font-semibold mb-2">Quick Links</div>
             <ul className="text-sm text-neutral-300 space-y-1">
-              <li><a href="/#hero" className="hover:underline">Home</a></li>
-              <li><a href="/#why" className="hover:underline">Why Choose Limes</a></li>
-              <li><a href="/#packages" className="hover:underline">Packages</a></li>
-              <li><a href="/#partners" className="hover:underline">Why Partner With Us</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}#hero`} className="hover:underline">Home</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}#why`} className="hover:underline">Why Choose Limes</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}#packages`} className="hover:underline">Packages</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}#partners`} className="hover:underline">Why Partner With Us</a></li>
             </ul>
           </div>
           <div>
