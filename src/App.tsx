@@ -31,7 +31,9 @@ const router = createBrowserRouter([
     path: '/contact',
     element: <Contact />,
   },
-])
+], {
+  basename: '/Limes',
+})
 
 export default function App() {
   return <RouterProvider router={router} />
