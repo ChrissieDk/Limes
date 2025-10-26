@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Button from './Button'
 
 const navItems = [
@@ -40,7 +41,7 @@ export default function Navbar() {
           </ul>
 
           <div className="hidden md:block w-36">
-            <a href={`${import.meta.env.BASE_URL}contact`}><Button variant="primary">Contact Us</Button></a>
+            <Link to="/contact"><Button variant="primary">Contact Us</Button></Link>
           </div>
 
           <button aria-label="Menu" className="md:hidden inline-flex items-center justify-center size-10 rounded-lg ring-1 ring-neutral-200 hover:bg-neutral-100 transition" onClick={() => setOpen((v) => !v)}>
@@ -65,7 +66,7 @@ export default function Navbar() {
                 </a>
               </li>
             ))}
-            <li className="pt-2"><a href={`${import.meta.env.BASE_URL}contact`}><Button variant="primary" className="w-full">Contact Us</Button></a></li>
+            <li className="pt-2"><Link to="/contact"><Button variant="primary" className="w-full">Contact Us</Button></Link></li>
           </ul>
         </div>
       </nav>

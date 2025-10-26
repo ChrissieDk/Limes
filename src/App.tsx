@@ -32,7 +32,7 @@ const router = createBrowserRouter([
     element: <Contact />,
   },
 ], {
-  basename: '/Limes',
+  basename: (import.meta.env.BASE_URL || '/').replace(/\/$/, ''),
 })
 
 export default function App() {

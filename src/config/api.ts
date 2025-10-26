@@ -43,10 +43,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken')
-      const pathname = window.location.pathname
+      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+      const pathname = window.location.pathname.replace(base, '') || '/'
       const isPublicRoute = pathname === '/' || pathname.startsWith('/signin') || pathname.startsWith('/signup')
       if (!isPublicRoute) {
-        window.location.href = '/signin'
+        window.location.href = `${base}/signin`
       }
     }
     return Promise.reject(error)
