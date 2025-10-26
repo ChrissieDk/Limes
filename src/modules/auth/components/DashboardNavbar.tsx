@@ -7,8 +7,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 const navItems = [
   { label: 'Packages', to: '/dashboard/packages' },
   { label: 'Dashboard', to: '/dashboard' },
-  { label: 'Address Book', to: '/dashboard/address-book' },
-  { label: 'Wallet', to: '/dashboard/wallet' },
+  // { label: 'Address Book', to: '/dashboard/address-book' },
+  // { label: 'Wallet', to: '/dashboard/wallet' },
 ]
 
 export default function DashboardNavbar() {

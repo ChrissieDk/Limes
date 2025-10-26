@@ -86,7 +86,6 @@ export default function Contact() {
         <div className="mt-6 h-px w-full bg-neutral-800" />
         <div className="mt-4 text-neutral-500 text-xs flex items-center justify-between">
           <span>Copyright © 2025 Limes. All rights reserved.</span>
-          <span>Made with 💜</span>
         </div>
       </footer>
     </div>
