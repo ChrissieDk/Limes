@@ -3,63 +3,61 @@ import Button from './Button'
 export default function WhyChoose() {
   return (
     <section id="why" className="mx-auto max-w-6xl px-6 pb-24">
-      <div className="flex items-center justify-center">
-        <h2 className="font-grotesque font-bold text-white text-[34px] sm:text-[44px] md:text-[52px] text-center leading-[1.05]">
-          For <img src={`${import.meta.env.BASE_URL}images/people.png`} alt="people" className="inline-block align-middle h-10 sm:h-12 md:h-14 mx-2 -rotate-2" /> who want more from their mobile.
-        </h2>
-      </div>
-
-      <div className="mt-10 flex items-center justify-center text-sm text-neutral-400">
+      <div className="flex items-center justify-center text-sm text-neutral-400">
         <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Why Choose Limes?
       </div>
 
-      <h3 className="mt-8 font-grotesque font-bold text-white text-3xl md:text-5xl text-center leading-tight scroll-mt-24">
-        For individuals who want more
-        <br className="hidden md:block" /> from their mobile plan
-      </h3>
+      <div className="mt-4 flex items-center justify-center">
+        <h2 className="font-grotesque font-bold text-white text-[34px] sm:text-[44px] md:text-[56px] text-center leading-[1.05]">
+          <span>For </span>
+          <img src={`${import.meta.env.BASE_URL}images/people.png`} alt="people" className="inline-block align-middle h-10 sm:h-12 md:h-14 mx-2 -rotate-2" />
+          <span> who want more </span>
+          <span className="inline-block align-middle h-1 w-40 md:w-72 bg-white/70 rounded"></span>
+        </h2>
+      </div>
 
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_0.72fr_1fr_1fr] gap-2 items-stretch">
-        <div className="rounded-2xl bg-yellow-300 text-black p-6 md:col-span-1 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60">
-          <div>
-            <img src={`${import.meta.env.BASE_URL}images/sms.png`} alt="icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
-            <h4 className="font-semibold text-lg">Get cash back every
-              <br /> time you top up.</h4>
-            <p className="mt-3 text-sm text-black/70 font-manrope">
-              Earn real money with every airtime or data purchase. It lands straight in your
-              digital bank account — ready to spend, save, or send.
-            </p>
-          </div>
-          <button className="mt-6 text-sm inline-flex items-center gap-2 underline">See cash back in action</button>
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-[0.28fr_0.36fr_0.36fr] gap-4 lg:gap-0 items-stretch">
+        {/* Left image */}
+        <div className="relative overflow-hidden h-[190px] md:h-[210px] rounded-2xl">
+          <img src={`${import.meta.env.BASE_URL}images/man_block.png`} alt="Pointing man" className="h-full w-full object-contain" />
         </div>
 
-        <div className="h-full rounded-2xl overflow-hidden shadow-[6px_6px_0_0_rgba(0,0,0,0.7)]">
-          <img src={`${import.meta.env.BASE_URL}images/man_block.png`} alt="Pointing man" className="h-full w-full object-cover" />
-        </div>
-
-        <div className="rounded-2xl bg-pink-300 text-black p-6 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60">
-          <div>
-            <img src={`${import.meta.env.BASE_URL}images/data.png`} alt="plan icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
-            <h4 className="font-semibold text-lg">Build your plan. Only pay
-              <br /> for what you need.</h4>
-            <p className="mt-3 text-sm text-black/70 font-manrope">
-              No rigid bundles. No wasted data. Just flexible plans that fit your budget —
-              down to the last MB.
+        {/* Yellow card */}
+        <div className="relative rounded-2xl bg-yellow-300 text-black p-4 md:p-5 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60 h-[190px] md:h-[210px] overflow-hidden lg:-ml-[1px]">
+          <img src={`${import.meta.env.BASE_URL}images/plan_logo.png`} alt="Limes icon" className="h-5 w-5 mb-1.5" />
+          <div className="leading-tight">
+            <h4 className="font-semibold text-base md:text-[17px] leading-snug">
+              Sam bought 99 Limes. Limes said, “you deserve 130.”
+            </h4>
+            <p className="mt-1.5 text-[11px] md:text-xs text-black/70 font-manrope">
+              Get more every time you buy airtime. Ja, you read right. Buy R99 airtime and get R130.
             </p>
           </div>
-          <button className="mt-6 text-sm inline-flex items-center gap-2 underline">Build your plan</button>
+          <button className="mt-3 text-[11px] inline-flex items-center gap-2 underline">
+            Get started <span>→</span>
+          </button>
+          <span className="absolute right-6 top-6 text-black/60 text-xl select-none">＋</span>
+          <span className="absolute right-10 top-16 text-black/60 select-none">＋</span>
+          <span className="absolute right-16 top-10 text-black/60 select-none">＋</span>
         </div>
 
-        <div className="rounded-2xl bg-purple-300 text-black p-6 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60">
-          <div>
-            <img src={`${import.meta.env.BASE_URL}images/bundle_3.png`} alt="wallet icon" className="h-7 w-7 mb-4 transition-transform duration-200 hover:animate-jiggle" />
-            <h4 className="font-semibold text-lg">Data, banking, and
-              <br /> remittances — all in one.</h4>
-            <p className="mt-3 text-sm text-black/70 font-manrope">
-              Your SIM unlocks more than data. Send money, pay bills, and manage it all from
-              your digital, always-on wallet.
+        {/* Pink card */}
+        <div className="relative rounded-2xl bg-pink-300 text-black p-4 md:p-5 flex flex-col justify-between shadow-[6px_6px_0_0_rgba(0,0,0,0.7)] border-2 border-black/60 h-[190px] md:h-[210px] overflow-hidden lg:-ml-[1px]">
+          <div className="leading-tight">
+            <img src={`${import.meta.env.BASE_URL}images/bundle_3.png`} alt="bundle icon" className="h-5 w-5 mb-1.5" />
+            <h4 className="font-semibold text-base md:text-[17px] leading-snug">
+              When life gives you Limes, squeeze them your way.
+            </h4>
+            <p className="mt-1.5 text-[11px] md:text-xs text-black/70 font-manrope">
+              Convert your airtime to data, voice, SMS or WhatsApp. Giving you the freedom to connect your way.
             </p>
           </div>
-          <button className="mt-6 text-sm inline-flex items-center gap-2 underline">Build your plan</button>
+          <button className="mt-3 text-[11px] inline-flex items-center gap-2 underline">
+            Let’s squeeze ’em <span>→</span>
+          </button>
+          <span className="absolute right-4 top-4 text-black/60 text-xl select-none">＋</span>
+          <span className="absolute right-10 top-10 text-black/60 select-none">＋</span>
+          <span className="absolute right-20 top-20 text-black/60 select-none">＋</span>
         </div>
       </div>
 

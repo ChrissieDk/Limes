@@ -5,11 +5,20 @@ import Dashboard from './modules/auth/pages/Dashboard'
 import DashboardPackages from './modules/auth/pages/DashboardPackages'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
+import Faqs from './modules/auth/pages/Faqs'
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <Landing />,
+  },
+  {
+    path: '/faqs',
+    element: <Faqs />,
+  },
+  {
+    path: '/register',
+    element: <SignUp />,
   },
   {
     path: '/signup',

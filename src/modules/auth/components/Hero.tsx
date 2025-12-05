@@ -7,26 +7,25 @@ export default function Hero() {
         <div className="flex items-center gap-6 text-sm text-neutral-300">
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-indigo-400" />
-            <span>Flexible data</span>
+            <span>More airtime</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-blue-400" />
-            <span>real cashback</span>
+            <span>More data</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-yellow-400" />
-            <span>and seamless digital services.</span>
+            <span>More value</span>
           </div>
         </div>
 
         <h1 className="mt-6 font-grotesque font-bold leading-[0.95] tracking-tight text-white" style={{fontWeight:700}}>
-          <span className="block text-[44px] sm:text-[56px] md:text-[74px] lg:text-[88px]">Stay connected.</span>
-          <span className="block text-[44px] sm:text-[56px] md:text-[74px] lg:text-[88px]">Earn cash back.</span>
-          <span className="block text-[44px] sm:text-[56px] md:text-[74px] lg:text-[88px]">Own your money.</span>
+          <span className="block text-[44px] sm:text-[56px] md:text-[74px] lg:text-[88px]">We keep you</span>
+          <span className="block text-[44px] sm:text-[56px] md:text-[74px] lg:text-[88px]">connected.<br/> Simple as that.</span>
         </h1>
 
         <p className="mt-6 max-w-xl text-neutral-400 text-base md:text-lg">
-          Join the Limes community and unlock data, rewards, and banking in one simple package.
+          Fresh Limes, fresh start. Get the zest out of your digital life 🍋
         </p>
 
         <div className="mt-8 flex items-center gap-4">
@@ -41,7 +40,7 @@ export default function Hero() {
 
       <div className="hidden lg:flex h-full items-center">
         <div className="relative w-full h-full min-h-[460px] rounded-3xl overflow-hidden border border-neutral-700/60">
-          <img src={`${import.meta.env.BASE_URL}images/signin.png`} alt="Limes preview" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={`${import.meta.env.BASE_URL}images/hero image.png`} alt="Limes preview" className="absolute inset-0 h-full w-full object-cover" />
         </div>
       </div>
     </section>

@@ -47,10 +47,8 @@ export default function SignUp() {
       const [firstNameFromDisplay, ...rest] = displayName.split(' ').filter(Boolean)
       const firstName = firstNameFromDisplay || values.email.split('@')[0]
       const lastName = rest.join(' ') || 'User'
-      const externalId = `fb_${cred.user.uid}`
 
       await userService.registerUser({
-        externalId,
         emailAddress: values.email,
         firstName,
         lastName,

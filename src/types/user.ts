@@ -6,14 +6,12 @@ export interface User {
 }
 
 export interface CreateUserRequest {
-  externalId: string
   emailAddress: string
   firstName: string
   lastName: string
 }
 
 export interface CreateUserResponse {
-  externalId: string
   emailAddress: string
   firstName: string
   lastName: string

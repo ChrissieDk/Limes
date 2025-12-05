@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-type TopUpKind = 'data' | 'airtime'
+type TopUpKind = 'data' | 'airtime' | 'bundles'
 type EntryMode = 'price' | 'quantity'
 
 interface TopUpModalProps {
@@ -20,6 +20,7 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
   const [selectedMethod, setSelectedMethod] = useState<'wallet' | 'card' | 'eft'>('wallet')
   const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false)
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string>(phoneNumber ?? (phoneNumbers?.[0] ?? '+27 71 223 4455'))
+  const [selectedBundle, setSelectedBundle] = useState<string>('limes99')
 
   useEffect(() => {
     if (!open) return
@@ -43,6 +44,12 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
   const adjustPrice = (delta: number) => setPriceValue((v) => Math.max(0, Math.round((v + delta) * 100) / 100))
   const adjustData = (delta: number) => setDataQty((v) => Math.max(0, v + delta))
 
+  const bundles = useMemo(() => ([
+    { id: 'limes99', name: 'Limes99', icon: 'plan_logo.png', features: ['R99 airtime + R31 FREE', 'Unlimited WhatsApp text'] },
+    { id: 'limes29', name: 'Limes29', icon: 'sms.png', features: ['R29 airtime + R6 FREE', 'Unlimited WhatsApp text'] },
+    { id: 'limes69', name: 'Limes69', icon: 'star.png', features: ['R69 airtime + R21 FREE', 'Unlimited WhatsApp text'] },
+  ]), [])
+
   if (!open) return null
 
   return (
@@ -65,18 +72,21 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
           <div className="flex items-center justify-center gap-3">
             <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'data' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('data')}>Data</button>
             <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'airtime' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('airtime')}>Airtime</button>
+            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'bundles' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('bundles')}>Bundles</button>
           </div>
 
-          <div className="flex items-center justify-center gap-2 text-sm text-neutral-500">
-            <span>Switch to</span>
-            {entryMode === 'price' ? (
-              <button className="px-2 py-0.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700" onClick={() => setEntryMode('quantity')}>{kind === 'data' ? 'Data' : 'Cost Price'}</button>
-            ) : (
-              <button className="px-2 py-0.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700" onClick={() => setEntryMode('price')}>Cost Price</button>
-            )}
-          </div>
+          {kind !== 'bundles' && (
+            <div className="flex items-center justify-center gap-2 text-sm text-neutral-500">
+              <span>Switch to</span>
+              {entryMode === 'price' ? (
+                <button className="px-2 py-0.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700" onClick={() => setEntryMode('quantity')}>{kind === 'data' ? 'Data' : 'Cost Price'}</button>
+              ) : (
+                <button className="px-2 py-0.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700" onClick={() => setEntryMode('price')}>Cost Price</button>
+              )}
+            </div>
+          )}
 
-          {entryMode === 'price' ? (
+          {kind !== 'bundles' && (entryMode === 'price' ? (
             <div className="flex items-center justify-center gap-4 select-none">
               <button className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100" onClick={() => adjustPrice(-10)}>−</button>
               <div className="font-grotesque font-extrabold text-6xl tracking-tight">{formattedPrice}</div>
@@ -98,12 +108,14 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
               </div>
               <button className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100" onClick={() => adjustData(1)}>+</button>
             </div>
-          )}
+          ))}
 
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-lime-100 text-lime-700 px-3 py-1 text-sm">Save R20!</span>
-            {entryMode === 'price' && <span className="text-neutral-500 text-sm">{formattedPrice}.00</span>}
-          </div>
+          {kind !== 'bundles' && (
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center rounded-full bg-lime-100 text-lime-700 px-3 py-1 text-sm">Save R20!</span>
+              {entryMode === 'price' && <span className="text-neutral-500 text-sm">{formattedPrice}.00</span>}
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className={`rounded-xl border-2 ${selectedMethod === 'wallet' ? 'border-neutral-900' : 'border-neutral-200'} bg-lime-400/80 px-4 py-3 text-neutral-900`}
@@ -149,6 +161,26 @@ export default function TopUpModal({ open, onClose, initialKind = 'data', phoneN
               </div>
             </div>
           </div>
+
+          {kind === 'bundles' && (
+            <div className="space-y-3">
+              {bundles.map((b) => (
+                <div key={b.id} className={`rounded-xl border ${selectedBundle === b.id ? 'border-neutral-900' : 'border-neutral-200'} px-4 py-3 cursor-pointer`} onClick={() => setSelectedBundle(b.id)}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={`${import.meta.env.BASE_URL}images/${b.icon}`} alt="bundle" className="h-6 w-6" />
+                      <div>
+                        <div className="font-medium">{b.name}</div>
+                        <div className="text-sm text-neutral-500">{b.features[0]}</div>
+                        <div className="text-sm text-neutral-500">{b.features[1]}</div>
+                      </div>
+                    </div>
+                    <span className={`size-4 rounded-full ${selectedBundle === b.id ? 'bg-neutral-900' : 'bg-white ring-1 ring-neutral-300'}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="text-neutral-600 text-sm">Phone number to top-up</div>

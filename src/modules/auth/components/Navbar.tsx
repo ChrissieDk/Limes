@@ -38,6 +38,12 @@ export default function Navbar() {
                 </a>
               </li>
             ))}
+            <li>
+              <Link to="/faqs" className="group inline-flex flex-col items-center">
+                <span className="font-medium transition-colors duration-200 group-hover:text-neutral-900">FAQs</span>
+                <span className="mt-1 size-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 bg-purple-400" />
+              </Link>
+            </li>
           </ul>
 
           <div className="hidden md:block w-36">
@@ -66,6 +72,15 @@ export default function Navbar() {
                 </a>
               </li>
             ))}
+            <li>
+              <Link to="/faqs" className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-neutral-100 transition">
+                <div className="flex items-center gap-3">
+                  <span className="size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-purple-400" />
+                  <span className="text-sm font-medium">FAQs</span>
+                </div>
+                <span className="text-neutral-400">›</span>
+              </Link>
+            </li>
             <li className="pt-2"><Link to="/contact"><Button variant="primary" className="w-full">Contact Us</Button></Link></li>
           </ul>
         </div>
