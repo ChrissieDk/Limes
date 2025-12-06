@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import TextField from './TextField'
 import Checkbox from './Checkbox'
+import FileUpload from './FileUpload'
+import { crmService } from '../../crm/services/crmService'
+import { ricaService } from '../../rica/services/ricaService'
+import type { CreateAccountCustomerRequest } from '../../../types'
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3 | 4 | 5 | 6
 
 interface ChoosePackageModalProps {
   open: boolean
@@ -10,14 +15,28 @@ interface ChoosePackageModalProps {
 }
 
 export default function ChoosePackageModal({ open, onClose }: ChoosePackageModalProps) {
+  const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
   const [isResidential, setIsResidential] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [accountCreated, setAccountCreated] = useState(false)
+
+  // Document upload states
+  const [idFile, setIdFile] = useState<File | null>(null)
+  const [idUploaded, setIdUploaded] = useState(false)
+  const [idUploading, setIdUploading] = useState(false)
+  const [idSignedUrl, setIdSignedUrl] = useState<string | null>(null)
+  
+  const [poaFile, setPoaFile] = useState<File | null>(null)
+  const [poaUploaded, setPoaUploaded] = useState(false)
+  const [poaUploading, setPoaUploading] = useState(false)
+  const [poaSignedUrl, setPoaSignedUrl] = useState<string | null>(null)
 
   // Detail
   const [title, setTitle] = useState('Mr')
   const [firstname, setFirstname] = useState('')
   const [lastname, setLastname] = useState('')
-  const [creditLimit, setCreditLimit] = useState<number>(0)
   const [hasDeposit, setHasDeposit] = useState(false)
   const [idType, setIdType] = useState<'ID' | 'PASSPORT'>('ID')
   const [idNumber, setIdNumber] = useState('')
@@ -35,9 +54,12 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
   const [postCode, setPostCode] = useState('')
   const [country, setCountry] = useState('South Africa')
 
+  // Hardcoded values (never user-editable)
+  const creditLimit = 0
+  const taxSchemeId = 'VB8'
+  const collectionPlanId = 'STD9'
+
   // Misc
-  const [taxSchemeId, setTaxSchemeId] = useState('')
-  const [collectionPlanId, setCollectionPlanId] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [contactType, setContactType] = useState<'MOBILE_NO'>('MOBILE_NO')
   const [useParentAddressType, setUseParentAddressType] = useState<'BILLING'>('BILLING')
@@ -69,8 +91,180 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
     if (step === 1) return firstname.trim() !== '' && lastname.trim() !== '' && idNumber.trim() !== '' && billEmail.trim() !== ''
     if (step === 2) return streetNo && streetName && city && stateOrProvince && postCode
     if (step === 3) return phoneNumber.trim() !== ''
+    if (step === 4) return accountCreated // Can only proceed if account was created
+    if (step === 5) return idUploaded // Can only proceed if ID was uploaded
+    if (step === 6) return poaUploaded // Can only proceed if POA was uploaded
     return true
-  }, [step, firstname, lastname, idNumber, billEmail, streetNo, streetName, city, stateOrProvince, postCode, phoneNumber])
+  }, [step, firstname, lastname, idNumber, billEmail, streetNo, streetName, city, stateOrProvince, postCode, phoneNumber, accountCreated, idUploaded, poaUploaded])
+
+  const handleCreateAccount = async () => {
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const payload: CreateAccountCustomerRequest = {
+        isResidential,
+        detail: {
+          title,
+          firstname,
+          lastname,
+          creditLimit,
+          hasDeposit,
+          identification: {
+            idType,
+            idNumber,
+          },
+          billMedia: {
+            mediaType: 'EMAIL',
+            emailAddress: billEmail,
+            generationLevel: 'ACCOUNT',
+            language: billLanguage,
+          },
+        },
+        address: [
+          {
+            addressType: 'BILLING',
+            streetNo,
+            streetName,
+            suburb,
+            city,
+            stateOrProvince,
+            postCode,
+            country,
+          },
+        ],
+        taxScheme: {
+          id: taxSchemeId,
+        },
+        collectionPlan: {
+          id: collectionPlanId,
+        },
+        phone: {
+          phoneNumber,
+          contactType,
+        },
+        contact: {
+          useParentAddressType,
+          primaryContactRole: 'CUSTOMER',
+          isAccountOwner,
+          isServiceOwner,
+        },
+        customer: {
+          isResidential: custIsResidential,
+          detail: {
+            firstname: custFirstname,
+            lastname: custLastname,
+            requireSecurityQuestions,
+          },
+          address: [
+            {
+              addressType: 'POSTAL',
+              streetNo: custStreetNo,
+              streetName: custStreetName,
+              suburb: custSuburb,
+              city: custCity,
+              stateOrProvince: custStateOrProvince,
+              postCode: custPostCode,
+              country: custCountry,
+            },
+          ],
+        },
+      }
+
+      const response = await crmService.createAccountCustomer(payload)
+      
+      console.log('Account created successfully:', response)
+      
+      // If we got a response without an error, consider it successful
+      setAccountCreated(true)
+      setStep(5) // Move to ID upload step
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || ''
+      
+      // If account already exists, treat it as success and allow user to continue to uploads
+      if (errorMessage.toLowerCase().includes('already exists') || errorMessage.toLowerCase().includes('duplicate')) {
+        console.log('Account already exists, proceeding to document uploads')
+        setAccountCreated(true)
+        setStep(5) // Move to ID upload step
+      } else {
+        setError(errorMessage || 'An error occurred while creating the account')
+        console.error('Account creation error:', err)
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleIdFileSelect = async (file: File) => {
+    setIdFile(file)
+    setIdUploading(true)
+    setError(null)
+
+    try {
+      // Upload the file
+      const uploadResponse = await ricaService.uploadId(file)
+      console.log('ID uploaded successfully:', uploadResponse)
+      
+      // If upload succeeded (has path), fetch the signed URL
+      if (uploadResponse.path) {
+        const signedUrlResponse = await ricaService.getIdSignedUrl()
+        console.log('ID signed URL fetched:', signedUrlResponse)
+        
+        setIdSignedUrl(signedUrlResponse.signedUrl)
+        setIdUploaded(true)
+      } else {
+        setError('Upload completed but no path returned')
+        setIdFile(null)
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'An error occurred while uploading the ID document')
+      console.error('ID upload error:', err)
+      setIdFile(null)
+    } finally {
+      setIdUploading(false)
+    }
+  }
+
+  const handlePoaFileSelect = async (file: File) => {
+    setPoaFile(file)
+    setPoaUploading(true)
+    setError(null)
+
+    try {
+      // Upload the file
+      const uploadResponse = await ricaService.uploadProofOfAddress(file)
+      console.log('Proof of address uploaded successfully:', uploadResponse)
+      
+      // If upload succeeded (has path), fetch the signed URL
+      if (uploadResponse.path) {
+        const signedUrlResponse = await ricaService.getPoaSignedUrl()
+        console.log('POA signed URL fetched:', signedUrlResponse)
+        
+        setPoaSignedUrl(signedUrlResponse.signedUrl)
+        setPoaUploaded(true)
+      } else {
+        setError('Upload completed but no path returned')
+        setPoaFile(null)
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'An error occurred while uploading the proof of address')
+      console.error('POA upload error:', err)
+      setPoaFile(null)
+    } finally {
+      setPoaUploading(false)
+    }
+  }
+
+  const handleFinalSubmit = () => {
+    // All documents uploaded successfully
+    console.log('RICA process completed successfully')
+    console.log('ID Signed URL:', idSignedUrl)
+    console.log('POA Signed URL:', poaSignedUrl)
+    
+    // Close modal and navigate to dashboard
+    onClose()
+    navigate('/dashboard')
+  }
 
   if (!open) return null
 
@@ -93,10 +287,17 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
           <div className="px-5 pt-4 pb-5">
           {/* Progress */}
           <div className="flex items-center gap-2 mb-5">
-            {[1,2,3,4].map((s) => (
+            {[1,2,3,4,5,6].map((s) => (
               <div key={s} className={`h-1.5 flex-1 rounded-full ${step >= s ? 'bg-neutral-900' : 'bg-neutral-200'}`} />
             ))}
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Step content */}
           {step === 1 && (
@@ -138,12 +339,6 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
                   </select>
                 </label>
               </div>
-              <div>
-                <label className="grid gap-2">
-                  <span className="text-sm text-neutral-700">Credit limit</span>
-                  <input type="number" className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm w-full" value={creditLimit} onChange={(e) => setCreditLimit(Number(e.target.value))} />
-                </label>
-              </div>
               <div className="md:col-span-2">
                 <Checkbox label={<span className="text-neutral-900">Deposit paid</span>} checked={hasDeposit} onChange={(e) => setHasDeposit(e.target.checked)} />
               </div>
@@ -164,8 +359,6 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
 
           {step === 3 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextField label="Tax scheme ID" value={taxSchemeId} onChange={(e) => setTaxSchemeId(e.target.value)} />
-              <TextField label="Collection plan ID" value={collectionPlanId} onChange={(e) => setCollectionPlanId(e.target.value)} />
               <TextField label="Phone number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
               <div>
                 <label className="grid gap-2">
@@ -210,19 +403,91 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
             </div>
           )}
 
+          {step === 5 && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-neutral-900 mb-2">Upload ID Document</h3>
+                <p className="text-sm text-neutral-600">Please upload a clear copy of your ID or passport</p>
+              </div>
+              {idUploading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block size-12 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+                  <p className="mt-4 text-neutral-600">Uploading document...</p>
+                </div>
+              ) : (
+                <FileUpload
+                  label="ID Document"
+                  onFileSelect={handleIdFileSelect}
+                  accept="image/*,application/pdf"
+                  uploadedFileName={idFile?.name}
+                />
+              )}
+            </div>
+          )}
+
+          {step === 6 && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-neutral-900 mb-2">Upload Proof of Address</h3>
+                <p className="text-sm text-neutral-600">Please upload a recent utility bill or bank statement</p>
+              </div>
+              {poaUploading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block size-12 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+                  <p className="mt-4 text-neutral-600">Uploading document...</p>
+                </div>
+              ) : (
+                <FileUpload
+                  label="Proof of Address"
+                  onFileSelect={handlePoaFileSelect}
+                  accept="image/*,application/pdf"
+                  uploadedFileName={poaFile?.name}
+                />
+              )}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex items-center justify-between mt-6">
-            <button className="inline-flex items-center gap-2 rounded-xl bg-neutral-100 text-neutral-900 font-semibold px-5 py-2.5 hover:bg-neutral-200 active:scale-[0.99] transition" onClick={step === 1 ? onClose : () => setStep((s) => (Math.max(1, (s - 1) as Step)) as Step)}>
+            <button 
+              disabled={isSubmitting || idUploading || poaUploading}
+              className="inline-flex items-center gap-2 rounded-xl bg-neutral-100 text-neutral-900 font-semibold px-5 py-2.5 hover:bg-neutral-200 disabled:opacity-60 active:scale-[0.99] transition" 
+              onClick={step === 1 ? onClose : () => setStep((s) => (Math.max(1, (s - 1) as Step)) as Step)}
+            >
               <span>{step === 1 ? 'Cancel' : 'Back'}</span>
             </button>
             <div className="flex items-center gap-2">
               {step < 4 ? (
-                <button disabled={!canNext} className="inline-flex items-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-2.5 hover:bg-lime-300 disabled:opacity-60 active:scale-[0.99] transition" onClick={() => setStep((s) => (Math.min(4, (s + 1) as Step)) as Step)}>
+                <button 
+                  disabled={!canNext} 
+                  className="inline-flex items-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-2.5 hover:bg-lime-300 disabled:opacity-60 active:scale-[0.99] transition" 
+                  onClick={() => setStep((s) => (Math.min(6, (s + 1) as Step)) as Step)}
+                >
+                  Next →
+                </button>
+              ) : step === 4 ? (
+                <button 
+                  disabled={isSubmitting || accountCreated} 
+                  className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 text-white font-semibold px-5 py-2.5 hover:bg-neutral-800 disabled:opacity-60 active:scale-[0.99] transition" 
+                  onClick={handleCreateAccount}
+                >
+                  {isSubmitting ? 'Creating account...' : accountCreated ? 'Account created ✓' : 'Create Account'}
+                </button>
+              ) : step === 5 ? (
+                <button 
+                  disabled={!canNext || idUploading} 
+                  className="inline-flex items-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-2.5 hover:bg-lime-300 disabled:opacity-60 active:scale-[0.99] transition" 
+                  onClick={() => setStep(6)}
+                >
                   Next →
                 </button>
               ) : (
-                <button className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 text-white font-semibold px-5 py-2.5 hover:bg-neutral-800 active:scale-[0.99] transition" onClick={onClose}>
-                  Submit
+                <button 
+                  disabled={!canNext || poaUploading} 
+                  className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 text-white font-semibold px-5 py-2.5 hover:bg-neutral-800 disabled:opacity-60 active:scale-[0.99] transition" 
+                  onClick={handleFinalSubmit}
+                >
+                  Complete RICA
                 </button>
               )}
             </div>

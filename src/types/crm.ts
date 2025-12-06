@@ -116,4 +116,87 @@ export interface SearchAccountsQuery {
   limit?: number
 }
 
+// RICA Flow - Account Creation Types
+export interface RicaIdentification {
+  idType: 'ID' | 'PASSPORT'
+  idNumber: string
+}
+
+export interface RicaBillMedia {
+  mediaType: 'EMAIL'
+  emailAddress: string
+  generationLevel: 'ACCOUNT'
+  language: 'en-gb' | 'en-za' | 'af-za'
+}
+
+export interface RicaAccountDetail {
+  title: string
+  firstname: string
+  lastname: string
+  creditLimit: number
+  hasDeposit: boolean
+  identification: RicaIdentification
+  billMedia: RicaBillMedia
+}
+
+export interface RicaAddress {
+  addressType: 'BILLING' | 'POSTAL'
+  streetNo: string
+  streetName: string
+  suburb?: string
+  city: string
+  stateOrProvince: string
+  postCode: string
+  country: string
+}
+
+export interface RicaTaxScheme {
+  id: string
+}
+
+export interface RicaCollectionPlan {
+  id: string
+}
+
+export interface RicaPhone {
+  phoneNumber: string
+  contactType: 'MOBILE_NO'
+}
+
+export interface RicaContact {
+  useParentAddressType: 'BILLING'
+  primaryContactRole: 'CUSTOMER'
+  isAccountOwner: boolean
+  isServiceOwner: boolean
+}
+
+export interface RicaCustomerDetail {
+  firstname: string
+  lastname: string
+  requireSecurityQuestions: boolean
+}
+
+export interface RicaCustomer {
+  isResidential: boolean
+  detail: RicaCustomerDetail
+  address: RicaAddress[]
+}
+
+export interface CreateAccountCustomerRequest {
+  isResidential: boolean
+  detail: RicaAccountDetail
+  address: RicaAddress[]
+  taxScheme: RicaTaxScheme
+  collectionPlan: RicaCollectionPlan
+  phone: RicaPhone
+  contact: RicaContact
+  customer: RicaCustomer
+}
+
+export interface CreateAccountCustomerResponse {
+  // API returns the account/customer object directly
+  // Can include any fields - we just check if request succeeded
+  [key: string]: any
+}
+
 
