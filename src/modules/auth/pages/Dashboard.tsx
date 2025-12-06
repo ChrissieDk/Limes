@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import TopUpModal from '../components/TopUpModal';
+import ShippingModal from '../components/ShippingModal';
 import DashboardNavbar from '../components/DashboardNavbar';
 import { catalogService } from '../../catalog/services/catalogService';
 import { 
@@ -160,7 +161,7 @@ function StatusBadge({ status }: { status: Transaction['status'] }) {
 }
 
 // SIM Card Component
-function SimCard({ sim, onTopUp }: { sim: SimCard; onTopUp: (sim: SimCard) => void }) {
+function SimCard({ sim, onTopUp, onVerify }: { sim: SimCard; onTopUp: (sim: SimCard) => void; onVerify: (sim: SimCard) => void }) {
   return (
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
@@ -198,7 +199,7 @@ function SimCard({ sim, onTopUp }: { sim: SimCard; onTopUp: (sim: SimCard) => vo
         <button onClick={() => onTopUp(sim)} className="flex-1 bg-green-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-300 transition-colors">
           Top Up +
         </button>
-        <button className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+        <button onClick={() => onVerify(sim)} className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
           Verify
         </button>
       </div>
@@ -465,6 +466,29 @@ function Dashboard() {
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCard | null>(null);
+  const [shippingModalOpen, setShippingModalOpen] = useState(false);
+
+  // Mock data for shipping modal (this would come from your API/state in production)
+  const mockAddress = {
+    streetNo: '1',
+    streetName: 'Sterlig',
+    suburb: 'Eversdal',
+    city: 'Cape Town',
+    stateOrProvince: 'Western-Cape',
+    postCode: '7550',
+    country: 'South Africa',
+  }
+
+  const mockSelectedPackage = {
+    productId: '7029225P',
+    name: 'Lite Plan',
+    price: 199.99,
+    features: {
+      mobileData: '10GB',
+      messaging: '10 SMS',
+      phone: '10 Min',
+    },
+  }
 
   // TEMP: Log catalog endpoints to verify connectivity
   useEffect(() => {
@@ -504,6 +528,16 @@ function Dashboard() {
     setCurrentSimIndex((prev) => (prev - 1 + mockSimCards.length) % mockSimCards.length);
   };
 
+  const handleVerify = (sim: SimCard) => {
+    setModalSim(sim);
+    setShippingModalOpen(true);
+  };
+
+  const handlePay = () => {
+    console.log('Proceeding to payment...');
+    // TODO: Integrate payment flow
+  };
+
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
@@ -512,6 +546,13 @@ function Dashboard() {
         onClose={() => setModalOpen(false)} 
         phoneNumber={modalSim?.phoneNumber}
         phoneNumbers={mockSimCards.map((s) => s.phoneNumber)}
+      />
+      <ShippingModal
+        open={shippingModalOpen}
+        onClose={() => setShippingModalOpen(false)}
+        defaultAddress={mockAddress}
+        selectedPackage={mockSelectedPackage}
+        onPay={handlePay}
       />
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Top Section - My Sims and Transaction History (equal height within gray block) */}
@@ -542,7 +583,11 @@ function Dashboard() {
               </div>
             </div>
 
-            <SimCard sim={mockSimCards[currentSimIndex]} onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }} />
+            <SimCard 
+              sim={mockSimCards[currentSimIndex]} 
+              onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
+              onVerify={handleVerify}
+            />
             <PlanDetails sim={mockSimCards[currentSimIndex]} />
           </div>
 
