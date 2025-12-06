@@ -16,7 +16,7 @@ export const userService = {
 
   // User: Register user
   async registerUser(payload: CreateUserRequest): Promise<CreateUserResponse> {
-    const response = await apiClient.post('/user', payload)
+    const response = await apiClient.post('/user/register', payload)
     return response.data
   },
 }
