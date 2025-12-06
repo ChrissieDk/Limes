@@ -3,7 +3,8 @@ import type {
   CreateSubscriptionRequest, 
   CreateSubscriptionResponse,
   CreateOrderRequest,
-  CreateOrderResponse
+  CreateOrderResponse,
+  GetBalancesResponse
 } from '../../../types'
 
 export const subscriptionService = {
@@ -16,6 +17,12 @@ export const subscriptionService = {
   // Create order
   async createOrder(payload: CreateOrderRequest): Promise<CreateOrderResponse> {
     const response = await apiClient.post('/order/create', payload)
+    return response.data
+  },
+
+  // Get subscriber balances
+  async getBalances(msisdn: string): Promise<GetBalancesResponse> {
+    const response = await apiClient.get(`/subscriber/${msisdn}/balance`)
     return response.data
   },
 }
