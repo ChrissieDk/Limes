@@ -595,6 +595,9 @@ function Dashboard() {
         defaultAddress={mockAddress}
         selectedPackage={mockSelectedPackage}
         onPay={handlePay}
+        customerEmail="customer@example.com" // TODO: Get from user account
+        customerName="Customer Name" // TODO: Get from user account
+        customerPhone="27644038847" // Using the MSISDN
       />
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Top Section - My Sims and Transaction History (equal height within gray block) */}

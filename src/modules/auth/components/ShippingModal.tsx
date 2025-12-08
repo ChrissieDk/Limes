@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, MapPin, Package, ChevronRight } from 'lucide-react'
+import { Plus, MapPin, Package } from 'lucide-react'
+import { PaystackButton } from 'react-paystack'
 import TextField from './TextField'
 
 interface Address {
@@ -30,6 +31,9 @@ interface ShippingModalProps {
   defaultAddress?: Address
   selectedPackage?: SelectedPackage
   onPay?: () => void
+  customerEmail?: string
+  customerName?: string
+  customerPhone?: string
 }
 
 export default function ShippingModal({ 
@@ -37,10 +41,18 @@ export default function ShippingModal({
   onClose, 
   defaultAddress,
   selectedPackage,
-  onPay
+  onPay,
+  customerEmail = '',
+  customerName = '',
+  customerPhone = ''
 }: ShippingModalProps) {
   const [showAddAddress, setShowAddAddress] = useState(false)
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0)
+  
+  // Customer details for payment
+  const [email, setEmail] = useState(customerEmail)
+  const [name, setName] = useState(customerName)
+  const [phone, setPhone] = useState(customerPhone)
   
   // Address form states
   const [streetNo, setStreetNo] = useState('')
@@ -56,12 +68,74 @@ export default function ShippingModal({
     defaultAddress ? [defaultAddress] : []
   )
 
+  const formatAddress = (addr: Address) => {
+    const parts = [
+      addr.streetNo,
+      addr.streetName,
+      addr.suburb,
+      addr.city,
+      addr.stateOrProvince,
+      addr.postCode,
+      addr.country,
+    ].filter(Boolean)
+    return parts.join(', ')
+  }
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  // Update customer details when props change
+  useEffect(() => {
+    setEmail(customerEmail)
+    setName(customerName)
+    setPhone(customerPhone)
+  }, [customerEmail, customerName, customerPhone])
+
+  // Paystack configuration
+  const publicKey = "pk_test_a64167b519a4785577c679768f9b2927a835d714" // Replace with your actual key
+  const amount = selectedPackage ? selectedPackage.price * 100 : 0 // Convert to cents (R199.99 = 19999 cents)
+
+  const paystackProps = {
+    email,
+    amount,
+    currency: 'ZAR', // South African Rand
+    metadata: {
+      name,
+      phone,
+      custom_fields: [
+        {
+          display_name: "Package ID",
+          variable_name: "package_id",
+          value: selectedPackage?.productId || '',
+        },
+        {
+          display_name: "Package Name",
+          variable_name: "package_name",
+          value: selectedPackage?.name || '',
+        },
+        {
+          display_name: "Shipping Address",
+          variable_name: "shipping_address",
+          value: addresses[selectedAddressIndex] ? formatAddress(addresses[selectedAddressIndex]) : '',
+        },
+      ],
+    },
+    publicKey,
+    text: "Pay Now",
+    onSuccess: (reference: any) => {
+      console.log('Payment successful!', reference)
+      alert('Payment successful! Your SIM card will be shipped to your address.')
+      if (onPay) onPay()
+      onClose()
+    },
+    onClose: () => {
+      console.log('Payment dialog closed')
+    },
+  }
 
   const handleAddAddress = () => {
     if (!streetNo || !streetName || !city || !stateOrProvince || !postCode) {
@@ -90,19 +164,6 @@ export default function ShippingModal({
     setStateOrProvince('')
     setPostCode('')
     setCountry('South Africa')
-  }
-
-  const formatAddress = (addr: Address) => {
-    const parts = [
-      addr.streetNo,
-      addr.streetName,
-      addr.suburb,
-      addr.city,
-      addr.stateOrProvince,
-      addr.postCode,
-      addr.country,
-    ].filter(Boolean)
-    return parts.join(', ')
   }
 
   if (!open) return null
@@ -323,6 +384,34 @@ export default function ShippingModal({
               )}
             </div>
 
+            {/* Customer Details for Payment */}
+            {!showAddAddress && addresses.length > 0 && selectedPackage && (
+              <div className="space-y-3">
+                <h3 className="text-neutral-900 font-bold text-sm uppercase tracking-wide">Payment Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <TextField
+                    label="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                  />
+                  <TextField
+                    label="Full Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                  />
+                  <TextField
+                    label="Phone Number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="27123456789"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Summary & Pay Button */}
             {!showAddAddress && addresses.length > 0 && selectedPackage && (
               <div className="space-y-4 pt-2">
@@ -341,13 +430,16 @@ export default function ShippingModal({
                   </div>
                 </div>
 
-                <button
-                  onClick={onPay}
-                  className="w-full bg-lime-400 text-neutral-900 py-3.5 px-4 rounded-xl font-bold hover:bg-lime-300 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-lg"
-                >
-                  <span>Pay Now</span>
-                  <ChevronRight className="w-5 h-5" />
-                </button>
+                {email && name && phone ? (
+                  <PaystackButton 
+                    {...paystackProps}
+                    className="w-full bg-lime-400 text-neutral-900 py-3.5 px-4 rounded-xl font-bold hover:bg-lime-300 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-lg"
+                  />
+                ) : (
+                  <div className="text-center py-2">
+                    <p className="text-sm text-neutral-600">Please fill in all payment details above</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
