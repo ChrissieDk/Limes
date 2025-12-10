@@ -1,8 +1,22 @@
 // Subscription Types
+export interface SubscriptionAddress {
+  referredType: string
+  addressType: string
+  streetNo: string
+  streetName: string
+  suburb?: string
+  city: string
+  stateOrProvince: string
+  postCode: string
+  country: string
+  oneLineAddress: string
+}
+
 export interface CreateSubscriptionRequest {
   productId: string
   iccid: string
   eSim: boolean
+  address: SubscriptionAddress[]
 }
 
 export interface CreateSubscriptionResponse {

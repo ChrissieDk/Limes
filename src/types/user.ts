@@ -3,6 +3,8 @@ export interface User {
   externalId: string
   emailAddress: string
   displayName: string
+  msisdns?: string[]
+  ricaComplete?: boolean
 }
 
 export interface CreateUserRequest {

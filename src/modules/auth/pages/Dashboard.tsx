@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import TopUpModal from '../components/TopUpModal';
 import ShippingModal from '../components/ShippingModal';
 import DashboardNavbar from '../components/DashboardNavbar';
 import { catalogService } from '../../catalog/services/catalogService';
 import { subscriptionService } from '../../subscription/services/subscriptionService';
-import type { Balance } from '../../../types';
+import { crmService } from '../../crm/services/crmService';
+import type { Balance, RicaAddress } from '../../../types';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -465,25 +467,22 @@ function TransactionHistory({ transactions, className }: { transactions: Transac
 
 // Main Dashboard Component
 function Dashboard() {
+  const location = useLocation();
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCard | null>(null);
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
   const [simCards, setSimCards] = useState<SimCard[]>(mockSimCards);
   const [balancesLoading, setBalancesLoading] = useState(true);
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [customerAddress, setCustomerAddress] = useState<RicaAddress | null>(null);
+  const [customerEmail, setCustomerEmail] = useState<string>('');
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
 
-  // Mock data for shipping modal (this would come from your API/state in production)
-  const mockAddress = {
-    streetNo: '1',
-    streetName: 'Sterlig',
-    suburb: 'Eversdal',
-    city: 'Cape Town',
-    stateOrProvince: 'Western-Cape',
-    postCode: '7550',
-    country: 'South Africa',
-  }
-
-  const mockSelectedPackage = {
+  // Get selected package from navigation state or use mock as fallback
+  const selectedPackageFromState = (location.state as any)?.selectedPackage;
+  const selectedPackage = selectedPackageFromState || {
     productId: '7029225P',
     name: 'Lite Plan',
     price: 199.99,
@@ -493,6 +492,50 @@ function Dashboard() {
       phone: '10 Min',
     },
   }
+
+  // Auto-open shipping modal if package was selected
+  useEffect(() => {
+    if (selectedPackageFromState) {
+      console.log('[Dashboard] Package selected, opening shipping modal:', selectedPackageFromState);
+      setShippingModalOpen(true);
+    }
+  }, [selectedPackageFromState]);
+
+  // Fetch account customer details
+  useEffect(() => {
+    let cancelled = false;
+    const fetchAccountCustomer = async () => {
+      setAccountLoading(true);
+      try {
+        const response = await crmService.getAccountCustomer();
+        if (!cancelled) {
+          console.log('[Account] Fetched customer details:', response);
+          
+          // Get postal address from customer.address
+          const postalAddress = response.customer.address.find(
+            (addr: RicaAddress) => addr.addressType === 'POSTAL'
+          );
+          
+          if (postalAddress) {
+            setCustomerAddress(postalAddress);
+          }
+          
+          // Set customer details
+          setCustomerEmail(response.detail.billMedia.emailAddress);
+          setCustomerName(`${response.detail.firstname} ${response.detail.lastname}`);
+          setCustomerPhone(response.phone.phoneNumber);
+        }
+      } catch (err) {
+        if (!cancelled) console.error('[Account] Error fetching customer details:', err);
+      } finally {
+        if (!cancelled) setAccountLoading(false);
+      }
+    };
+    fetchAccountCustomer();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fetch balances for the SIM
   useEffect(() => {
@@ -589,16 +632,26 @@ function Dashboard() {
         phoneNumber={modalSim?.phoneNumber}
         phoneNumbers={simCards.map((s) => s.phoneNumber)}
       />
-      <ShippingModal
-        open={shippingModalOpen}
-        onClose={() => setShippingModalOpen(false)}
-        defaultAddress={mockAddress}
-        selectedPackage={mockSelectedPackage}
-        onPay={handlePay}
-        customerEmail="customer@example.com" // TODO: Get from user account
-        customerName="Customer Name" // TODO: Get from user account
-        customerPhone="27644038847" // Using the MSISDN
-      />
+      {shippingModalOpen && (
+        <ShippingModal
+          open={shippingModalOpen}
+          onClose={() => setShippingModalOpen(false)}
+          defaultAddress={customerAddress ? {
+            streetNo: customerAddress.streetNo,
+            streetName: customerAddress.streetName,
+            suburb: customerAddress.suburb,
+            city: customerAddress.city,
+            stateOrProvince: customerAddress.stateOrProvince,
+            postCode: customerAddress.postCode,
+            country: customerAddress.country,
+          } : undefined}
+          selectedPackage={selectedPackage}
+          onPay={handlePay}
+          customerEmail={customerEmail}
+          customerName={customerName}
+          customerPhone={customerPhone}
+        />
+      )}
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Top Section - My Sims and Transaction History (equal height within gray block) */}
         <section className="bg-neutral-800 border border-neutral-700 rounded-2xl p-6">

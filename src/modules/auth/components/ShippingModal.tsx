@@ -64,9 +64,7 @@ export default function ShippingModal({
   const [country, setCountry] = useState('South Africa')
 
   // Addresses list (default + any new ones)
-  const [addresses, setAddresses] = useState<Address[]>(
-    defaultAddress ? [defaultAddress] : []
-  )
+  const [addresses, setAddresses] = useState<Address[]>([])
 
   const formatAddress = (addr: Address) => {
     const parts = [
@@ -80,6 +78,15 @@ export default function ShippingModal({
     ].filter(Boolean)
     return parts.join(', ')
   }
+
+  // Set default address when prop changes
+  useEffect(() => {
+    if (defaultAddress) {
+      console.log('ShippingModal: Setting default address:', defaultAddress)
+      setAddresses([defaultAddress])
+      setSelectedAddressIndex(0)
+    }
+  }, [defaultAddress])
 
   useEffect(() => {
     if (!open) return
@@ -96,13 +103,13 @@ export default function ShippingModal({
   }, [customerEmail, customerName, customerPhone])
 
   // Paystack configuration
-  const publicKey = "pk_test_a64167b519a4785577c679768f9b2927a835d714" // Replace with your actual key
-  const amount = selectedPackage ? selectedPackage.price * 100 : 0 // Convert to cents (R199.99 = 19999 cents)
+  const publicKey = "pk_test_a64167b519a4785577c679768f9b2927a835d714" 
+  const amount = selectedPackage ? selectedPackage.price * 100 : 0 
 
   const paystackProps = {
     email,
     amount,
-    currency: 'ZAR', // South African Rand
+    currency: 'ZAR', 
     metadata: {
       name,
       phone,
