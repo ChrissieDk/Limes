@@ -474,7 +474,6 @@ function Dashboard() {
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
   const [simCards, setSimCards] = useState<SimCard[]>(mockSimCards);
   const [balancesLoading, setBalancesLoading] = useState(true);
-  const [accountLoading, setAccountLoading] = useState(true);
   const [customerAddress, setCustomerAddress] = useState<RicaAddress | null>(null);
   const [customerEmail, setCustomerEmail] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
@@ -505,7 +504,6 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     const fetchAccountCustomer = async () => {
-      setAccountLoading(true);
       try {
         const response = await crmService.getAccountCustomer();
         if (!cancelled) {
@@ -528,7 +526,7 @@ function Dashboard() {
       } catch (err) {
         if (!cancelled) console.error('[Account] Error fetching customer details:', err);
       } finally {
-        if (!cancelled) setAccountLoading(false);
+        // No specific loading state needed for account details currently
       }
     };
     fetchAccountCustomer();
