@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import TopUpModal from '../components/TopUpModal';
+import ShippingModal from '../components/ShippingModal';
 import DashboardNavbar from '../components/DashboardNavbar';
 import { catalogService } from '../../catalog/services/catalogService';
+import { subscriptionService } from '../../subscription/services/subscriptionService';
+import { crmService } from '../../crm/services/crmService';
+import type { Balance, RicaAddress } from '../../../types';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -24,6 +29,7 @@ interface SimCard {
     messaging: string;
     phone: string;
   };
+  balances?: Balance[];
 }
 
 interface Transaction {
@@ -58,29 +64,16 @@ const mockSimCards: SimCard[] = [
   {
     id: '1',
     name: 'Sim 1',
-    phoneNumber: '087 334 4455',
+    phoneNumber: '27644038847', // Real MSISDN
     isActive: true,
     hasVoiceTopUp: true,
     plan: {
-      mobileData: '12GB',
-      airtime: 'R120',
-      messaging: '20SMS',
-      phone: '102 Min'
+      mobileData: '0GB',
+      airtime: 'R0',
+      messaging: '0SMS',
+      phone: '0 Min'
     }
   },
-  {
-    id: '2',
-    name: 'Sim 2',
-    phoneNumber: '087 334 4455',
-    isActive: true,
-    hasVoiceTopUp: true,
-    plan: {
-      mobileData: '12GB',
-      airtime: 'R120',
-      messaging: '20SMS',
-      phone: '102 Min'
-    }
-  }
 ];
 
 const mockTransactions: Transaction[] = [
@@ -160,7 +153,7 @@ function StatusBadge({ status }: { status: Transaction['status'] }) {
 }
 
 // SIM Card Component
-function SimCard({ sim, onTopUp }: { sim: SimCard; onTopUp: (sim: SimCard) => void }) {
+function SimCard({ sim, onTopUp, onVerify }: { sim: SimCard; onTopUp: (sim: SimCard) => void; onVerify: (sim: SimCard) => void }) {
   return (
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
@@ -198,7 +191,7 @@ function SimCard({ sim, onTopUp }: { sim: SimCard; onTopUp: (sim: SimCard) => vo
         <button onClick={() => onTopUp(sim)} className="flex-1 bg-green-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-300 transition-colors">
           Top Up +
         </button>
-        <button className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+        <button onClick={() => onVerify(sim)} className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
           Verify
         </button>
       </div>
@@ -208,25 +201,37 @@ function SimCard({ sim, onTopUp }: { sim: SimCard; onTopUp: (sim: SimCard) => vo
 
 // Plan Details Component (stacked)
 function PlanDetails({ sim }: { sim: SimCard }) {
+  // Get balances from sim.balances or use defaults
+  const getBalanceValue = (grouping: string) => {
+    if (!sim.balances) return null
+    const balance = sim.balances.find(b => b.grouping === grouping)
+    return balance?.formattedParts?.value || null
+  }
+
+  const mobileData = getBalanceValue('data') || sim.plan.mobileData
+  const airtime = getBalanceValue('gpa') || sim.plan.airtime
+  const messaging = sim.plan.messaging // No specific balance for messaging in API
+  const phone = sim.plan.phone // No specific balance for phone minutes in API
+
   return (
     <div className="bg-white rounded-2xl p-5">
       <h4 className="text-neutral-900 font-extrabold text-2xl mb-4">Sim Details</h4>
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-lime-400 rounded-2xl p-4">
           <div className="text-neutral-900 text-sm font-medium mb-1">Mobile data</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.mobileData}</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{mobileData}</div>
         </div>
         <div className="bg-purple-400 rounded-2xl p-4">
           <div className="text-neutral-900 text-sm font-medium mb-1">Airtime</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.airtime}</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{airtime}</div>
         </div>
         <div className="bg-blue-500 rounded-2xl p-4">
           <div className="text-neutral-900 text-sm font-medium mb-1">Messaging</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.messaging}</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{messaging}</div>
         </div>
         <div className="bg-pink-400 rounded-2xl p-4">
           <div className="text-neutral-900 text-sm font-medium mb-1">Phone</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{sim.plan.phone}</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{phone}</div>
         </div>
       </div>
     </div>
@@ -462,9 +467,113 @@ function TransactionHistory({ transactions, className }: { transactions: Transac
 
 // Main Dashboard Component
 function Dashboard() {
+  const location = useLocation();
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCard | null>(null);
+  const [shippingModalOpen, setShippingModalOpen] = useState(false);
+  const [simCards, setSimCards] = useState<SimCard[]>(mockSimCards);
+  const [balancesLoading, setBalancesLoading] = useState(true);
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [customerAddress, setCustomerAddress] = useState<RicaAddress | null>(null);
+  const [customerEmail, setCustomerEmail] = useState<string>('');
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
+
+  // Get selected package from navigation state or use mock as fallback
+  const selectedPackageFromState = (location.state as any)?.selectedPackage;
+  const selectedPackage = selectedPackageFromState || {
+    productId: '7029225P',
+    name: 'Lite Plan',
+    price: 199.99,
+    features: {
+      mobileData: '10GB',
+      messaging: '10 SMS',
+      phone: '10 Min',
+    },
+  }
+
+  // Auto-open shipping modal if package was selected
+  useEffect(() => {
+    if (selectedPackageFromState) {
+      console.log('[Dashboard] Package selected, opening shipping modal:', selectedPackageFromState);
+      setShippingModalOpen(true);
+    }
+  }, [selectedPackageFromState]);
+
+  // Fetch account customer details
+  useEffect(() => {
+    let cancelled = false;
+    const fetchAccountCustomer = async () => {
+      setAccountLoading(true);
+      try {
+        const response = await crmService.getAccountCustomer();
+        if (!cancelled) {
+          console.log('[Account] Fetched customer details:', response);
+          
+          // Get postal address from customer.address
+          const postalAddress = response.customer.address.find(
+            (addr: RicaAddress) => addr.addressType === 'POSTAL'
+          );
+          
+          if (postalAddress) {
+            setCustomerAddress(postalAddress);
+          }
+          
+          // Set customer details
+          setCustomerEmail(response.detail.billMedia.emailAddress);
+          setCustomerName(`${response.detail.firstname} ${response.detail.lastname}`);
+          setCustomerPhone(response.phone.phoneNumber);
+        }
+      } catch (err) {
+        if (!cancelled) console.error('[Account] Error fetching customer details:', err);
+      } finally {
+        if (!cancelled) setAccountLoading(false);
+      }
+    };
+    fetchAccountCustomer();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch balances for the SIM
+  useEffect(() => {
+    let cancelled = false;
+    const fetchBalances = async () => {
+      setBalancesLoading(true);
+      try {
+        const response = await subscriptionService.getBalances('27644038847');
+        if (!cancelled && response.balances) {
+          console.log('[Balance] Fetched balances:', response);
+          
+          // Update the sim card with balances
+          setSimCards(prevSims => prevSims.map((sim, idx) => {
+            if (idx === 0) { // Update first sim with real data
+              return {
+                ...sim,
+                balances: response.balances,
+                plan: {
+                  ...sim.plan,
+                  mobileData: response.balances.find(b => b.grouping === 'data')?.formattedParts?.value || sim.plan.mobileData,
+                  airtime: response.balances.find(b => b.grouping === 'gpa')?.formattedParts?.value || sim.plan.airtime,
+                }
+              };
+            }
+            return sim;
+          }));
+        }
+      } catch (err) {
+        if (!cancelled) console.error('[Balance] Error fetching balances:', err);
+      } finally {
+        if (!cancelled) setBalancesLoading(false);
+      }
+    };
+    fetchBalances();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // TEMP: Log catalog endpoints to verify connectivity
   useEffect(() => {
@@ -498,10 +607,20 @@ function Dashboard() {
   }, []);
 
   const nextSim = () => {
-    setCurrentSimIndex((prev) => (prev + 1) % mockSimCards.length);
+    setCurrentSimIndex((prev) => (prev + 1) % simCards.length);
   };
   const prevSim = () => {
-    setCurrentSimIndex((prev) => (prev - 1 + mockSimCards.length) % mockSimCards.length);
+    setCurrentSimIndex((prev) => (prev - 1 + simCards.length) % simCards.length);
+  };
+
+  const handleVerify = (sim: SimCard) => {
+    setModalSim(sim);
+    setShippingModalOpen(true);
+  };
+
+  const handlePay = () => {
+    console.log('Proceeding to payment...');
+    // TODO: Integrate payment flow
   };
 
   return (
@@ -511,8 +630,28 @@ function Dashboard() {
         open={modalOpen}
         onClose={() => setModalOpen(false)} 
         phoneNumber={modalSim?.phoneNumber}
-        phoneNumbers={mockSimCards.map((s) => s.phoneNumber)}
+        phoneNumbers={simCards.map((s) => s.phoneNumber)}
       />
+      {shippingModalOpen && (
+        <ShippingModal
+          open={shippingModalOpen}
+          onClose={() => setShippingModalOpen(false)}
+          defaultAddress={customerAddress ? {
+            streetNo: customerAddress.streetNo,
+            streetName: customerAddress.streetName,
+            suburb: customerAddress.suburb,
+            city: customerAddress.city,
+            stateOrProvince: customerAddress.stateOrProvince,
+            postCode: customerAddress.postCode,
+            country: customerAddress.country,
+          } : undefined}
+          selectedPackage={selectedPackage}
+          onPay={handlePay}
+          customerEmail={customerEmail}
+          customerName={customerName}
+          customerPhone={customerPhone}
+        />
+      )}
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Top Section - My Sims and Transaction History (equal height within gray block) */}
         <section className="bg-neutral-800 border border-neutral-700 rounded-2xl p-6">
@@ -530,20 +669,33 @@ function Dashboard() {
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <span className="text-neutral-400 text-sm">
-                  {currentSimIndex + 1} of {mockSimCards.length}
+                  {currentSimIndex + 1} of {simCards.length}
                 </span>
                 <button
                   onClick={nextSim}
                   className="p-1 text-neutral-400 hover:text-white transition-colors"
-                  disabled={currentSimIndex === mockSimCards.length - 1}
+                  disabled={currentSimIndex === simCards.length - 1}
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <SimCard sim={mockSimCards[currentSimIndex]} onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }} />
-            <PlanDetails sim={mockSimCards[currentSimIndex]} />
+            {balancesLoading ? (
+              <div className="bg-neutral-800 rounded-xl p-8 border border-neutral-700 text-center">
+                <div className="inline-block size-8 border-4 border-neutral-600 border-t-lime-400 rounded-full animate-spin mb-3" />
+                <p className="text-neutral-400 text-sm">Loading SIM details...</p>
+              </div>
+            ) : (
+              <>
+                <SimCard 
+                  sim={simCards[currentSimIndex]} 
+                  onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
+                  onVerify={handleVerify}
+                />
+                <PlanDetails sim={simCards[currentSimIndex]} />
+              </>
+            )}
           </div>
 
           {/* Right: Transaction History */}

@@ -3,7 +3,8 @@ import type {
   SearchAccountsQuery, 
   SearchAccountsResponse,
   CreateAccountCustomerRequest,
-  CreateAccountCustomerResponse
+  CreateAccountCustomerResponse,
+  GetAccountCustomerResponse
 } from '../../../types'
 
 export const crmService = {
@@ -16,6 +17,12 @@ export const crmService = {
   // RICA: Create account and customer
   async createAccountCustomer(payload: CreateAccountCustomerRequest): Promise<CreateAccountCustomerResponse> {
     const response = await apiClient.post('/crm/store/account/customer', payload)
+    return response.data
+  },
+
+  // CRM: Get account customer details
+  async getAccountCustomer(): Promise<GetAccountCustomerResponse> {
+    const response = await apiClient.get('/crm/account/customer')
     return response.data
   },
 }

@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://limes-production.up.railway.app',
+        target: 'https://limes-staging.up.railway.app',
         changeOrigin: true,
         secure: true,
       },

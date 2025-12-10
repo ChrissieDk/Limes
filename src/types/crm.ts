@@ -199,4 +199,16 @@ export interface CreateAccountCustomerResponse {
   [key: string]: any
 }
 
+// Get Account Customer Response (same structure as create request)
+export interface GetAccountCustomerResponse {
+  isResidential: boolean
+  detail: RicaAccountDetail
+  address: RicaAddress[]
+  taxScheme: RicaTaxScheme
+  collectionPlan: RicaCollectionPlan
+  phone: RicaPhone
+  contact: RicaContact
+  customer: RicaCustomer
+}
+
 

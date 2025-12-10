@@ -3,24 +3,27 @@ import { useNavigate } from 'react-router-dom'
 import TextField from './TextField'
 import Checkbox from './Checkbox'
 import FileUpload from './FileUpload'
+import ShippingModal from './ShippingModal'
 import { crmService } from '../../crm/services/crmService'
 import { ricaService } from '../../rica/services/ricaService'
-import type { CreateAccountCustomerRequest } from '../../../types'
+import type { CreateAccountCustomerRequest, CatalogProduct } from '../../../types'
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6
 
 interface ChoosePackageModalProps {
   open: boolean
   onClose: () => void
+  selectedPackage?: CatalogProduct | null
 }
 
-export default function ChoosePackageModal({ open, onClose }: ChoosePackageModalProps) {
+export default function ChoosePackageModal({ open, onClose, selectedPackage }: ChoosePackageModalProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
   const [isResidential, setIsResidential] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accountCreated, setAccountCreated] = useState(false)
+  const [showShippingModal, setShowShippingModal] = useState(false)
 
   // Document upload states
   const [idFile, setIdFile] = useState<File | null>(null)
@@ -260,8 +263,14 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
     console.log('RICA process completed successfully')
     console.log('ID Signed URL:', idSignedUrl)
     console.log('POA Signed URL:', poaSignedUrl)
+    console.log('Selected Package:', selectedPackage)
     
-    // Close modal and navigate to dashboard
+    // Show shipping modal with selected package and address
+    setShowShippingModal(true)
+  }
+
+  const handleShippingClose = () => {
+    setShowShippingModal(false)
     onClose()
     navigate('/dashboard')
   }
@@ -495,6 +504,34 @@ export default function ChoosePackageModal({ open, onClose }: ChoosePackageModal
           </div>
         </div>
       </div>
+
+      {/* Shipping Modal - shown after RICA completion */}
+      {showShippingModal && selectedPackage && (
+        <ShippingModal
+          open={showShippingModal}
+          onClose={handleShippingClose}
+          selectedPackage={{
+            productId: selectedPackage.id,
+            name: selectedPackage.name,
+            price: selectedPackage.price,
+            features: {
+              mobileData: selectedPackage.description,
+            }
+          }}
+          defaultAddress={{
+            streetNo,
+            streetName,
+            suburb,
+            city,
+            stateOrProvince,
+            postCode,
+            country,
+          }}
+          customerEmail={billEmail}
+          customerName={`${firstname} ${lastname}`}
+          customerPhone={phoneNumber}
+        />
+      )}
     </div>
   )
 }
