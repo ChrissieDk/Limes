@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Plus, MapPin, Package } from 'lucide-react'
-import { PaystackButton } from 'react-paystack'
+import { Plus, MapPin, Package, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
+import { paymentService } from '../../payment/services/paymentService'
+
+// Load Paystack Inline JS
+declare const PaystackPop: any
 
 interface Address {
   streetNo: string
@@ -65,6 +68,12 @@ export default function ShippingModal({
 
   // Addresses list (default + any new ones)
   const [addresses, setAddresses] = useState<Address[]>([])
+  
+  // Payment states
+  const [isInitializing, setIsInitializing] = useState(false)
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
 
   const formatAddress = (addr: Address) => {
     const parts = [
@@ -100,48 +109,104 @@ export default function ShippingModal({
     setEmail(customerEmail)
     setName(customerName)
     setPhone(customerPhone)
-  }, [customerEmail, customerName, customerPhone])
+  }, [customerEmail, customerName, customerPhone]) 
 
-  // Paystack configuration
-  const publicKey = "pk_test_a64167b519a4785577c679768f9b2927a835d714" 
-  const amount = selectedPackage ? selectedPackage.price * 100 : 0 
+  // Initialize payment (SECURE - Backend controls amount and creates order)
+  const handleInitializePayment = async () => {
+    if (!email || !name || !phone || !selectedPackage) {
+      return
+    }
 
-  const paystackProps = {
-    email,
-    amount,
-    currency: 'ZAR', 
-    metadata: {
-      name,
-      phone,
-      custom_fields: [
-        {
-          display_name: "Package ID",
-          variable_name: "package_id",
-          value: selectedPackage?.productId || '',
+    setIsInitializing(true)
+    setVerificationError(null)
+
+    try {
+      console.log('[Payment] Initializing transaction on backend...')
+      
+      // 1. Initialize transaction on YOUR backend with REQUIRED metadata
+      const initResponse = await paymentService.initializeTransaction({
+        email,
+        amount: selectedPackage.price, // In Rands, backend converts to cents
+        metadata: {
+          productId: selectedPackage.productId,  // REQUIRED - for order creation
+          msisdn: phone,                          // REQUIRED - for order creation
+          productName: selectedPackage.name,     // Optional
+          customerName: name,                     // Optional
+        }
+      })
+
+      if (!initResponse.success || !initResponse.data) {
+        setVerificationError(initResponse.error || 'Failed to initialize payment')
+        return
+      }
+
+      console.log('[Payment] Transaction initialized, access_code:', initResponse.data.access_code)
+
+      // 2. Use Paystack Popup with access_code
+      const popup = new PaystackPop()
+      popup.resumeTransaction(initResponse.data.access_code, {
+        onSuccess: (transaction: any) => {
+          console.log('[Payment] Payment successful:', transaction)
+          handlePaymentVerification(transaction.reference || initResponse.data?.reference || '')
         },
-        {
-          display_name: "Package Name",
-          variable_name: "package_name",
-          value: selectedPackage?.name || '',
-        },
-        {
-          display_name: "Shipping Address",
-          variable_name: "shipping_address",
-          value: addresses[selectedAddressIndex] ? formatAddress(addresses[selectedAddressIndex]) : '',
-        },
-      ],
-    },
-    publicKey,
-    text: "Pay Now",
-    onSuccess: (reference: any) => {
-      console.log('Payment successful!', reference)
-      alert('Payment successful! Your SIM card will be shipped to your address.')
-      if (onPay) onPay()
-      onClose()
-    },
-    onClose: () => {
-      console.log('Payment dialog closed')
-    },
+        onCancel: () => {
+          console.log('[Payment] Payment cancelled by user')
+          setVerificationError(null)
+        }
+      })
+    } catch (error: any) {
+      console.error('[Payment] Initialization error:', error)
+      setVerificationError(
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to initialize payment. Please try again.'
+      )
+    } finally {
+      setIsInitializing(false)
+    }
+  }
+
+  // Handle payment verification after Paystack success
+  // Backend automatically creates order from metadata sent during initialization
+  const handlePaymentVerification = async (reference: string) => {
+    console.log('[Payment] Verifying payment with reference:', reference)
+    setIsVerifyingPayment(true)
+    setVerificationError(null)
+    
+    try {
+      // Verify payment with backend
+      // Order is automatically created from metadata
+      // Card can be saved for future one-click payments
+      const verificationResponse = await paymentService.verifyPayment({
+        reference: reference,
+        saveCard: true, // Save card for future payments
+      })
+
+      if (verificationResponse.success) {
+        console.log('[Payment] Verification successful:', verificationResponse)
+        if (verificationResponse.cardSaved) {
+          console.log('[Payment] Card saved for future use')
+        }
+        setPaymentSuccess(true)
+        
+        // Wait a moment to show success message
+        setTimeout(() => {
+          if (onPay) onPay()
+          onClose()
+        }, 2000)
+      } else {
+        setVerificationError(verificationResponse.error || 'Payment verification failed. Please contact support with reference: ' + reference)
+      }
+    } catch (error: any) {
+      console.error('[Payment] Verification error:', error)
+      setVerificationError(
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to verify payment. Please contact support with reference: ' + reference
+      )
+    } finally {
+      setIsVerifyingPayment(false)
+    }
   }
 
   const handleAddAddress = () => {
@@ -419,6 +484,37 @@ export default function ShippingModal({
               </div>
             )}
 
+            {/* Payment Status Messages */}
+            {verificationError && (
+              <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-red-900 mb-1">Payment Verification Failed</h4>
+                  <p className="text-sm text-red-700">{verificationError}</p>
+                </div>
+              </div>
+            )}
+
+            {paymentSuccess && (
+              <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-green-900 mb-1">Payment Successful!</h4>
+                  <p className="text-sm text-green-700">Your SIM card will be shipped to your address. Redirecting...</p>
+                </div>
+              </div>
+            )}
+
+            {isVerifyingPayment && (
+              <div className="rounded-xl bg-blue-50 border-2 border-blue-200 p-4 flex items-start gap-3">
+                <Loader2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-blue-900 mb-1">Verifying Payment...</h4>
+                  <p className="text-sm text-blue-700">Please wait while we confirm your payment with the bank.</p>
+                </div>
+              </div>
+            )}
+
             {/* Summary & Pay Button */}
             {!showAddAddress && addresses.length > 0 && selectedPackage && (
               <div className="space-y-4 pt-2">
@@ -438,10 +534,24 @@ export default function ShippingModal({
                 </div>
 
                 {email && name && phone ? (
-                  <PaystackButton 
-                    {...paystackProps}
-                    className="w-full bg-lime-400 text-neutral-900 py-3.5 px-4 rounded-xl font-bold hover:bg-lime-300 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-lg"
-                  />
+                  isInitializing || isVerifyingPayment || paymentSuccess ? (
+                    <button 
+                      disabled
+                      className="w-full bg-neutral-300 text-neutral-600 py-3.5 px-4 rounded-xl font-bold cursor-not-allowed inline-flex items-center justify-center gap-2 text-lg"
+                    >
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {isInitializing && 'Initializing Payment...'}
+                      {isVerifyingPayment && 'Verifying Payment...'}
+                      {paymentSuccess && 'Payment Successful'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleInitializePayment}
+                      className="w-full bg-lime-400 text-neutral-900 py-3.5 px-4 rounded-xl font-bold hover:bg-lime-300 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-lg"
+                    >
+                      Pay Now
+                    </button>
+                  )
                 ) : (
                   <div className="text-center py-2">
                     <p className="text-sm text-neutral-600">Please fill in all payment details above</p>
