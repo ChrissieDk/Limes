@@ -74,8 +74,9 @@ export default function SubscriptionManagement({
 
     try {
       const response = await paymentService.subscribe({
-        planCode,
+        productId: planCode,
         paymentMethodId: selectedCardId,
+        msisdn: '27644038847' // TODO: Get from user context
       })
 
       if (response.success && response.subscription) {
