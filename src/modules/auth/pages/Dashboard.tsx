@@ -483,8 +483,12 @@ function Dashboard() {
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
   const selectedPackage = selectedPackageFromState || {
     productId: '7029225P',
+    simPackageProductId: '7029225P',  // Default to prepaid SA
     name: 'Lite Plan',
     price: 199.99,
+    packageType: 'prepaid' as const,
+    simStatus: 'has-sim' as const,
+    planChargeType: 'monthly' as const,
     features: {
       mobileData: '10GB',
       messaging: '10 SMS',
@@ -648,6 +652,7 @@ function Dashboard() {
           customerEmail={customerEmail}
           customerName={customerName}
           customerPhone={customerPhone}
+          allocatedMsisdn={simCards[0]?.phoneNumber || ''}  // Use the actual SIM phone number
         />
       )}
       <main className="p-6 max-w-7xl mx-auto space-y-6">
