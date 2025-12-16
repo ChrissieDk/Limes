@@ -4,6 +4,7 @@ import SignIn from './modules/auth/pages/SignIn'
 import Dashboard from './modules/auth/pages/Dashboard'
 import DashboardPackages from './modules/auth/pages/DashboardPackages'
 import PaymentMethods from './modules/payment/pages/PaymentMethods'
+import Subscriptions from './modules/auth/pages/Subscriptions'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
   {
     path: '/dashboard/payment-methods',
     element: <PaymentMethods />,
+  },
+  {
+    path: '/dashboard/subscriptions',
+    element: <Subscriptions />,
   },
   {
     path: '/contact',

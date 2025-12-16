@@ -145,15 +145,10 @@ export interface PaystackSubscription {
 }
 
 // Transaction initialization request/response (SECURE - Backend controls amount)
+// Backend fetches price from MVNX, frontend only provides productId and msisdn
 export interface InitializeTransactionRequest {
-  email: string
-  amount: number // In Rands (backend converts to cents)
-  metadata: {
-    productId: string      // REQUIRED for order creation
-    msisdn: string          // REQUIRED for order creation
-    productName?: string    // Optional
-    customerName?: string   // Optional
-  }
+  productId: string   // REQUIRED - Product ID to purchase (backend gets price from MVNX)
+  msisdn: string      // REQUIRED - ACTUAL SIM phone number (NOT signup contact number)
 }
 
 export interface InitializeTransactionResponse {
@@ -170,13 +165,14 @@ export interface InitializeTransactionResponse {
 // Payment verification request/response
 export interface VerifyPaymentRequest {
   reference: string
-  saveCard?: boolean  // Optional: save card for future payments
+  saveCard?: boolean  // Required TRUE for subscriptions, optional for once-off
 }
 
 export interface VerifyPaymentResponse {
   success: boolean
   message: string
   cardSaved?: boolean
+  paymentMethodId?: string  // Returned when saveCard=true, needed for subscriptions
   transaction?: {
     id: number
     status: string
@@ -217,9 +213,12 @@ export interface ChargeCardRequest {
   paymentMethodId: string
   amount: number
   metadata?: {
-    productId: string
-    msisdn: string
+    productId: string           // REQUIRED - SIM package product ID
+    msisdn: string              // REQUIRED - ACTUAL SIM number
+    planProductId?: string      // Optional - actual plan/bundle product ID
     productName?: string
+    packageType?: 'contract' | 'prepaid'
+    simStatus?: 'has-sim' | 'needs-sim'
   }
 }
 
@@ -245,9 +244,9 @@ export interface ChargeCardResponse {
 
 // Subscription Types
 export interface SubscribeRequest {
-  planCode: string
-  paymentMethodId: string
-  userTopUpId?: string
+  productId: string         // Product ID (backend maps to Paystack plan code)
+  paymentMethodId: string   // Saved payment method from verify response
+  msisdn: string            // ACTUAL SIM phone number (NOT signup contact number)
 }
 
 export interface SubscribeResponse {

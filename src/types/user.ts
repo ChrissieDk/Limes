@@ -4,6 +4,8 @@ export interface User {
   emailAddress: string
   displayName: string
   msisdns?: string[]
+  msisdn?: string  // Primary MSISDN
+  productId?: string  // Active product/plan ID
   ricaComplete?: boolean
 }
 

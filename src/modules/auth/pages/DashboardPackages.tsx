@@ -8,6 +8,16 @@ import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 type PackageType = 'contract' | 'prepaid' | null
 type SimStatus = 'has-sim' | 'needs-sim' | null
 
+// Product ID mapping based on API responses
+// CRITICAL: SA = SIM in hand (already have SIM)
+//           SOA = Need SIM delivered (don't have SIM yet)
+const PRODUCT_IDS = {
+  PREPAID_SA: '7029225P',      // Prepaid - SIM in hand (already have SIM)
+  PREPAID_SOA: '7025225P',     // Prepaid - Need SIM delivered
+  CONTRACT_SOA: '7023225P',    // Contract - Need SIM delivered
+  STAFF_SOA: '7024225P',       // Staff - Need SIM delivered
+} as const
+
 export default function DashboardPackages() {
   const navigate = useNavigate()
   const [products, setProducts] = useState<CatalogProduct[]>([])
@@ -25,6 +35,9 @@ export default function DashboardPackages() {
   
   // Store selected package for the entire flow
   const [selectedPackage, setSelectedPackage] = useState<CatalogProduct | null>(null)
+  
+  // Track the actual SIM package product ID (the parent product from SA/SOA categories)
+  const [simPackageProductId, setSimPackageProductId] = useState<string | null>(null)
 
   const glowRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -105,59 +118,53 @@ export default function DashboardPackages() {
     fetchBundleCategories()
   }, [simStatus])
 
-  // Fetch products
+  // Fetch products from selected bundle category
   useEffect(() => {
-    // For SA flow (has-sim), fetch immediately when showPackages is true
-    if (simStatus === 'has-sim' && showPackages) {
-      const fetchPackages = async () => {
-        try {
-          setLoading(true)
-          setError(null)
-          
-          const response = await catalogService.searchCategoryProducts('gsm_packages_sa', { 
-            page: 1, 
-            limit: 100 
-          })
-          
-          setProducts(response.data)
-          console.log('[Catalog] Fetched from gsm_packages_sa:', response)
-        } catch (err) {
-          setError('Failed to load packages. Please try again later.')
-          console.error('Error fetching packages:', err)
-        } finally {
-          setLoading(false)
+    if (!selectedBundleCategory) return
+    
+    const fetchPackages = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Fetch actual products from the selected bundle category
+        // e.g., /api/catalog/products/category/combo_deals
+        const response = await catalogService.searchCategoryProducts(selectedBundleCategory, { 
+          page: 1, 
+          limit: 100 
+        })
+        
+        setProducts(response.data)
+        console.log(`[Catalog] Fetched products from ${selectedBundleCategory}:`, response)
+        
+        // Determine SIM package product ID based on package type and SIM status
+        // This is just metadata, NOT the product to display
+        let simPkgId = null
+        if (packageType === 'contract') {
+          // Contract always needs SIM delivery (SOA)
+          simPkgId = PRODUCT_IDS.CONTRACT_SOA
+        } else if (packageType === 'prepaid') {
+          if (simStatus === 'has-sim') {
+            // Prepaid with SIM in hand (SA)
+            simPkgId = PRODUCT_IDS.PREPAID_SA
+          } else {
+            // Prepaid needs SIM delivery (SOA)
+            simPkgId = PRODUCT_IDS.PREPAID_SOA
+          }
         }
+        setSimPackageProductId(simPkgId)
+        console.log('[Catalog] SIM package type:', simPkgId, '(metadata only)')
+        
+      } catch (err) {
+        setError('Failed to load packages. Please try again later.')
+        console.error('Error fetching packages:', err)
+      } finally {
+        setLoading(false)
       }
-
-      fetchPackages()
-      return
     }
 
-    // For SOA flow (needs-sim), only fetch after bundle category is selected
-    if (simStatus === 'needs-sim' && selectedBundleCategory) {
-      const fetchPackages = async () => {
-        try {
-          setLoading(true)
-          setError(null)
-          
-          const response = await catalogService.searchCategoryProducts(selectedBundleCategory, { 
-            page: 1, 
-            limit: 100 
-          })
-          
-          setProducts(response.data)
-          console.log(`[Catalog] Fetched from ${selectedBundleCategory}:`, response)
-        } catch (err) {
-          setError('Failed to load packages. Please try again later.')
-          console.error('Error fetching packages:', err)
-        } finally {
-          setLoading(false)
-        }
-      }
-
-      fetchPackages()
-    }
-  }, [showPackages, simStatus, selectedBundleCategory])
+    fetchPackages()
+  }, [selectedBundleCategory, packageType, simStatus])
 
   const featured = useMemo(() => products.slice(0, 3), [products])
   const remaining = useMemo(() => products.slice(3), [products])
@@ -185,6 +192,24 @@ export default function DashboardPackages() {
     return features.length > 0 ? features : [description]
   }
 
+  // Determine if a product is once-off or monthly subscription
+  // Based on your backend plan configuration
+  const getPlanChargeType = (productId: string): 'once-off' | 'monthly' => {
+    // Monthly plan IDs configured in Paystack as recurring subscriptions
+    // 40021 - Your original test plan
+    // 40022 - 300MB - R20 plan (PLN_h1tdp1icb27ss2w)
+    const monthlyPlanIds = ['40021', '40022']
+    
+    // Check if this product ID is in your monthly plans
+    if (monthlyPlanIds.includes(productId)) {
+      return 'monthly'
+    }
+    
+    // Default to once-off for other products
+    // You can adjust this logic based on your product catalog
+    return 'once-off'
+  }
+
   const handlePackageTypeSelect = (type: PackageType) => {
     setPackageType(type)
     setSimStatus(null)
@@ -192,8 +217,9 @@ export default function DashboardPackages() {
     setProducts([])
     setBundleCategories([])
     setSelectedBundleCategory(null)
+    setSimPackageProductId(null)
     
-    // If contract, automatically set needs-sim (will trigger bundle category fetch)
+    // If contract, automatically set needs-sim and fetch bundle categories
     if (type === 'contract') {
       setSimStatus('needs-sim')
     }
@@ -203,12 +229,10 @@ export default function DashboardPackages() {
     setSimStatus(status)
     setSelectedBundleCategory(null)
     setProducts([])
+    setSimPackageProductId(null)
     
-    // If has-sim (SA flow), proceed directly to packages
-    if (status === 'has-sim') {
-      setShowPackages(true)
-    }
-    // If needs-sim (SOA flow), wait for bundle category selection
+    // Both SA and SOA need to select bundle category first
+    // We don't proceed to packages until bundle category is selected
   }
 
   const handleBundleCategorySelect = (categoryId: string) => {
@@ -245,18 +269,30 @@ export default function DashboardPackages() {
     setBundleCategories([])
     setSelectedBundleCategory(null)
     setSelectedPackage(null)
+    setSimPackageProductId(null)
     setError(null)
   }
 
   const handleBuyNow = (product: CatalogProduct) => {
     // Store selected package and navigate to dashboard with package data
-    console.log('[Package] Selected package:', product)
+    const chargeType = getPlanChargeType(product.id)
+    
+    console.log('[Package] Selected plan/bundle:', product)
+    console.log('[Package] SIM package product ID:', simPackageProductId)
+    console.log('[Package] Package type:', packageType)
+    console.log('[Package] SIM status:', simStatus)
+    console.log('[Package] Charge type:', chargeType)
+    
     navigate('/dashboard', { 
       state: { 
         selectedPackage: {
-          productId: product.id,
+          productId: product.id,                    // The plan/bundle product ID
+          simPackageProductId: simPackageProductId, // The SIM package product ID (7029225P, 7025225P, 7023225P)
           name: product.name,
           price: product.price,
+          packageType: packageType,                 // 'contract' or 'prepaid'
+          simStatus: simStatus,                     // 'has-sim' or 'needs-sim'
+          planChargeType: chargeType,               // 'once-off' or 'monthly'
           features: {
             mobileData: product.description,
           }
@@ -341,7 +377,7 @@ export default function DashboardPackages() {
               )}
 
               {/* Step 2: SIM Status (only for prepaid) */}
-              {packageType === 'prepaid' && !simStatus && (
+              {packageType === 'prepaid' && !simStatus && !selectedBundleCategory && (
                 <div className="max-w-4xl mx-auto">
                   <button
                     onClick={handleReset}
@@ -383,8 +419,8 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 3: Bundle Category Selection (only for SOA flow - needs-sim) */}
-              {simStatus === 'needs-sim' && !selectedBundleCategory && (
+              {/* Step 3: Bundle Category Selection */}
+              {simStatus && !selectedBundleCategory && (
                 <div className="max-w-6xl mx-auto">
                   <button
                     onClick={handleBackFromBundleCategories}
@@ -491,22 +527,20 @@ export default function DashboardPackages() {
                 <>
                   <div className="flex items-center gap-2 mb-6">
                     <button
-                      onClick={simStatus === 'needs-sim' ? handleBackFromPackages : handleReset}
+                      onClick={handleBackFromPackages}
                       className="px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
-                      {simStatus === 'needs-sim' ? 'Back to bundles' : 'Start over'}
+                      Back to bundles
                     </button>
-                    {simStatus === 'needs-sim' && (
-                      <button
-                        onClick={handleReset}
-                        className="px-4 py-2 rounded-lg bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
-                      >
-                        Start over
-                      </button>
-                    )}
+                    <button
+                      onClick={handleReset}
+                      className="px-4 py-2 rounded-lg bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
+                    >
+                      Start over
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -527,6 +561,16 @@ export default function DashboardPackages() {
                         alt="icon"
                         className="h-7 w-7"
                       />
+                      {getPlanChargeType(p.id) === 'monthly' && (
+                        <span className="ml-auto bg-neutral-900 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                          Monthly
+                        </span>
+                      )}
+                      {getPlanChargeType(p.id) === 'once-off' && (
+                        <span className="ml-auto bg-white text-neutral-900 text-xs px-2 py-1 rounded-full font-semibold">
+                          Once-off
+                        </span>
+                      )}
                     </div>
                     <h3 className="mt-4 text-neutral-900 font-extrabold text-2xl">{p.name}</h3>
                     <ul className="mt-5 space-y-3 text-neutral-900">
@@ -541,7 +585,12 @@ export default function DashboardPackages() {
                     </ul>
                     <div className="mt-auto pt-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-neutral-900 font-bold text-lg">R{p.price.toFixed(2)}</span>
+                        <div>
+                          <span className="text-neutral-900 font-bold text-lg">R{p.price.toFixed(2)}</span>
+                          <span className="text-neutral-900/70 text-sm ml-1">
+                            {getPlanChargeType(p.id) === 'monthly' ? '/mo' : ''}
+                          </span>
+                        </div>
                         <button onClick={() => handleBuyNow(p)} className="inline-block w-28 bg-white text-neutral-900 text-center rounded-lg py-2 font-semibold hover:bg-neutral-100 transition-colors">
                           Buy now
                         </button>
@@ -580,10 +629,26 @@ export default function DashboardPackages() {
                               key={p.id}
                               className="rounded-xl p-5 bg-neutral-800 border border-neutral-700 hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/10"
                             >
-                              <h4 className="text-white font-bold text-lg mb-2">{p.name}</h4>
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="text-white font-bold text-lg">{p.name}</h4>
+                                {getPlanChargeType(p.id) === 'monthly' ? (
+                                  <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                                    Monthly
+                                  </span>
+                                ) : (
+                                  <span className="bg-lime-400 text-neutral-900 text-xs px-2 py-1 rounded-full font-semibold">
+                                    Once-off
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-neutral-400 text-sm mb-4 line-clamp-2">{p.description}</p>
                               <div className="flex items-center justify-between">
-                                <span className="text-white font-bold">R{p.price.toFixed(2)}</span>
+                                <div>
+                                  <span className="text-white font-bold">R{p.price.toFixed(2)}</span>
+                                  <span className="text-neutral-400 text-sm ml-1">
+                                    {getPlanChargeType(p.id) === 'monthly' ? '/mo' : ''}
+                                  </span>
+                                </div>
                                 <button
                                   onClick={() => handleBuyNow(p)}
                                   className="px-4 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-500 transition-colors"
