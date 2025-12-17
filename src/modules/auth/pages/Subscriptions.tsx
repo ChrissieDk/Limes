@@ -18,6 +18,12 @@ import {
   CreditCard
 } from 'lucide-react';
 
+// Map Paystack plan codes to friendly names
+const PLAN_CODE_TO_NAME: Record<string, string> = {
+  'PLN_h1tdp1icb27ss2w': '300MB Monthly Plan',
+  'PLN_anjvoror46vxqvaw': 'Test Monthly Plan',
+};
+
 // Monthly/recurring plan IDs
 const RECURRING_PLAN_IDS = ['40021', '40022'];
 
@@ -37,46 +43,34 @@ function Subscriptions() {
     setLoading(true);
     setError(null);
     try {
-      console.log('[Subscriptions] 📡 Fetching user data...');
       const userData = await userService.getCurrentUser();
-      console.log('[Subscriptions] 👤 User data:', userData);
       
-      // TEMPORARY: Use hardcoded MSISDN until we have proper subscriber endpoint
-      // TODO: Replace with actual subscriber/product data endpoint
       const tempUserData: User = {
         ...userData,
-        msisdn: '27644038847', // Hardcoded for now
-        productId: undefined // Will be determined from stored subscription data
+        msisdn: '27644038847',
+        productId: undefined
       };
 
-      // Try to fetch subscription details if we have an ID stored
+      // Try to fetch subscription from localStorage
       const storedSubIds = localStorage.getItem('subscriptionIds');
       if (storedSubIds) {
         try {
           const subIds = JSON.parse(storedSubIds) as string[];
           if (subIds.length > 0) {
-            console.log('[Subscriptions] 📡 Fetching subscription details...');
             const subDetails = await paymentService.getSubscription(subIds[0]);
-            console.log('[Subscriptions] ✅ Subscription details:', subDetails);
             setSubscription(subDetails);
             
-            // Update user with productId from subscription if available
-            if (subDetails.paystackPlanCode) {
-              // Extract product ID from plan code if possible
-              // For now, if we have a subscription, assume it's recurring
-              tempUserData.productId = '40021'; // Assume recurring for demo
-            }
+            // Set productId for recurring plan detection
+            tempUserData.productId = '40021'; // Assume recurring if subscription exists
           }
         } catch (subErr) {
-          console.error('[Subscriptions] ❌ Error fetching subscription:', subErr);
+          console.error('[Subscriptions] Error fetching subscription:', subErr);
         }
-      } else {
-        console.log('[Subscriptions] ℹ️  No subscription IDs stored in localStorage');
       }
       
       setUser(tempUserData);
     } catch (err: any) {
-      console.error('[Subscriptions] ❌ Error fetching:', err);
+      console.error('[Subscriptions] Error:', err);
       setError(err.response?.data?.message || 'Failed to load subscription data');
     } finally {
       setLoading(false);
@@ -183,25 +177,38 @@ function Subscriptions() {
 
         {/* No Recurring Subscriptions */}
         {!loading && !error && !isRecurringPlan && (
-          <div className="bg-neutral-900 rounded-lg p-12 text-center border border-neutral-800">
-            <Package className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Active Recurring Subscriptions</h3>
-            <p className="text-neutral-400 mb-2">
-              {user?.productId 
-                ? 'You have a prepaid or once-off plan. Only monthly recurring plans appear here.'
-                : 'You don\'t have any active subscriptions yet.'}
-            </p>
-            {user?.productId && (
-              <p className="text-neutral-500 text-sm mb-6">
-                Current plan: {user.productId}
+          <div className="space-y-6">
+            <div className="bg-neutral-900 rounded-lg p-12 text-center border border-neutral-800">
+              <Package className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No Active Recurring Subscriptions</h3>
+              <p className="text-neutral-400 mb-6">
+                {user?.productId 
+                  ? 'You have a prepaid or once-off plan. Only monthly recurring plans appear here.'
+                  : 'You don\'t have any active subscriptions yet.'}
               </p>
-            )}
-            <button
-              onClick={() => navigate('/dashboard/packages')}
-              className="bg-lime-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-lime-500 transition-colors"
-            >
-              Browse Monthly Plans
-            </button>
+              <button
+                onClick={() => navigate('/dashboard/packages')}
+                className="bg-lime-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-lime-500 transition-colors"
+              >
+                Browse Monthly Plans
+              </button>
+            </div>
+
+            {/* localStorage Warning */}
+            <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-6">
+              <div className="flex items-start">
+                <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
+                <div>
+                  <h3 className="text-yellow-400 font-semibold mb-2">⚠️ Device-Specific Display Issue</h3>
+                  <p className="text-neutral-300 text-sm mb-3">
+                    Subscriptions are currently tracked per-device and won't sync across your phone, laptop, etc.
+                  </p>
+                  <p className="text-neutral-400 text-sm">
+                    <strong className="text-white">Solution needed:</strong> Backend should provide a <code className="bg-neutral-800 px-1.5 py-0.5 rounded text-lime-400">/api/subscriptions</code> endpoint.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -214,7 +221,10 @@ function Subscriptions() {
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
                     <h3 className="text-xl font-semibold text-white mr-3">
-                      {subscription?.paystackPlanCode || `Plan ${user.productId}`}
+                      {subscription && PLAN_CODE_TO_NAME[subscription.paystackPlanCode] 
+                        ? PLAN_CODE_TO_NAME[subscription.paystackPlanCode]
+                        : subscription?.paystackPlanCode || `Plan ${user.productId}`
+                      }
                     </h3>
                     {subscription ? (
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(subscription.status)}`}>
@@ -226,10 +236,15 @@ function Subscriptions() {
                       </span>
                     )}
                   </div>
-                  {subscription?.paystackSubscriptionCode && (
-                    <p className="text-neutral-400 text-sm">
-                      Subscription ID: {subscription.paystackSubscriptionCode}
-                    </p>
+                  {subscription && (
+                    <div className="space-y-1">
+                      <p className="text-neutral-500 text-xs">
+                        Plan Code: {subscription.paystackPlanCode}
+                      </p>
+                      <p className="text-neutral-400 text-sm">
+                        Subscription ID: {subscription.paystackSubscriptionCode}
+                      </p>
+                    </div>
                   )}
                 </div>
                 

@@ -66,6 +66,14 @@ export default function ShippingModal({
   // MSISDN: The actual SIM phone number (different from signup contact number)
   const [msisdn, setMsisdn] = useState(allocatedMsisdn)
   
+  // Update MSISDN when allocatedMsisdn prop changes (e.g., after subscriber creation)
+  useEffect(() => {
+    if (allocatedMsisdn) {
+      console.log('[ShippingModal] Allocated MSISDN received:', allocatedMsisdn)
+      setMsisdn(allocatedMsisdn)
+    }
+  }, [allocatedMsisdn])
+  
   // Address form states
   const [streetNo, setStreetNo] = useState('')
   const [streetName, setStreetName] = useState('')
@@ -138,15 +146,32 @@ export default function ShippingModal({
 
     try {
       console.log('[Payment] Initializing transaction on backend...')
+      console.log('[Payment] Selected package:', selectedPackage)
       console.log('[Payment] Using MSISDN:', msisdn)
       console.log('[Payment] Product ID:', selectedPackage.productId)
       console.log('[Payment] Plan charge type:', selectedPackage.planChargeType)
       
+      // Validate required fields
+      if (!selectedPackage.productId) {
+        setVerificationError('Product ID is missing')
+        console.error('[Payment] ❌ Product ID is missing from selectedPackage')
+        return
+      }
+      
+      if (!msisdn) {
+        setVerificationError('MSISDN is required. Please ensure subscriber was created successfully.')
+        console.error('[Payment] ❌ MSISDN is missing')
+        return
+      }
+      
       // Backend fetches price from MVNX, we only send productId and msisdn
-      const initResponse = await paymentService.initializeTransaction({
-        productId: selectedPackage.productId,
-        msisdn: msisdn
-      })
+      const payload = {
+        productId: String(selectedPackage.productId),
+        msisdn: String(msisdn)
+      }
+      console.log('[Payment] Initialize payload:', payload)
+      
+      const initResponse = await paymentService.initializeTransaction(payload)
 
       if (!initResponse.success || !initResponse.data) {
         setVerificationError(initResponse.error || 'Failed to initialize payment')
@@ -159,22 +184,7 @@ export default function ShippingModal({
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: (transaction: any) => {
-          // ============================================
-          // 🎯 RAW PAYSTACK CALLBACK - BEFORE BACKEND API
-          // ============================================
-          console.group('🎯 PAYSTACK POPUP CALLBACK (Raw from Paystack)')
-          console.log('This is what Paystack returns BEFORE hitting your backend:')
-          console.log('Reference:', transaction.reference)
-          console.log('Message:', transaction.message)
-          console.log('Status:', transaction.status)
-          console.log('Transaction ID:', transaction.trans)
-          console.log('Transaction Reference:', transaction.trxref)
-          console.log('📄 Full Paystack Callback Object:')
-          console.log(JSON.stringify(transaction, null, 2))
-          console.groupEnd()
-          // ============================================
-          
-          console.log('[Payment] Payment successful, now verifying with backend...')
+          console.log('[Payment] Payment successful, verifying with backend...')
           handlePaymentVerification(transaction.reference || initResponse.data?.reference || '')
         },
         onCancel: () => {
@@ -195,168 +205,59 @@ export default function ShippingModal({
   }
 
   // Handle payment verification after Paystack success
-  // Backend automatically creates order from metadata sent during initialization
   const handlePaymentVerification = async (reference: string) => {
-    console.log('[Payment] Verifying payment with reference:', reference)
     setIsVerifyingPayment(true)
     setVerificationError(null)
     
     try {
       const isSubscription = selectedPackage?.planChargeType === 'monthly'
-      console.log('[Payment] Is subscription product?', isSubscription)
-      console.log('[Payment] Selected package:', selectedPackage)
       
-      // Verify payment with backend
-      // For subscriptions, MUST save card (required for recurring charges)
-      // For once-off, card saving is optional
       const verificationResponse = await paymentService.verifyPayment({
         reference: reference,
-        saveCard: isSubscription ? true : false, // REQUIRED for subscriptions
+        saveCard: isSubscription ? true : false,
       })
 
-      // ============================================
-      // 🔄 BACKEND VERIFY RESPONSE (Your API processed Paystack data)
-      // ============================================
-      console.group('🔄 YOUR BACKEND /verify RESPONSE')
-      console.log('This is what YOUR backend returns after calling Paystack verify:')
-      console.log('Success:', verificationResponse.success)
-      console.log('Message:', verificationResponse.message)
-      console.log('Card Saved:', verificationResponse.cardSaved)
-      console.log('Payment Method ID:', verificationResponse.paymentMethodId)
-      console.log('Transaction:', verificationResponse.transaction)
-      console.log('Error:', verificationResponse.error)
-      console.log('📄 Full Backend Response:')
-      console.log(JSON.stringify(verificationResponse, null, 2))
-      console.groupEnd()
-      // ============================================
+      console.log('[Payment] Verification response:', verificationResponse)
 
       if (verificationResponse.success) {
         
         // Phase 2: If this is a subscription product, automatically create subscription
         if (isSubscription && verificationResponse.cardSaved) {
-          console.log('[Payment] ✅ Monthly subscription detected, fetching saved cards...')
-          
           try {
-            // Fetch saved cards to get the paymentMethodId
-            console.log('[Payment] 🔍 Fetching saved payment methods...')
             const savedCards = await paymentService.getSavedCards()
             
-            // ============================================
-            // 🔄 BACKEND SAVED CARDS RESPONSE
-            // ============================================
-            console.group('🔄 YOUR BACKEND /cards RESPONSE')
-            console.log('This is what YOUR backend returns for saved cards:')
-            console.log('Number of saved cards:', savedCards?.length || 0)
-            if (savedCards && savedCards.length > 0) {
-              savedCards.forEach((card, index) => {
-                console.log(`Card ${index + 1}:`, {
-                  id: card.id,
-                  cardType: card.cardType,
-                  last4: card.last4,
-                  expMonth: card.expMonth,
-                  expYear: card.expYear,
-                  bank: card.bank,
-                  brand: card.brand,
-                  isDefault: card.isDefault
-                })
-              })
-            }
-            console.log('📄 Full Backend Response:')
-            console.log(JSON.stringify(savedCards, null, 2))
-            console.groupEnd()
-            // ============================================
-            
             if (!savedCards || savedCards.length === 0) {
-              console.error('[Payment] ❌ No saved cards found after card save')
               throw new Error('No saved cards found')
             }
             
-            // Use the most recent card (first in array)
             const paymentMethodId = savedCards[0].id
-            console.log('[Payment] Using payment method ID:', paymentMethodId, 'Type:', typeof paymentMethodId)
-            console.log('[Payment] Product ID:', selectedPackage.productId, 'Type:', typeof selectedPackage.productId)
-            console.log('[Payment] MSISDN:', msisdn, 'Type:', typeof msisdn)
-            
-            console.log('[Payment] 🚀 Calling subscribe endpoint...')
             const subscribePayload = {
-              productId: String(selectedPackage.productId),  // Ensure it's a string
-              paymentMethodId: String(paymentMethodId),      // Ensure it's a string
-              msisdn: String(msisdn)                         // Ensure it's a string
+              productId: String(selectedPackage.productId),
+              paymentMethodId: String(paymentMethodId),
+              msisdn: String(msisdn)
             }
-            console.log('[Payment] Subscribe payload:', JSON.stringify(subscribePayload, null, 2))
             
             const subscribeResponse = await paymentService.subscribe(subscribePayload)
-            
-            // ============================================
-            // 🔄 BACKEND SUBSCRIBE RESPONSE (Your API processed Paystack subscription)
-            // ============================================
-            console.group('🔄 YOUR BACKEND /subscribe RESPONSE')
-            console.log('This is what YOUR backend returns after calling Paystack subscribe:')
-            console.log('Success:', subscribeResponse.success)
-            console.log('Message:', subscribeResponse.message)
-            console.log('Error:', subscribeResponse.error)
-            console.log('Subscription Object:', subscribeResponse.subscription)
-            if (subscribeResponse.subscription) {
-              console.log('  - ID:', subscribeResponse.subscription.id)
-              console.log('  - Paystack Subscription Code:', subscribeResponse.subscription.paystackSubscriptionCode)
-              console.log('  - Paystack Plan Code:', subscribeResponse.subscription.paystackPlanCode)
-              console.log('  - Status:', subscribeResponse.subscription.status)
-              console.log('  - Next Payment Date:', subscribeResponse.subscription.nextPaymentDate)
-              console.log('  - Amount:', subscribeResponse.subscription.amountInRands)
-              console.log('  - Currency:', subscribeResponse.subscription.currency)
-            }
-            console.log('📄 Full Backend Response:')
-            console.log(JSON.stringify(subscribeResponse, null, 2))
-            console.groupEnd()
-            // ============================================
+            console.log('[Payment] Subscribe response:', subscribeResponse)
             
             if (subscribeResponse.success) {
-              console.log('[Payment] ✅ Subscription created successfully:', subscribeResponse)
-              console.log('[Payment] Subscription will start in 1 month')
+              console.log('[Payment] ✅ Paystack subscription created successfully')
               
-              // Store subscription ID in localStorage for later retrieval
+              // Store subscription ID in localStorage
               if (subscribeResponse.subscription?.id) {
                 const storedIds = localStorage.getItem('subscriptionIds');
                 const idsArray = storedIds ? JSON.parse(storedIds) : [];
                 if (!idsArray.includes(subscribeResponse.subscription.id)) {
                   idsArray.push(subscribeResponse.subscription.id);
                   localStorage.setItem('subscriptionIds', JSON.stringify(idsArray));
-                  console.log('[Payment] 💾 Stored subscription ID:', subscribeResponse.subscription.id);
                 }
               }
             } else {
-              console.error('[Payment] ❌ Backend returned error:', subscribeResponse.error)
-              console.error('[Payment] ⚠️  BUT Paystack subscription may have been created!')
-              console.error('[Payment] Check Paystack dashboard to confirm')
-              console.warn('[Payment] 💡 This is likely a backend database issue, not a payment issue')
-              console.warn('[Payment] User payment was successful, continuing with success flow')
-              // Don't block user flow - payment succeeded, and Paystack subscription might be active
-              // This is likely a backend database storage issue, not a Paystack issue
+              console.error('[Payment] Paystack subscription creation failed:', subscribeResponse.error)
             }
           } catch (subError: any) {
-            // ============================================
-            // ❌ BACKEND ERROR DETAILS
-            // ============================================
-            console.group('❌ BACKEND /subscribe ERROR')
-            console.error('Error Type:', subError.name)
-            console.error('Status Code:', subError.response?.status)
-            console.error('Status Text:', subError.response?.statusText)
-            console.error('Backend Error Message:', subError.response?.data?.message)
-            console.error('Backend Error Details:', subError.response?.data?.error)
-            console.error('Full Backend Error:')
-            console.error(JSON.stringify(subError.response?.data, null, 2))
-            console.error('Request that failed:', subError.config?.data)
-            console.groupEnd()
-            // ============================================
-            
-            console.error('[Payment] ❌ Subscription API call failed:', subError)
-            console.warn('[Payment] 💡 Payment was successful, but subscription setup had an issue')
-            console.warn('[Payment] This is a backend validation error (400), not a Paystack error')
-            // Don't block user flow - payment succeeded, subscription can be retried
+            console.error('[Payment] Subscription error:', subError.response?.data || subError.message)
           }
-        } else {
-          console.log('[Payment] ⏭️  Skipping subscription creation')
-          console.log('[Payment] Reason:', !isSubscription ? 'Not a subscription product' : 'Card not saved')
         }
         
         setPaymentSuccess(true)

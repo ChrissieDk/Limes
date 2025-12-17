@@ -6,6 +6,7 @@ import FileUpload from './FileUpload'
 import ShippingModal from './ShippingModal'
 import { crmService } from '../../crm/services/crmService'
 import { ricaService } from '../../rica/services/ricaService'
+import { subscriptionService } from '../../subscription/services/subscriptionService'
 import type { CreateAccountCustomerRequest, CatalogProduct } from '../../../types'
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6
@@ -24,6 +25,9 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   const [error, setError] = useState<string | null>(null)
   const [accountCreated, setAccountCreated] = useState(false)
   const [showShippingModal, setShowShippingModal] = useState(false)
+  const [subscriberCreating, setSubscriberCreating] = useState(false)
+  const [subscriberCreated, setSubscriberCreated] = useState(false)
+  const [allocatedMsisdn, setAllocatedMsisdn] = useState<string>('')
 
   // Document upload states
   const [idFile, setIdFile] = useState<File | null>(null)
@@ -258,15 +262,82 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
     }
   }
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     // All documents uploaded successfully
     console.log('RICA process completed successfully')
     console.log('ID Signed URL:', idSignedUrl)
     console.log('POA Signed URL:', poaSignedUrl)
     console.log('Selected Package:', selectedPackage)
     
-    // Show shipping modal with selected package and address
-    setShowShippingModal(true)
+    // CRITICAL: Create subscriber in backend/MVNX AFTER RICA completion
+    // This uses the SIM package product ID (7029225P, etc.) to determine package type
+    if (selectedPackage?.simPackageProductId) {
+      setSubscriberCreating(true)
+      setError(null)
+      
+      try {
+        console.log('[RICA] 🔄 Creating subscriber (SIM account)')
+        console.log('[RICA] Selected package object:', selectedPackage)
+        console.log('[RICA] SIM package ID for subscriber creation:', selectedPackage.simPackageProductId)
+        console.log('[RICA] Actual plan ID (will be assigned during payment):', selectedPackage.id || selectedPackage.productId)
+        
+        if (!selectedPackage.simPackageProductId) {
+          throw new Error('SIM package product ID is missing from selectedPackage')
+        }
+        
+        // /subscriber/create receives the SIM PACKAGE ID (7029225P, 7023225P, 7025225P)
+        // This creates the SIM account with the correct package type (SA/SOA, prepaid/contract)
+        // The actual plan (40022) is assigned during payment/order creation
+        const subscriberPayload = {
+          productId: selectedPackage.simPackageProductId, // ✅ SIM package ID (7029225P, etc.)
+          // iccid is NOT sent - it's assigned by the backend when SIM is delivered (SOA only)
+          // For SA (SIM in hand), backend expects iccid to be provided
+          eSim: false,
+          address: [
+            {
+              referredType: 'SUBSCRIBER',
+              addressType: 'INSTALLATION', // Changed to INSTALLATION per backend examples
+              streetNo,
+              streetName,
+              suburb: suburb || '',
+              city,
+              stateOrProvince,
+              postCode,
+              country,
+              oneLineAddress: `${streetNo} ${streetName}, ${city}, ${stateOrProvince} ${postCode}`
+            }
+          ]
+        }
+        
+        console.log('[RICA] Subscriber payload:', subscriberPayload)
+        
+        const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
+        console.log('[RICA] ✅ Subscriber created successfully:', subscriberResponse)
+        
+        // Extract allocated MSISDN from response
+        const msisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
+        if (msisdn) {
+          console.log('[RICA] 📱 Allocated MSISDN:', msisdn)
+          setAllocatedMsisdn(msisdn)
+        } else {
+          console.warn('[RICA] ⚠️  No MSISDN found in subscriber response')
+        }
+        
+        setSubscriberCreated(true)
+        
+        // Show shipping modal with selected package and address
+        setShowShippingModal(true)
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to create subscriber'
+        setError(`Subscriber creation failed: ${errorMessage}`)
+        console.error('[RICA] ❌ Subscriber creation failed:', err)
+      } finally {
+        setSubscriberCreating(false)
+      }
+    } else {
+      console.warn('[RICA] No SIM package product ID found, skipping subscriber creation')
+      setShowShippingModal(true)
+    }
   }
 
   const handleShippingClose = () => {
@@ -492,11 +563,11 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
                 </button>
               ) : (
                 <button 
-                  disabled={!canNext || poaUploading} 
+                  disabled={!canNext || poaUploading || subscriberCreating} 
                   className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 text-white font-semibold px-5 py-2.5 hover:bg-neutral-800 disabled:opacity-60 active:scale-[0.99] transition" 
                   onClick={handleFinalSubmit}
                 >
-                  Complete RICA
+                  {subscriberCreating ? 'Creating subscriber...' : subscriberCreated ? 'Subscriber created ✓' : 'Complete RICA'}
                 </button>
               )}
             </div>
@@ -511,11 +582,15 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
           open={showShippingModal}
           onClose={handleShippingClose}
           selectedPackage={{
-            productId: selectedPackage.id,
+            productId: selectedPackage.productId || selectedPackage.id, // Use productId from navigation, or id from API
+            simPackageProductId: selectedPackage.simPackageProductId,
             name: selectedPackage.name,
             price: selectedPackage.price,
+            packageType: selectedPackage.packageType,
+            simStatus: selectedPackage.simStatus,
+            planChargeType: selectedPackage.planChargeType,
             features: {
-              mobileData: selectedPackage.description,
+              mobileData: selectedPackage.description || selectedPackage.features?.mobileData,
             }
           }}
           defaultAddress={{
@@ -530,6 +605,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
           customerEmail={billEmail}
           customerName={`${firstname} ${lastname}`}
           customerPhone={phoneNumber}
+          allocatedMsisdn={allocatedMsisdn}
         />
       )}
     </div>
