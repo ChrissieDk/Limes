@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import TopUpModal from '../components/TopUpModal';
 import ShippingModal from '../components/ShippingModal';
+import ChoosePackageModal from '../components/ChoosePackageModal';
 import DashboardNavbar from '../components/DashboardNavbar';
 import { catalogService } from '../../catalog/services/catalogService';
 import { subscriptionService } from '../../subscription/services/subscriptionService';
 import { crmService } from '../../crm/services/crmService';
+import { userService } from '../services/userService';
 import type { Balance, RicaAddress } from '../../../types';
 import { 
   ChevronLeft, 
@@ -92,29 +94,7 @@ const mockCurrentPlan: Plan = {
   price: 199.99
 };
 
-const mockBundles: Bundle[] = [
-  {
-    name: '1-month flex',
-    type: 'flex',
-    dayData: '10 GB day data + 10 GB night data (once-off)',
-    cashback: 'R20 cashback into your Limes wallet',
-    isOnceOff: true,
-    featured: true,
-    hasImage: true
-  },
-  {
-    name: 'Lite Plan',
-    type: 'lite',
-    dayData: '10 GB day data + 10 GB',
-    nightData: 'night data (once-off)'
-  },
-  {
-    name: '3-month',
-    type: '3-month',
-    dayData: '10 GB day data + 10 GB',
-    nightData: 'night data (once-off)'
-  }
-];
+// Bundles are now fetched from catalog API (see useEffect below)
 
 // Status Badge Component
 function StatusBadge({ status }: { status: Transaction['status'] }) {
@@ -472,12 +452,15 @@ function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCard | null>(null);
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
+  const [choosePackageModalOpen, setChoosePackageModalOpen] = useState(false);
   const [simCards, setSimCards] = useState<SimCard[]>(mockSimCards);
   const [balancesLoading, setBalancesLoading] = useState(true);
   const [customerAddress, setCustomerAddress] = useState<RicaAddress | null>(null);
   const [customerEmail, setCustomerEmail] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [ricaComplete, setRicaComplete] = useState<boolean>(false);
+  const [bundles, setBundles] = useState<Bundle[]>([]);
 
   // Get selected package from navigation state or use mock as fallback
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
@@ -496,13 +479,98 @@ function Dashboard() {
     },
   }
 
-  // Auto-open shipping modal if package was selected
+  // Fetch RICA status and user MSISDNs
+  useEffect(() => {
+    let cancelled = false;
+    const fetchUserData = async () => {
+      try {
+        const user = await userService.getCurrentUser();
+        if (!cancelled) {
+          console.log('[Dashboard] User data:', user);
+          setRicaComplete(user.ricaComplete ?? false);
+          
+          // Update SIM cards with real MSISDNs from user account
+          if (user.msisdns && user.msisdns.length > 0) {
+            console.log('[Dashboard] User MSISDNs:', user.msisdns);
+            const updatedSimCards = user.msisdns.map((msisdnData: any, index: number) => ({
+              id: String(index + 1),
+              name: `Sim ${index + 1}`,
+              phoneNumber: msisdnData.msisdn,
+              isActive: msisdnData.hasActiveSubscription,
+              hasVoiceTopUp: false,
+              plan: {
+                mobileData: '0GB',
+                airtime: 'R0',
+                messaging: '0SMS',
+                phone: '0 Min'
+              }
+            }));
+            setSimCards(updatedSimCards);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[Dashboard] Error fetching user data:', err);
+          setRicaComplete(false);
+        }
+      }
+    };
+    fetchUserData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch bundles from catalog API
+  useEffect(() => {
+    let cancelled = false;
+    const fetchBundles = async () => {
+      try {
+        // Fetch data bundles from gsm_products category
+        const response = await catalogService.searchCategoryProducts('data_bundles', { page: 1, limit: 3 });
+        if (!cancelled && response.data) {
+          console.log('[Dashboard] Fetched data bundles:', response.data);
+          
+          // Map catalog products to Bundle format
+          const mappedBundles: Bundle[] = response.data.map((product, index) => ({
+            name: product.name,
+            type: index === 0 ? 'flex' : index === 1 ? 'lite' : '3-month',
+            dayData: product.description || 'Data Bundle',
+            featured: index === 0,
+            hasImage: index === 0,
+            isOnceOff: true
+          }));
+          
+          setBundles(mappedBundles);
+        }
+      } catch (err) {
+        console.error('[Dashboard] Error fetching bundles:', err);
+        // Keep empty bundles array on error
+      }
+    };
+    fetchBundles();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Auto-open correct modal based on RICA status when package is selected
   useEffect(() => {
     if (selectedPackageFromState) {
-      console.log('[Dashboard] Package selected, opening shipping modal:', selectedPackageFromState);
-      setShippingModalOpen(true);
+      console.log('[Dashboard] Package selected:', selectedPackageFromState);
+      console.log('[Dashboard] RICA complete:', ricaComplete);
+      
+      if (ricaComplete) {
+        // RICA already done, go straight to payment
+        console.log('[Dashboard] Opening shipping modal (RICA already complete)');
+        setShippingModalOpen(true);
+      } else {
+        // RICA not done, open RICA flow first
+        console.log('[Dashboard] Opening RICA modal (RICA not complete)');
+        setChoosePackageModalOpen(true);
+      }
     }
-  }, [selectedPackageFromState]);
+  }, [selectedPackageFromState, ricaComplete]);
 
   // Fetch account customer details
   useEffect(() => {
@@ -625,6 +693,12 @@ function Dashboard() {
     // TODO: Integrate payment flow
   };
 
+  const handleChoosePackageModalClose = () => {
+    setChoosePackageModalOpen(false);
+    // After RICA completes, the ChoosePackageModal will open ShippingModal
+    // We don't need to do anything here as ShippingModal is handled by ChoosePackageModal
+  };
+
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
@@ -633,6 +707,11 @@ function Dashboard() {
         onClose={() => setModalOpen(false)} 
         phoneNumber={modalSim?.phoneNumber}
         phoneNumbers={simCards.map((s) => s.phoneNumber)}
+      />
+      <ChoosePackageModal
+        open={choosePackageModalOpen}
+        onClose={handleChoosePackageModalClose}
+        selectedPackage={selectedPackageFromState}
       />
       {shippingModalOpen && (
         <ShippingModal
@@ -719,11 +798,19 @@ function Dashboard() {
             </div> */}
             <div className="flex flex-col">
               <div className="grid grid-cols-1 gap-4 flex-1">
-                <BundleCard bundle={mockBundles[0]} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <BundleCard bundle={mockBundles[1]} />
-                  <BundleCard bundle={mockBundles[2]} />
-                </div>
+                {bundles.length > 0 ? (
+                  <>
+                    <BundleCard bundle={bundles[0]} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {bundles[1] && <BundleCard bundle={bundles[1]} />}
+                      {bundles[2] && <BundleCard bundle={bundles[2]} />}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-neutral-400 text-center py-8">
+                    Loading bundles...
+                  </div>
+                )}
               </div>
             </div>
           </div>

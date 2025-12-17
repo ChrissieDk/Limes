@@ -186,7 +186,7 @@ export default function DashboardPackages() {
     }
   }
 
-  const parseFeatures = (description: string): string[] => {
+  const parseFeatures = (description?: string): string[] => {
     if (!description) return []
     const features = description.split('\n').filter(f => f.trim())
     return features.length > 0 ? features : [description]

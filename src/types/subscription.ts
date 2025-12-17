@@ -14,7 +14,7 @@ export interface SubscriptionAddress {
 
 export interface CreateSubscriptionRequest {
   productId: string
-  iccid: string
+  iccid?: string  // Optional - assigned by backend when SIM is delivered
   eSim: boolean
   address: SubscriptionAddress[]
 }
