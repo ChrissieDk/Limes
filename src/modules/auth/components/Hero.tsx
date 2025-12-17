@@ -1,6 +1,14 @@
+import { Link } from 'react-router-dom'
 import Button from './Button'
 
 export default function Hero() {
+  const scrollToWhy = () => {
+    const whySection = document.getElementById('why')
+    if (whySection) {
+      whySection.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
     <section id="hero" className="mx-auto max-w-6xl px-6 pt-10 pb-10 min-h-[calc(100vh-120px)] grid lg:grid-cols-[1.25fr_0.75fr] gap-10 items-stretch scroll-mt-24">
       <div className="max-w-3xl w-full self-center">
@@ -30,10 +38,14 @@ export default function Hero() {
 
         <div className="mt-8 flex items-center gap-4">
           <div className="w-44">
-            <Button variant="primary">Explore Packages</Button>
+            <Link to="/signin">
+              <Button variant="primary">Explore Packages</Button>
+            </Link>
           </div>
           <div className="w-48">
-            <Button variant="secondary">Why Choose Limes?</Button>
+            <button onClick={scrollToWhy} className="w-full">
+              <Button variant="secondary">Why Choose Limes?</Button>
+            </button>
           </div>
         </div>
       </div>

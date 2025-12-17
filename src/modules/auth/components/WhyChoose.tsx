@@ -1,8 +1,9 @@
+import { Link } from 'react-router-dom'
 import Button from './Button'
 
 export default function WhyChoose() {
   return (
-    <section id="why" className="mx-auto max-w-6xl px-6 pb-24">
+    <section id="why" className="mx-auto max-w-6xl px-6 pb-24 scroll-mt-24">
       <div className="flex items-center justify-center text-sm text-neutral-400">
         <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Why Choose Limes?
       </div>
@@ -27,15 +28,15 @@ export default function WhyChoose() {
           <img src={`${import.meta.env.BASE_URL}images/plan_logo.png`} alt="Limes icon" className="h-5 w-5 mb-1.5" />
           <div className="leading-tight">
             <h4 className="font-semibold text-base md:text-[17px] leading-snug">
-              Sam bought 99 Limes. Limes said, “you deserve 130.”
+              Sam bought 99 Limes. Limes said, "you deserve 130."
             </h4>
             <p className="mt-1.5 text-[11px] md:text-xs text-black/70 font-manrope">
               Get more every time you buy airtime. Ja, you read right. Buy R99 airtime and get R130.
             </p>
           </div>
-          <button className="mt-3 text-[11px] inline-flex items-center gap-2 underline">
+          <Link to="/signin" className="mt-3 text-[11px] inline-flex items-center gap-2 underline hover:opacity-80 transition-opacity">
             Get started <span>→</span>
-          </button>
+          </Link>
           <span className="absolute right-6 top-6 text-black/60 text-xl select-none">＋</span>
           <span className="absolute right-10 top-16 text-black/60 select-none">＋</span>
           <span className="absolute right-16 top-10 text-black/60 select-none">＋</span>
@@ -52,9 +53,9 @@ export default function WhyChoose() {
               Convert your airtime to data, voice, SMS or WhatsApp. Giving you the freedom to connect your way.
             </p>
           </div>
-          <button className="mt-3 text-[11px] inline-flex items-center gap-2 underline">
-            Let’s squeeze ’em <span>→</span>
-          </button>
+          <Link to="/signin" className="mt-3 text-[11px] inline-flex items-center gap-2 underline hover:opacity-80 transition-opacity">
+            Let's squeeze 'em <span>→</span>
+          </Link>
           <span className="absolute right-4 top-4 text-black/60 text-xl select-none">＋</span>
           <span className="absolute right-10 top-10 text-black/60 select-none">＋</span>
           <span className="absolute right-20 top-20 text-black/60 select-none">＋</span>
@@ -62,8 +63,16 @@ export default function WhyChoose() {
       </div>
 
       <div className="mt-8 flex items-center justify-center gap-4">
-        <div className="w-40"><Button variant="primary" className="!bg-[#CDA7FC] hover:!bg-[#CDA7FC]/90 active:!bg-[#CDA7FC] focus-visible:!ring-[#CDA7FC]">View Packages</Button></div>
-        <div className="w-36"><Button variant="secondary">Contact Us</Button></div>
+        <div className="w-40">
+          <Link to="/signin">
+            <Button variant="primary" className="!bg-[#CDA7FC] hover:!bg-[#CDA7FC]/90 active:!bg-[#CDA7FC] focus-visible:!ring-[#CDA7FC]">View Packages</Button>
+          </Link>
+        </div>
+        <div className="w-36">
+          <Link to="/contact">
+            <Button variant="secondary">Contact Us</Button>
+          </Link>
+        </div>
       </div>
     </section>
   )

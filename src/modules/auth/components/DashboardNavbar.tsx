@@ -16,7 +16,8 @@ const navItems = [
 export default function DashboardNavbar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = async () => {
     try {
@@ -30,55 +31,104 @@ export default function DashboardNavbar() {
     <div className="sticky top-3 z-20">
       <div className="mx-auto max-w-7xl px-6">
         <nav className="w-full rounded-xl bg-neutral-800 text-white border border-neutral-700">
-          <div className="grid grid-cols-3 items-center px-4 py-2.5">
-          <div className="flex items-center">
-            <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-8" />
+          <div className="flex items-center justify-between px-4 py-2.5">
+            {/* Logo */}
+            <div className="flex items-center">
+              <Link to="/dashboard">
+                <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-8" />
+              </Link>
+            </div>
+
+            {/* Desktop Nav - Single line with adjusted spacing */}
+            <div className="hidden lg:flex items-center justify-center flex-1 px-4">
+              <ul className="flex items-center gap-3 text-xs whitespace-nowrap">
+                {navItems.map((item) => (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      className={
+                        pathname === item.to
+                          ? 'bg-white text-neutral-900 rounded-lg px-3 py-2 font-medium inline-block'
+                          : 'text-white/90 hover:text-white px-3 py-2 inline-block'
+                      }
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Desktop Account Menu */}
+            <div className="hidden lg:flex items-center justify-end">
+              <div className="relative">
+                <button
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm hover:bg-neutral-700 transition-colors"
+                >
+                  <img
+                    src={`https://api.dicebear.com/7.x/thumbs/svg?seed=user`}
+                    alt="User"
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <span>Account</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {accountMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg p-2 text-sm">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-700 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Burger Menu Button */}
+            <button 
+              aria-label="Menu" 
+              className="lg:hidden inline-flex items-center justify-center size-10 rounded-lg border border-neutral-700 hover:bg-neutral-700 transition" 
+              onClick={() => setMobileMenuOpen((v) => !v)}
+            >
+              <div className="relative w-5 h-5">
+                <span className={`absolute left-0 top-1 block h-0.5 w-5 bg-white transform transition-transform duration-300 ${mobileMenuOpen ? 'translate-y-2 rotate-45' : ''}`} />
+                <span className={`absolute left-0 top-2.5 block h-0.5 w-5 bg-white transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-0' : 'opacity-100'}`} />
+                <span className={`absolute left-0 top-4 block h-0.5 w-5 bg-white transform transition-transform duration-300 ${mobileMenuOpen ? '-translate-y-2 -rotate-45' : ''}`} />
+              </div>
+            </button>
           </div>
 
-          <div className="hidden md:flex items-center justify-center">
-            <ul className="flex gap-6 text-sm">
+          {/* Mobile Menu */}
+          <div className={`lg:hidden overflow-hidden transition-[max-height] duration-300 ${mobileMenuOpen ? 'max-h-[500px]' : 'max-h-0'}`}>
+            <ul className="px-4 pb-4 space-y-1">
               {navItems.map((item) => (
                 <li key={item.to}>
                   <Link
                     to={item.to}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={
                       pathname === item.to
-                        ? 'bg-white text-neutral-900 rounded-lg px-3 py-1.5'
-                        : 'text-white/90 hover:text-white'
+                        ? 'block bg-white text-neutral-900 rounded-lg px-3 py-2.5 text-sm font-medium'
+                        : 'block text-white/90 hover:bg-neutral-700 rounded-lg px-3 py-2.5 text-sm transition-colors'
                     }
                   >
                     {item.label}
                   </Link>
                 </li>
               ))}
-            </ul>
-          </div>
-
-          <div className="relative flex items-center justify-end">
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm"
-            >
-              <img
-                src={`https://api.dicebear.com/7.x/thumbs/svg?seed=user`}
-                alt="User"
-                className="w-6 h-6 rounded-full"
-              />
-              <span>Account</span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-40 rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg p-2 text-sm">
+              <li className="pt-2">
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-700"
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors"
                 >
                   Logout
                 </button>
-              </div>
-            )}
-          </div>
+              </li>
+            </ul>
           </div>
         </nav>
       </div>
