@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
+import { Link } from 'react-router-dom'
 import type { CatalogProduct } from '../../../types'
 import Button from './Button'
 
@@ -129,7 +130,11 @@ export default function Packages() {
                 </ul>
                 <div className="mt-6 flex items-center justify-between">
                   <div className="text-neutral-900 font-extrabold text-xl">{p.price > 0 ? `R${p.price}` : 'Custom'}</div>
-                  <div className="w-36"><Button variant="secondary">Contact Us</Button></div>
+                  <div className="w-36">
+                    <Link to="/contact">
+                      <Button variant="secondary">Contact Us</Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
