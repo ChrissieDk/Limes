@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import DashboardNavbar from '../components/DashboardNavbar';
 import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
+import { catalogService } from '../../catalog/services/catalogService';
+import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
 import type { User } from '../../../types';
 import type { SubscriptionDetails } from '../../../types/payment';
 import { 
@@ -14,12 +16,13 @@ import {
   AlertCircle,
   ChevronLeft,
   Package,
-  Phone,
-  CreditCard
+  Phone
 } from 'lucide-react';
 
-// Map Paystack plan codes to friendly names
+// Map product IDs and Paystack plan codes to friendly names
 const PLAN_CODE_TO_NAME: Record<string, string> = {
+  '40021': 'Lite Monthly Plan',
+  '40022': '300MB Monthly Plan',
   'PLN_h1tdp1icb27ss2w': '300MB Monthly Plan',
   'PLN_anjvoror46vxqvaw': 'Test Monthly Plan',
 };
@@ -44,31 +47,58 @@ function Subscriptions() {
     setError(null);
     try {
       const userData = await userService.getCurrentUser();
+      console.log('[Subscriptions] User data:', userData);
       
-      const tempUserData: User = {
-        ...userData,
-        msisdn: '27644038847',
-        productId: undefined
-      };
-
-      // Try to fetch subscription from localStorage
-      const storedSubIds = localStorage.getItem('subscriptionIds');
-      if (storedSubIds) {
+      // Get active subscription from user's msisdns
+      const activeMsisdn = userData.msisdns?.find((m) => m.hasActiveSubscription);
+      
+      if (activeMsisdn) {
+        console.log('[Subscriptions] Active MSISDN found:', activeMsisdn);
+        
+        // Map the MSISDN data to User format
+        const tempUserData: User = {
+          ...userData,
+          msisdn: activeMsisdn.msisdn,
+          productId: activeMsisdn.productId
+        };
+        
+        // Try to fetch product price from catalog
+        let planPrice = 199.99; // Default fallback
         try {
-          const subIds = JSON.parse(storedSubIds) as string[];
-          if (subIds.length > 0) {
-            const subDetails = await paymentService.getSubscription(subIds[0]);
-            setSubscription(subDetails);
-            
-            // Set productId for recurring plan detection
-            tempUserData.productId = '40021'; // Assume recurring if subscription exists
+          const productDetails = await catalogService.getProductById(activeMsisdn.productId);
+          console.log('[Subscriptions] Product details from catalog:', productDetails);
+          if (productDetails.price) {
+            planPrice = productDetails.price;
           }
-        } catch (subErr) {
-          console.error('[Subscriptions] Error fetching subscription:', subErr);
+        } catch (catalogErr) {
+          console.log('[Subscriptions] Could not fetch product price from catalog, using default');
         }
+        
+        // Create a subscription details object from the MSISDN data
+        // Note: We're using the data from your API, not from localStorage or Paystack
+        const mappedSubscription: SubscriptionDetails = {
+          id: activeMsisdn.productId, // Use productId as ID
+          paystackSubscriptionCode: activeMsisdn.productId,
+          paystackPlanCode: activeMsisdn.productId,
+          status: activeMsisdn.subscriptionStatus,
+          nextPaymentDate: activeMsisdn.nextPaymentDate,
+          amountInRands: planPrice,
+          currency: 'ZAR',
+          createdAt: new Date().toISOString(), // Not available in current API
+          cancelledAt: activeMsisdn.isAutoRenewing ? null : new Date().toISOString()
+        };
+        
+        setSubscription(mappedSubscription);
+        setUser(tempUserData);
+      } else {
+        // No active subscription found
+        console.log('[Subscriptions] No active subscription found');
+        setUser({
+          ...userData,
+          msisdn: userData.msisdns?.[0]?.msisdn || '',
+          productId: undefined
+        });
       }
-      
-      setUser(tempUserData);
     } catch (err: any) {
       console.error('[Subscriptions] Error:', err);
       setError(err.response?.data?.message || 'Failed to load subscription data');
@@ -157,8 +187,23 @@ function Subscriptions() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-lime-400 animate-spin" />
+          <div className="space-y-6">
+            <SubscriptionCardSkeleton />
+            {/* Info box skeleton */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 animate-pulse">
+              <div className="flex items-start">
+                <div className="w-5 h-5 bg-neutral-800 rounded mt-0.5 mr-3 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="h-5 w-48 bg-neutral-800 rounded mb-3" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-full bg-neutral-800 rounded" />
+                    <div className="h-3 w-5/6 bg-neutral-800 rounded" />
+                    <div className="h-3 w-4/6 bg-neutral-800 rounded" />
+                    <div className="h-3 w-full bg-neutral-800 rounded" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -194,17 +239,17 @@ function Subscriptions() {
               </button>
             </div>
 
-            {/* localStorage Warning */}
-            <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-6">
+            {/* Info about recurring plans */}
+            <div className="bg-blue-400/10 border border-blue-400/30 rounded-lg p-6">
               <div className="flex items-start">
-                <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
+                <AlertCircle className="w-5 h-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
-                  <h3 className="text-yellow-400 font-semibold mb-2">⚠️ Device-Specific Display Issue</h3>
-                  <p className="text-neutral-300 text-sm mb-3">
-                    Subscriptions are currently tracked per-device and won't sync across your phone, laptop, etc.
+                  <h3 className="text-blue-400 font-semibold mb-2">ℹ️ About Your Subscriptions</h3>
+                  <p className="text-neutral-300 text-sm mb-2">
+                    Your subscription data is synced from your account and will be available across all your devices.
                   </p>
                   <p className="text-neutral-400 text-sm">
-                    <strong className="text-white">Solution needed:</strong> Backend should provide a <code className="bg-neutral-800 px-1.5 py-0.5 rounded text-lime-400">/api/subscriptions</code> endpoint.
+                    To view or purchase new plans, visit the <button onClick={() => navigate('/dashboard/packages')} className="text-lime-400 hover:underline">Packages page</button>.
                   </p>
                 </div>
               </div>
@@ -269,7 +314,7 @@ function Subscriptions() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* MSISDN */}
                 {user.msisdn && (
                   <div className="flex items-start">
@@ -284,7 +329,7 @@ function Subscriptions() {
                 )}
 
                 {/* Amount */}
-                {subscription ? (
+                {subscription && (
                   <div className="flex items-start">
                     <div className="bg-lime-400/10 p-3 rounded-lg mr-4">
                       <DollarSign className="w-5 h-5 text-lime-400" />
@@ -292,29 +337,30 @@ function Subscriptions() {
                     <div>
                       <p className="text-neutral-400 text-sm mb-1">Amount</p>
                       <p className="text-white font-semibold text-lg">
-                        R{subscription.amountInRands.toFixed(2)}/{subscription.currency}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start">
-                    <div className="bg-lime-400/10 p-3 rounded-lg mr-4">
-                      <CreditCard className="w-5 h-5 text-lime-400" />
-                    </div>
-                    <div>
-                      <p className="text-neutral-400 text-sm mb-1">Plan</p>
-                      <p className="text-white font-semibold text-lg">
-                        Product {user.productId}
+                        R{subscription.amountInRands.toFixed(2)}/mo
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* Next Payment or Created Date */}
-                {subscription ? (
+                {/* Auto-Renewal Status */}
+                <div className="flex items-start">
+                  <div className="bg-blue-400/10 p-3 rounded-lg mr-4">
+                    <CheckCircle2 className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-neutral-400 text-sm mb-1">Auto-Renewal</p>
+                    <p className="text-white font-semibold">
+                      {subscription?.cancelledAt ? 'Disabled' : 'Enabled'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Next Payment */}
+                {subscription && (
                   <div className="flex items-start">
-                    <div className="bg-blue-400/10 p-3 rounded-lg mr-4">
-                      <Calendar className="w-5 h-5 text-blue-400" />
+                    <div className="bg-orange-400/10 p-3 rounded-lg mr-4">
+                      <Calendar className="w-5 h-5 text-orange-400" />
                     </div>
                     <div>
                       <p className="text-neutral-400 text-sm mb-1">Next Payment</p>
@@ -324,16 +370,6 @@ function Subscriptions() {
                           : formatDate(subscription.nextPaymentDate)
                         }
                       </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start">
-                    <div className="bg-blue-400/10 p-3 rounded-lg mr-4">
-                      <CheckCircle2 className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="text-neutral-400 text-sm mb-1">Type</p>
-                      <p className="text-white font-semibold">Monthly Recurring</p>
                     </div>
                   </div>
                 )}

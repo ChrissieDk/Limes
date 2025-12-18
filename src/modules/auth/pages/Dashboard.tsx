@@ -37,6 +37,7 @@ function Dashboard() {
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [ricaComplete, setRicaComplete] = useState<boolean>(false);
   const [bundles, setBundles] = useState<BundleModel[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<typeof mockCurrentPlan | null>(null);
 
   // Get selected package from navigation state or use mock as fallback
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
@@ -68,7 +69,7 @@ function Dashboard() {
           // Update SIM cards with real MSISDNs from user account
           if (user.msisdns && user.msisdns.length > 0) {
             console.log('[Dashboard] User MSISDNs:', user.msisdns);
-            const updatedSimCards = user.msisdns.map((msisdnData: any, index: number) => ({
+            const updatedSimCards = user.msisdns.map((msisdnData, index: number) => ({
               id: String(index + 1),
               name: `Sim ${index + 1}`,
               phoneNumber: msisdnData.msisdn,
@@ -82,6 +83,53 @@ function Dashboard() {
               }
             }));
             setSimCards(updatedSimCards);
+            
+            // Extract subscription data from the first active MSISDN
+            const activeMsisdn = user.msisdns.find((m) => m.hasActiveSubscription);
+            if (activeMsisdn) {
+              console.log('[Dashboard] Active subscription found:', activeMsisdn);
+              
+              // Try to fetch product details from catalog
+              try {
+                const productDetails = await catalogService.getProductById(activeMsisdn.productId);
+                console.log('[Dashboard] Product details from catalog:', productDetails);
+                
+                setCurrentPlan({
+                  name: productDetails.name || 'Current Plan',
+                  mobileData: productDetails.description || '10GB',
+                  messaging: '10 SMS',
+                  phone: '10 Min',
+                  price: productDetails.price || 199.99,
+                  productId: activeMsisdn.productId,
+                  hasActiveSubscription: activeMsisdn.hasActiveSubscription,
+                  isAutoRenewing: activeMsisdn.isAutoRenewing,
+                  subscriptionStatus: activeMsisdn.subscriptionStatus,
+                  nextPaymentDate: activeMsisdn.nextPaymentDate,
+                });
+              } catch (err) {
+                console.error('[Dashboard] Error fetching product details:', err);
+                
+                // Fallback to default values if catalog fetch fails
+                const productNames: Record<string, string> = {
+                  '40021': 'Lite Plan',
+                  '40022': '300MB Plan',
+                  // Add more product mappings as needed
+                };
+                
+                setCurrentPlan({
+                  name: productNames[activeMsisdn.productId] || 'Current Plan',
+                  mobileData: '10GB',
+                  messaging: '10 SMS',
+                  phone: '10 Min',
+                  price: 199.99,
+                  productId: activeMsisdn.productId,
+                  hasActiveSubscription: activeMsisdn.hasActiveSubscription,
+                  isAutoRenewing: activeMsisdn.isAutoRenewing,
+                  subscriptionStatus: activeMsisdn.subscriptionStatus,
+                  nextPaymentDate: activeMsisdn.nextPaymentDate,
+                });
+              }
+            }
           }
         }
       } catch (err) {
@@ -371,7 +419,20 @@ function Dashboard() {
       <section className="bg-neutral-800 border border-neutral-700 rounded-2xl p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <div className="flex flex-col">
-              <CurrentPlan plan={mockCurrentPlan} className="flex-1" />
+              {currentPlan ? (
+                <CurrentPlan plan={currentPlan} className="flex-1" />
+              ) : (
+                <div className="bg-neutral-800 rounded-2xl p-6 h-full border border-neutral-700">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-neutral-700 rounded w-1/3"></div>
+                    <div className="h-8 bg-neutral-700 rounded w-1/2"></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="h-24 bg-neutral-700 rounded-2xl"></div>
+                      <div className="h-24 bg-neutral-700 rounded-2xl"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             {/* <div className="flex flex-col">
               <Wallet className="flex-1" />

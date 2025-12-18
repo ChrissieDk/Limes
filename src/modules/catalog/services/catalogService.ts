@@ -19,6 +19,10 @@ export const catalogService = {
     const response = await apiClient.get(`/catalog/products/category/${category}`, { params })
     return response.data
   },
+  async getProductById(productId: string): Promise<any> {
+    const response = await apiClient.get(`/catalog/products/${productId}`)
+    return response.data
+  },
 }
 
 

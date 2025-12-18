@@ -90,3 +90,76 @@ export function BundleCardSkeleton() {
     </div>
   );
 }
+
+export function SubscriptionCardSkeleton() {
+  return (
+    <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800 animate-pulse">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex-1">
+          <div className="flex items-center mb-2">
+            {/* Plan name */}
+            <div className="h-7 w-48 bg-neutral-800 rounded mr-3" />
+            {/* Status badge */}
+            <div className="h-6 w-16 bg-neutral-800 rounded-full" />
+          </div>
+          <div className="space-y-1">
+            {/* Plan code */}
+            <div className="h-3 w-40 bg-neutral-800 rounded" />
+            {/* Subscription ID */}
+            <div className="h-4 w-56 bg-neutral-800 rounded" />
+          </div>
+        </div>
+        {/* Cancel button placeholder */}
+        <div className="h-10 w-40 bg-neutral-800 rounded-lg" />
+      </div>
+
+      {/* Grid of details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Phone Number */}
+        <div className="flex items-start">
+          <div className="bg-purple-400/10 p-3 rounded-lg mr-4">
+            <div className="w-5 h-5 bg-purple-400/30 rounded" />
+          </div>
+          <div className="flex-1">
+            <div className="h-3 w-24 bg-neutral-800 rounded mb-2" />
+            <div className="h-5 w-28 bg-neutral-800 rounded" />
+          </div>
+        </div>
+
+        {/* Amount */}
+        <div className="flex items-start">
+          <div className="bg-lime-400/10 p-3 rounded-lg mr-4">
+            <div className="w-5 h-5 bg-lime-400/30 rounded" />
+          </div>
+          <div className="flex-1">
+            <div className="h-3 w-16 bg-neutral-800 rounded mb-2" />
+            <div className="h-5 w-24 bg-neutral-800 rounded" />
+          </div>
+        </div>
+
+        {/* Auto-Renewal */}
+        <div className="flex items-start">
+          <div className="bg-blue-400/10 p-3 rounded-lg mr-4">
+            <div className="w-5 h-5 bg-blue-400/30 rounded" />
+          </div>
+          <div className="flex-1">
+            <div className="h-3 w-20 bg-neutral-800 rounded mb-2" />
+            <div className="h-5 w-20 bg-neutral-800 rounded" />
+          </div>
+        </div>
+
+        {/* Next Payment */}
+        <div className="flex items-start">
+          <div className="bg-orange-400/10 p-3 rounded-lg mr-4">
+            <div className="w-5 h-5 bg-orange-400/30 rounded" />
+          </div>
+          <div className="flex-1">
+            <div className="h-3 w-24 bg-neutral-800 rounded mb-2" />
+            <div className="h-5 w-28 bg-neutral-800 rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
