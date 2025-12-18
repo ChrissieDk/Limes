@@ -4,6 +4,7 @@ import DashboardNavbar from '../components/DashboardNavbar'
 import ChoosePackageModal from '../components/ChoosePackageModal'
 import { catalogService } from '../../catalog/services/catalogService'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
+import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
 
 type PackageType = 'contract' | 'prepaid' | null
 type SimStatus = 'has-sim' | 'needs-sim' | null
@@ -433,7 +434,14 @@ export default function DashboardPackages() {
                   </button>
                   
                   {loading && (
-                    <div className="text-center py-12 text-neutral-400">Loading bundle categories...</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <BundleCategorySkeleton />
+                      <BundleCategorySkeleton />
+                      <BundleCategorySkeleton />
+                      <BundleCategorySkeleton />
+                      <BundleCategorySkeleton />
+                      <BundleCategorySkeleton />
+                    </div>
                   )}
                   
                   {error && (
@@ -545,7 +553,11 @@ export default function DashboardPackages() {
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {loading && (
-                      <div className="col-span-1 lg:col-span-3 text-center text-neutral-400">Loading packages…</div>
+                      <>
+                        <PackageCardSkeleton variant={0} />
+                        <PackageCardSkeleton variant={1} />
+                        <PackageCardSkeleton variant={2} />
+                      </>
                     )}
                     {error && (
                       <div className="col-span-1 lg:col-span-3 text-center text-red-400">{error}</div>
