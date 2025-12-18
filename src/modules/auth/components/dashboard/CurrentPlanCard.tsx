@@ -7,6 +7,31 @@ interface CurrentPlanProps {
 }
 
 export function CurrentPlan({ plan, className }: CurrentPlanProps) {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const getStatusColor = (status?: string) => {
+    if (!status) return 'bg-neutral-500';
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'bg-lime-400';
+      case 'pending':
+        return 'bg-yellow-400';
+      case 'cancelled':
+      case 'expired':
+        return 'bg-red-400';
+      default:
+        return 'bg-neutral-500';
+    }
+  };
+
   return (
     <div className={`bg-neutral-800 rounded-2xl p-6 h-full border border-neutral-700 ${className ?? ''}`}>
       {/* Header */}
@@ -16,8 +41,10 @@ export function CurrentPlan({ plan, className }: CurrentPlanProps) {
           <span className="bg-white text-neutral-900 text-xs px-2.5 py-1 rounded-full">SIM1</span>
         </div>
         <div className="inline-flex items-center space-x-2 bg-neutral-900 border border-neutral-700 px-3 py-1 rounded-full">
-          <span className="w-2 h-2 rounded-full bg-lime-400" />
-          <span className="text-white text-xs font-medium">Subscription</span>
+          <span className={`w-2 h-2 rounded-full ${getStatusColor(plan.subscriptionStatus)}`} />
+          <span className="text-white text-xs font-medium capitalize">
+            {plan.subscriptionStatus || 'Subscription'}
+          </span>
         </div>
       </div>
 
@@ -66,6 +93,37 @@ export function CurrentPlan({ plan, className }: CurrentPlanProps) {
         </div>
       </div>
 
+      {/* Subscription Management Info */}
+      {plan.hasActiveSubscription && (
+        <div className="mb-6 bg-neutral-900 rounded-xl p-4 border border-neutral-700">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-neutral-400 text-sm">Auto-renewal</span>
+            <div className="flex items-center space-x-2">
+              <span className={`w-2 h-2 rounded-full ${plan.isAutoRenewing ? 'bg-lime-400' : 'bg-neutral-500'}`} />
+              <span className="text-white text-sm font-medium">
+                {plan.isAutoRenewing ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+          </div>
+          {plan.nextPaymentDate && (
+            <div className="flex items-center justify-between">
+              <span className="text-neutral-400 text-sm">Next payment</span>
+              <span className="text-white text-sm font-medium">
+                {formatDate(plan.nextPaymentDate)}
+              </span>
+            </div>
+          )}
+          {plan.productId && (
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-700">
+              <span className="text-neutral-400 text-sm">Product ID</span>
+              <span className="text-white text-sm font-mono">
+                {plan.productId}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Actions and pricing */}
       <div className="flex items-end justify-between">
         {/* Button block with offset shadow frame */}
@@ -77,7 +135,7 @@ export function CurrentPlan({ plan, className }: CurrentPlanProps) {
               <ChevronRight className="w-4 h-4 ml-1" />
             </button>
             <button className="bg-white text-neutral-900 py-2 px-4 rounded-xl font-medium border-2 border-neutral-900 hover:bg-neutral-100 transition-colors">
-              View Billing
+              {plan.isAutoRenewing ? 'Manage' : 'Renew'}
             </button>
           </div>
         </div>

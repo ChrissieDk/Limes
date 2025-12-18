@@ -1,9 +1,18 @@
+export interface MsisdnData {
+  msisdn: string
+  hasActiveSubscription: boolean
+  isAutoRenewing: boolean
+  subscriptionStatus: string
+  nextPaymentDate: string
+  productId: string
+}
+
 export interface User {
   id: string
   externalId: string
   emailAddress: string
   displayName: string
-  msisdns?: string[]
+  msisdns?: MsisdnData[]
   msisdn?: string  // Primary MSISDN
   productId?: string  // Active product/plan ID
   ricaComplete?: boolean

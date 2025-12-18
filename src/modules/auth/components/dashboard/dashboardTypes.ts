@@ -29,6 +29,11 @@ export interface Plan {
   messaging: string;
   phone: string;
   price: number;
+  productId?: string;
+  hasActiveSubscription?: boolean;
+  isAutoRenewing?: boolean;
+  subscriptionStatus?: string;
+  nextPaymentDate?: string;
 }
 
 export interface Bundle {
