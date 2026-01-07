@@ -17,6 +17,31 @@ interface TopUpModalProps {
   phoneNumbers?: string[]
 }
 
+const renderProductList = (products: CatalogProduct[], selectedProduct: CatalogProduct | null, onSelect: (product: CatalogProduct) => void) => {
+  return products.map((product) => (
+    <button
+      key={product.id}
+      onClick={() => onSelect(product)}
+      className={`w-full rounded-xl border-2 ${
+        selectedProduct?.id === product.id
+          ? 'border-neutral-900 bg-lime-50'
+          : 'border-neutral-200 bg-white hover:border-neutral-300'
+      } p-4 text-left transition-all`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <div className="font-semibold text-neutral-900">{product.name}</div>
+          <div className="text-sm text-neutral-600 mt-1">{product.description}</div>
+        </div>
+        <div className="text-right ml-4">
+          <div className="font-bold text-lg text-neutral-900">R{product.price.toFixed(2)}</div>
+          <div className="text-xs text-neutral-500">once-off</div>
+        </div>
+      </div>
+    </button>
+  ))
+}
+
 export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }: TopUpModalProps) {
   const [kind] = useState<TopUpKind>('bundles') // Default to bundles (data/airtime commented out)
   const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false)
@@ -377,42 +402,17 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
                 </button>
               </div>
               
-              {loading && (
+              {loading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="animate-pulse rounded-xl border border-neutral-200 p-4 h-20 bg-neutral-50" />
                   ))}
                 </div>
-              )}
-              
-              {!loading && products.length > 0 && (
+              ) : products.length > 0 ? (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {products.map((product: CatalogProduct) => {
-                    const isSelected = selectedProduct ? selectedProduct.id === product.id : false
-                    return (
-                    <button
-                      key={product.id}
-                      onClick={() => setSelectedProduct(product)}
-                      className={`w-full rounded-xl border-2 ${
-                        isSelected
-                          ? 'border-neutral-900 bg-lime-50'
-                          : 'border-neutral-200 bg-white hover:border-neutral-300'
-                      } p-4 text-left transition-all`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-semibold text-neutral-900">{product.name}</div>
-                          <div className="text-sm text-neutral-600 mt-1">{product.description}</div>
-                        </div>
-                        <div className="text-right ml-4">
-                          <div className="font-bold text-lg text-neutral-900">R{product.price.toFixed(2)}</div>
-                          <div className="text-xs text-neutral-500">once-off</div>
-                        </div>
-                      </div>
-                    </button>
-                  )})}
+                  {renderProductList(products, selectedProduct, setSelectedProduct)}
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 

@@ -124,6 +124,11 @@ export default function SubscriptionManagement({
   const handleCancelSubscription = async () => {
     if (!subscription) return
 
+    if (!userMsisdn) {
+      setError('User MSISDN not found. Please try again.')
+      return
+    }
+
     if (!confirm('Are you sure you want to cancel this subscription? No further charges will be made.')) {
       return
     }
@@ -134,6 +139,8 @@ export default function SubscriptionManagement({
     try {
       const response = await paymentService.cancelSubscription({
         subscriptionCode: subscription.paystackSubscriptionCode,
+        msisdn: userMsisdn,
+        productId: subscription.paystackPlanCode,
       })
 
       if (response.success) {
