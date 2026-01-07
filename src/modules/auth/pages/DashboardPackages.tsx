@@ -39,6 +39,10 @@ export default function DashboardPackages() {
   
   // Track the actual SIM package product ID (the parent product from SA/SOA categories)
   const [simPackageProductId, setSimPackageProductId] = useState<string | null>(null)
+  
+  // ICCID for has-sim flow ONLY
+  const [iccid, setIccid] = useState<string>('')
+  const [iccidConfirmed, setIccidConfirmed] = useState(false)
 
   const glowRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -64,9 +68,15 @@ export default function DashboardPackages() {
     }
   }, [])
 
-  // Fetch bundle categories for SOA flow (needs-sim)
+  // Fetch bundle categories for needs-sim flow OR has-sim flow (after ICCID is confirmed)
   useEffect(() => {
-    if (simStatus !== 'needs-sim') return
+    // For needs-sim: fetch immediately
+    // For has-sim: only fetch after ICCID is confirmed
+    if (simStatus === 'needs-sim' || (simStatus === 'has-sim' && iccidConfirmed)) {
+      // Continue with fetch
+    } else {
+      return
+    }
 
     const fetchBundleCategories = async () => {
       try {
@@ -117,7 +127,7 @@ export default function DashboardPackages() {
     }
 
     fetchBundleCategories()
-  }, [simStatus])
+  }, [simStatus, iccidConfirmed])
 
   // Fetch products from selected bundle category
   useEffect(() => {
@@ -231,9 +241,18 @@ export default function DashboardPackages() {
     setSelectedBundleCategory(null)
     setProducts([])
     setSimPackageProductId(null)
+    setIccidConfirmed(false) // Reset ICCID confirmation
     
-    // Both SA and SOA need to select bundle category first
-    // We don't proceed to packages until bundle category is selected
+    // For has-sim: user must enter ICCID before seeing bundle categories
+    // For needs-sim: proceed directly to bundle categories
+  }
+  
+  const handleIccidSubmit = () => {
+    if (iccid.trim().length < 15) {
+      alert('Please enter a valid ICCID (found on the back of your SIM card)')
+      return
+    }
+    setIccidConfirmed(true)
   }
 
   const handleBundleCategorySelect = (categoryId: string) => {
@@ -243,10 +262,13 @@ export default function DashboardPackages() {
 
   const handleBackFromBundleCategories = () => {
     // If contract, go back to package type selection (step 1)
-    // If prepaid, go back to SIM status selection (step 2)
+    // If prepaid with has-sim, go back to ICCID input
+    // If prepaid with needs-sim, go back to SIM status selection (step 2)
     if (packageType === 'contract') {
       setPackageType(null)
       setSimStatus(null)
+    } else if (simStatus === 'has-sim') {
+      setIccidConfirmed(false)
     } else {
       setSimStatus(null)
     }
@@ -254,6 +276,12 @@ export default function DashboardPackages() {
     setSelectedBundleCategory(null)
     setShowPackages(false)
     setProducts([])
+  }
+  
+  const handleBackFromIccidInput = () => {
+    setSimStatus(null)
+    setIccid('')
+    setIccidConfirmed(false)
   }
 
   const handleBackFromPackages = () => {
@@ -271,6 +299,8 @@ export default function DashboardPackages() {
     setSelectedBundleCategory(null)
     setSelectedPackage(null)
     setSimPackageProductId(null)
+    setIccid('')
+    setIccidConfirmed(false)
     setError(null)
   }
 
@@ -294,6 +324,7 @@ export default function DashboardPackages() {
           packageType: packageType,                 // 'contract' or 'prepaid'
           simStatus: simStatus,                     // 'has-sim' or 'needs-sim'
           planChargeType: chargeType,               // 'once-off' or 'monthly'
+          iccid: simStatus === 'has-sim' ? iccid : undefined, // ICCID only for has-sim flow
           features: {
             mobileData: product.description,
           }
@@ -321,7 +352,9 @@ export default function DashboardPackages() {
                 ? 'Choose your package type' 
                 : packageType === 'prepaid' && !simStatus 
                 ? 'Do you have a SIM?' 
-                : simStatus === 'needs-sim' && !selectedBundleCategory
+                : simStatus === 'has-sim' && !iccidConfirmed
+                ? 'Enter your ICCID'
+                : simStatus && !selectedBundleCategory
                 ? 'Choose your bundle type'
                 : 'Your packages'}
             </h2>
@@ -330,7 +363,9 @@ export default function DashboardPackages() {
                 ? 'Select between contract or prepaid options' 
                 : packageType === 'prepaid' && !simStatus 
                 ? 'Let us know if you already have a SIM card' 
-                : simStatus === 'needs-sim' && !selectedBundleCategory
+                : simStatus === 'has-sim' && !iccidConfirmed
+                ? 'Found on the back of your SIM card'
+                : simStatus && !selectedBundleCategory
                 ? 'Select the type of bundle you need'
                 : `Showing ${selectedBundleCategory || packageType} packages`}
             </p>
@@ -420,8 +455,64 @@ export default function DashboardPackages() {
                 </div>
               )}
 
+              {/* Step 2.5: ICCID Input (ONLY for has-sim flow) */}
+              {simStatus === 'has-sim' && !iccidConfirmed && (
+                <div className="max-w-2xl mx-auto">
+                  <button
+                    onClick={handleBackFromIccidInput}
+                    className="mb-6 px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back
+                  </button>
+
+                  <div className="rounded-2xl p-8 bg-[#D8B0FF] shadow-[8px_8px_0_0_rgba(0,0,0,0.7)]">
+                    <div className="flex items-center justify-center mb-6">
+                      <div className="size-16 rounded-full bg-white/20 grid place-items-center">
+                        <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-neutral-900 font-extrabold text-3xl mb-3 text-center">Enter Your ICCID</h3>
+                    <p className="text-neutral-900/80 text-lg mb-6 text-center">
+                      Your ICCID is printed on the back of your SIM card
+                    </p>
+
+                    <div className="bg-white/20 rounded-xl p-6 mb-6">
+                      <label htmlFor="iccid" className="block text-neutral-900 font-semibold mb-2">
+                        ICCID Number
+                      </label>
+                      <input
+                        id="iccid"
+                        type="text"
+                        value={iccid}
+                        onChange={(e) => setIccid(e.target.value)}
+                        placeholder="e.g., 8927078220008762165"
+                        className="w-full px-4 py-3 rounded-lg bg-white text-neutral-900 font-mono text-lg border-2 border-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                        maxLength={22}
+                      />
+                      <p className="text-neutral-900/70 text-sm mt-2">
+                        Usually 19-20 digits long
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleIccidSubmit}
+                      disabled={iccid.trim().length < 15}
+                      className="w-full bg-neutral-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[4px_4px_0_0_rgba(0,0,0,0.3)]"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Step 3: Bundle Category Selection */}
-              {simStatus && !selectedBundleCategory && (
+              {simStatus && !selectedBundleCategory && (simStatus === 'needs-sim' || (simStatus === 'has-sim' && iccidConfirmed)) && (
                 <div className="max-w-6xl mx-auto">
                   <button
                     onClick={handleBackFromBundleCategories}

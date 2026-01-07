@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import DashboardNavbar from '../components/DashboardNavbar';
 import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
-import { catalogService } from '../../catalog/services/catalogService';
 import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
 import type { User } from '../../../types';
 import type { SubscriptionDetails } from '../../../types/payment';
@@ -37,6 +36,8 @@ function Subscriptions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelSuccess, setCancelSuccess] = useState(false);
 
   useEffect(() => {
     fetchUserAndSubscription();
@@ -62,17 +63,9 @@ function Subscriptions() {
           productId: activeMsisdn.productId
         };
         
-        // Try to fetch product price from catalog
-        let planPrice = 199.99; // Default fallback
-        try {
-          const productDetails = await catalogService.getProductById(activeMsisdn.productId);
-          console.log('[Subscriptions] Product details from catalog:', productDetails);
-          if (productDetails.price) {
-            planPrice = productDetails.price;
-          }
-        } catch (catalogErr) {
-          console.log('[Subscriptions] Could not fetch product price from catalog, using default');
-        }
+        // Use amountInCents from API response (convert cents to rands)
+        const planPrice = activeMsisdn.amountInCents / 100;
+        console.log('[Subscriptions] Plan price from API:', planPrice, 'Rand (from', activeMsisdn.amountInCents, 'cents)');
         
         // Create a subscription details object from the MSISDN data
         // Note: We're using the data from your API, not from localStorage or Paystack
@@ -108,28 +101,39 @@ function Subscriptions() {
   };
 
   const handleCancelSubscription = async () => {
-    if (!subscription) return;
-    
-    if (!confirm('Are you sure you want to cancel this subscription? You will still have access until the end of the current billing period.')) {
+    if (!subscription || !user?.msisdn || !user?.productId) {
+      setError('Missing subscription information. Please try again.');
       return;
     }
 
     setCancelling(true);
+    setError(null);
+    
     try {
       const response = await paymentService.cancelSubscription({ 
-        subscriptionCode: subscription.paystackSubscriptionCode 
+        subscriptionCode: subscription.paystackSubscriptionCode,
+        msisdn: user.msisdn,
+        productId: user.productId
       });
       console.log('[Subscriptions] Cancelled:', response);
       
       if (response.success) {
-        // Refresh data
-        await fetchUserAndSubscription();
+        setCancelSuccess(true);
+        // Refresh data after a short delay
+        setTimeout(async () => {
+          await fetchUserAndSubscription();
+          setShowCancelModal(false);
+          setCancelSuccess(false);
+        }, 2000);
       } else {
-        alert(response.message || 'Failed to cancel subscription');
+        setError(response.message || 'Failed to cancel subscription');
       }
     } catch (err: any) {
       console.error('[Subscriptions] Error cancelling:', err);
-      alert(err.response?.data?.message || 'Failed to cancel subscription');
+      const errorMessage = err.response?.data?.errors 
+        ? Object.values(err.response.data.errors).flat().join(', ')
+        : err.response?.data?.message || 'Failed to cancel subscription';
+      setError(errorMessage);
     } finally {
       setCancelling(false);
     }
@@ -295,21 +299,12 @@ function Subscriptions() {
                 
                 {subscription && subscription.status.toLowerCase() === 'active' && !subscription.cancelledAt && (
                   <button
-                    onClick={handleCancelSubscription}
+                    onClick={() => setShowCancelModal(true)}
                     disabled={cancelling}
                     className="bg-neutral-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
-                    {cancelling ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Cancelling...
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Cancel Subscription
-                      </>
-                    )}
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Cancel Subscription
                   </button>
                 )}
               </div>
@@ -406,6 +401,102 @@ function Subscriptions() {
           </div>
         )}
       </div>
+
+      {/* Cancel Subscription Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            {cancelSuccess ? (
+              // Success State
+              <div className="text-center">
+                <div className="mb-4 mx-auto w-16 h-16 bg-lime-400/10 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-lime-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Subscription Cancelled</h3>
+                <p className="text-neutral-400">
+                  Your subscription has been successfully cancelled.
+                </p>
+              </div>
+            ) : (
+              // Confirmation State
+              <>
+                <div className="mb-6">
+                  <div className="mb-4 mx-auto w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-yellow-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2 text-center">Cancel Subscription?</h3>
+                </div>
+
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4 mb-6 space-y-3">
+                  <div className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <p className="text-white font-semibold text-sm">Access Until Billing Date</p>
+                      <p className="text-neutral-400 text-sm">
+                        You'll continue to have access until {subscription && formatDate(subscription.nextPaymentDate)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <p className="text-white font-semibold text-sm">No Future Charges</p>
+                      <p className="text-neutral-400 text-sm">
+                        You won't be charged after {subscription && formatDate(subscription.nextPaymentDate)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <p className="text-white font-semibold text-sm">Resubscribe Anytime</p>
+                      <p className="text-neutral-400 text-sm">
+                        You can choose a new package from our plans page once this expires
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+                      <p className="text-red-400 text-sm">{error}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowCancelModal(false);
+                      setError(null);
+                    }}
+                    disabled={cancelling}
+                    className="flex-1 bg-neutral-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
+                  >
+                    Keep Subscription
+                  </button>
+                  <button
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                    className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {cancelling ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      'Yes, Cancel'
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

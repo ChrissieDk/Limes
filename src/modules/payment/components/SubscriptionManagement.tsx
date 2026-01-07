@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Calendar, AlertCircle, CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
+import { userService } from '../../auth/services/userService'
 import type { SubscriptionDetails, SavedCard } from '../../../types/payment'
 
 interface SubscriptionManagementProps {
@@ -19,12 +20,31 @@ export default function SubscriptionManagement({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [userMsisdn, setUserMsisdn] = useState<string>('')
   
   // Create subscription form state
   const [selectedCardId, setSelectedCardId] = useState<string>('')
   const [planCode, setPlanCode] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
+
+  // Fetch user MSISDN
+  useEffect(() => {
+    const fetchUserMsisdn = async () => {
+      try {
+        const user = await userService.getCurrentUser()
+        const activeMsisdn = user.msisdns?.find((m) => m.hasActiveSubscription)
+        if (activeMsisdn) {
+          setUserMsisdn(activeMsisdn.msisdn)
+        } else if (user.msisdns && user.msisdns.length > 0) {
+          setUserMsisdn(user.msisdns[0].msisdn)
+        }
+      } catch (err) {
+        console.error('[SubscriptionManagement] Error fetching user MSISDN:', err)
+      }
+    }
+    fetchUserMsisdn()
+  }, [])
 
   useEffect(() => {
     if (subscriptionId) {
@@ -68,6 +88,11 @@ export default function SubscriptionManagement({
       setError('Please select a card and enter a plan code')
       return
     }
+    
+    if (!userMsisdn) {
+      setError('User MSISDN not found. Please try again.')
+      return
+    }
 
     setIsCreating(true)
     setError(null)
@@ -76,7 +101,7 @@ export default function SubscriptionManagement({
       const response = await paymentService.subscribe({
         productId: planCode,
         paymentMethodId: selectedCardId,
-        msisdn: '27644038847' // TODO: Get from user context
+        msisdn: userMsisdn // Use actual user MSISDN from API
       })
 
       if (response.success && response.subscription) {

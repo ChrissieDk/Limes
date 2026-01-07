@@ -26,6 +26,7 @@ export interface CatalogProduct {
   packageType?: 'contract' | 'prepaid'  // Package type
   simStatus?: 'has-sim' | 'needs-sim'  // Whether user has SIM or needs delivery
   planChargeType?: 'once-off' | 'monthly'  // Charge frequency
+  iccid?: string  // ICCID for has-sim flow only
   features?: {
     mobileData?: string
   }

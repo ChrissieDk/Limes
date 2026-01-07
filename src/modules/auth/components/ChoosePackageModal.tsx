@@ -290,8 +290,11 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         // The actual plan (40022) is assigned during payment/order creation
         const subscriberPayload = {
           productId: selectedPackage.simPackageProductId, // ✅ SIM package ID (7029225P, etc.)
-          // iccid is NOT sent - it's assigned by the backend when SIM is delivered (SOA only)
-          // For SA (SIM in hand), backend expects iccid to be provided
+          // Include ICCID only for "has-sim" flow (SA - SIM Already)
+          // For "needs-sim" (SOA - SIM on Arrival), ICCID is assigned by backend when SIM is delivered
+          ...(selectedPackage.simStatus === 'has-sim' && selectedPackage.iccid 
+            ? { iccid: selectedPackage.iccid }
+            : {}),
           eSim: false,
           address: [
             {

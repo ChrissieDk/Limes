@@ -9,12 +9,12 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const getStatusStyles = () => {
-    switch (status) {
-      case 'Success':
+    switch (status.toLowerCase()) {
+      case 'success':
         return 'text-green-400 bg-green-400/10';
-      case 'In Progress':
+      case 'pending':
         return 'text-yellow-400 bg-yellow-400/10';
-      case 'Failed':
+      case 'failed':
         return 'text-red-400 bg-red-400/10';
       default:
         return 'text-gray-400 bg-gray-400/10';
@@ -22,12 +22,12 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   };
 
   const getStatusDotClass = () => {
-    switch (status) {
-      case 'Success':
+    switch (status.toLowerCase()) {
+      case 'success':
         return 'bg-green-400';
-      case 'In Progress':
+      case 'pending':
         return 'bg-yellow-400';
-      case 'Failed':
+      case 'failed':
         return 'bg-red-400';
       default:
         return 'bg-gray-400';
@@ -39,18 +39,36 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusStyles()}`}
     >
       <span className={`w-2.5 h-2.5 rounded-full ${getStatusDotClass()}`} />
-      <span>{status}</span>
+      <span className="capitalize">{status}</span>
     </div>
   );
 }
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
+  loading?: boolean;
   className?: string;
   onOpenFullView?: () => void;
 }
 
-export function TransactionHistory({ transactions, className, onOpenFullView }: TransactionHistoryProps) {
+export function TransactionHistory({ transactions, loading, className, onOpenFullView }: TransactionHistoryProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const getTransactionType = (transaction: Transaction) => {
+    // Map payment channel to display type
+    if (transaction.channel === 'card') {
+      return `Card Payment`;
+    }
+    return 'Payment';
+  };
+
   return (
     <div className={`bg-neutral-800 rounded-xl p-6 h-full border border-neutral-700 ${className ?? ''}`}>
       <div className="flex items-center justify-between mb-6">
@@ -65,94 +83,106 @@ export function TransactionHistory({ transactions, className, onOpenFullView }: 
         </button>
       </div>
 
-      {/* Desktop/tablet table view */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-neutral-500 text-sm border-b border-neutral-700/60">
-              <th className="text-left pb-3">
-                <div className="flex items-center space-x-1">
-                  <span>Type</span>
-                  <div className="flex flex-col">
-                    <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                    <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                  </div>
-                </div>
-              </th>
-              <th className="text-left pb-3">
-                <div className="flex items-center space-x-1">
-                  <span>Status</span>
-                  <div className="flex flex-col">
-                    <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                    <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                  </div>
-                </div>
-              </th>
-              <th className="text-left pb-3">
-                <div className="flex items-center space-x-1">
-                  <span>Date</span>
-                  <div className="flex flex-col">
-                    <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                    <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                  </div>
-                </div>
-              </th>
-              <th className="text-right pb-3">
-                <div className="flex items-center justify-end space-x-1">
-                  <span>Amount</span>
-                  <div className="flex flex-col">
-                    <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                    <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                  </div>
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((transaction, index) => (
-              <tr key={transaction.id} className={index > 0 ? 'border-t border-neutral-800' : ''}>
-                <td className="py-3 text-white text-sm">{transaction.type}</td>
-                <td className="py-3">
-                  <StatusBadge status={transaction.status} />
-                </td>
-                <td className="py-3 text-neutral-400 text-sm">{transaction.date}</td>
-                <td
-                  className={`py-3 text-sm text-right font-medium ${
-                    transaction.amount > 0 ? 'text-lime-400' : 'text-white'
-                  }`}
-                >
-                  {transaction.amount > 0 ? '+' : ''}R{Math.abs(transaction.amount).toFixed(2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile stacked view */}
-      <div className="space-y-3 md:hidden">
-        {transactions.map((transaction) => (
-          <div
-            key={transaction.id}
-            className="rounded-xl border border-neutral-700 bg-neutral-900/40 px-4 py-3 flex items-center justify-between gap-3"
-          >
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white">{transaction.type}</span>
-                <StatusBadge status={transaction.status} />
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse flex items-center justify-between py-3">
+              <div className="flex-1">
+                <div className="h-4 bg-neutral-700 rounded w-1/3 mb-2"></div>
+                <div className="h-3 bg-neutral-700 rounded w-1/4"></div>
               </div>
-              <div className="mt-1 text-xs text-neutral-400">{transaction.date}</div>
+              <div className="h-4 bg-neutral-700 rounded w-20"></div>
             </div>
-            <div
-              className={`text-sm font-semibold ${
-                transaction.amount > 0 ? 'text-lime-400' : 'text-white'
-              }`}
-            >
-              {transaction.amount > 0 ? '+' : ''}R{Math.abs(transaction.amount).toFixed(2)}
-            </div>
+          ))}
+        </div>
+      ) : transactions.length === 0 ? (
+        <div className="text-center py-8 text-neutral-400">
+          <p>No transactions yet</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop/tablet table view */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-neutral-500 text-sm border-b border-neutral-700/60">
+                  <th className="text-left pb-3">
+                    <div className="flex items-center space-x-1">
+                      <span>Type</span>
+                      <div className="flex flex-col">
+                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
+                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
+                      </div>
+                    </div>
+                  </th>
+                  <th className="text-left pb-3">
+                    <div className="flex items-center space-x-1">
+                      <span>Status</span>
+                      <div className="flex flex-col">
+                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
+                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
+                      </div>
+                    </div>
+                  </th>
+                  <th className="text-left pb-3">
+                    <div className="flex items-center space-x-1">
+                      <span>Date</span>
+                      <div className="flex flex-col">
+                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
+                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
+                      </div>
+                    </div>
+                  </th>
+                  <th className="text-right pb-3">
+                    <div className="flex items-center justify-end space-x-1">
+                      <span>Amount</span>
+                      <div className="flex flex-col">
+                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
+                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.slice(0, 5).map((transaction, index) => (
+                  <tr key={transaction.id} className={index > 0 ? 'border-t border-neutral-800' : ''}>
+                    <td className="py-3 text-white text-sm">{getTransactionType(transaction)}</td>
+                    <td className="py-3">
+                      <StatusBadge status={transaction.status} />
+                    </td>
+                    <td className="py-3 text-neutral-400 text-sm">{formatDate(transaction.paidAt || transaction.createdAt)}</td>
+                    <td className="py-3 text-sm text-right font-medium text-lime-400">
+                      +R{transaction.amountInRands.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
+
+          {/* Mobile stacked view */}
+          <div className="space-y-3 md:hidden">
+            {transactions.slice(0, 5).map((transaction) => (
+              <div
+                key={transaction.id}
+                className="rounded-xl border border-neutral-700 bg-neutral-900/40 px-4 py-3 flex items-center justify-between gap-3"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white">{getTransactionType(transaction)}</span>
+                    <StatusBadge status={transaction.status} />
+                  </div>
+                  <div className="mt-1 text-xs text-neutral-400">{formatDate(transaction.paidAt || transaction.createdAt)}</div>
+                </div>
+                <div className="text-sm font-semibold text-lime-400">
+                  +R{transaction.amountInRands.toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -175,6 +205,22 @@ export function TransactionsModal({ open, onClose, transactions }: TransactionsM
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') onClose();
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const getTransactionType = (transaction: Transaction) => {
+    if (transaction.channel === 'card') {
+      return `Card Payment`;
+    }
+    return 'Payment';
   };
 
   return (
@@ -215,17 +261,13 @@ export function TransactionsModal({ open, onClose, transactions }: TransactionsM
                 <tbody>
                   {pageItems.map((transaction, index) => (
                     <tr key={transaction.id} className={index > 0 ? 'border-t border-neutral-800' : ''}>
-                      <td className="py-3 text-sm text-white">{transaction.type}</td>
+                      <td className="py-3 text-sm text-white">{getTransactionType(transaction)}</td>
                       <td className="py-3">
                         <StatusBadge status={transaction.status} />
                       </td>
-                      <td className="py-3 text-sm text-neutral-400">{transaction.date}</td>
-                      <td
-                        className={`py-3 text-sm text-right font-semibold ${
-                          transaction.amount > 0 ? 'text-lime-400' : 'text-white'
-                        }`}
-                      >
-                        {transaction.amount > 0 ? '+' : ''}R{Math.abs(transaction.amount).toFixed(2)}
+                      <td className="py-3 text-sm text-neutral-400">{formatDate(transaction.paidAt || transaction.createdAt)}</td>
+                      <td className="py-3 text-sm text-right font-semibold text-lime-400">
+                        +R{transaction.amountInRands.toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -242,17 +284,13 @@ export function TransactionsModal({ open, onClose, transactions }: TransactionsM
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-white">{transaction.type}</span>
+                      <span className="text-sm font-medium text-white">{getTransactionType(transaction)}</span>
                       <StatusBadge status={transaction.status} />
                     </div>
-                    <div className="mt-1 text-xs text-neutral-400">{transaction.date}</div>
+                    <div className="mt-1 text-xs text-neutral-400">{formatDate(transaction.paidAt || transaction.createdAt)}</div>
                   </div>
-                  <div
-                    className={`text-sm font-semibold ${
-                      transaction.amount > 0 ? 'text-lime-400' : 'text-white'
-                    }`}
-                  >
-                    {transaction.amount > 0 ? '+' : ''}R{Math.abs(transaction.amount).toFixed(2)}
+                  <div className="text-sm font-semibold text-lime-400">
+                    +R{transaction.amountInRands.toFixed(2)}
                   </div>
                 </div>
               ))}

@@ -134,7 +134,7 @@ export default function SavedCards({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-lime-400" />
         <span className="ml-3 text-gray-400">Loading saved cards...</span>
       </div>
     )
@@ -160,12 +160,12 @@ export default function SavedCards({
 
       {/* Cards List */}
       {cards.length === 0 ? (
-        <div className="text-center py-12 px-6 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl">
-          <div className="p-4 bg-gray-700/30 rounded-full w-fit mx-auto mb-4">
-            <CreditCard className="w-12 h-12 text-gray-500" />
+        <div className="text-center py-12 px-6 bg-neutral-800 border border-neutral-700 rounded-xl">
+          <div className="p-4 bg-neutral-700/30 rounded-full w-fit mx-auto mb-4">
+            <CreditCard className="w-12 h-12 text-neutral-500" />
           </div>
-          <p className="text-gray-300 font-medium text-lg mb-2">No saved cards</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-neutral-300 font-medium text-lg mb-2">No saved cards</p>
+          <p className="text-sm text-neutral-500">
             Save a card during your next payment for faster checkout
           </p>
         </div>
@@ -176,18 +176,18 @@ export default function SavedCards({
               key={card.id}
               className={`group relative overflow-hidden p-5 rounded-xl transition-all duration-300 ${
                 card.isDefault
-                  ? 'bg-gradient-to-br from-blue-900/40 via-gray-800 to-gray-900 border-2 border-blue-600/50 shadow-lg shadow-blue-900/20'
-                  : 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-gray-600'
+                  ? 'bg-neutral-800 border-2 border-lime-400/50 shadow-lg'
+                  : 'bg-neutral-800 border border-neutral-700 hover:border-neutral-600'
               }`}
             >
               {/* Subtle background gradient effect */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-600/5 to-transparent rounded-full blur-2xl" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-lime-400/5 to-transparent rounded-full blur-2xl" />
               
               <div className="relative flex items-center justify-between">
                 {/* Card Info */}
                 <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${card.isDefault ? 'bg-blue-600/20' : 'bg-gray-700/50'} transition-colors`}>
-                    <CreditCard className={`w-6 h-6 ${card.isDefault ? 'text-blue-400' : 'text-gray-400'}`} />
+                  <div className={`p-3 rounded-xl ${card.isDefault ? 'bg-lime-400/20' : 'bg-neutral-700/50'} transition-colors`}>
+                    <CreditCard className={`w-6 h-6 ${card.isDefault ? 'text-lime-400' : 'text-neutral-400'}`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -195,7 +195,7 @@ export default function SavedCards({
                         {card.cardType.toUpperCase()} •••• {card.last4}
                       </span>
                       {card.isDefault && (
-                        <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-blue-600 text-white rounded-full">
+                        <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-lime-400 text-neutral-900 rounded-full">
                           <Star className="w-3 h-3 fill-current" />
                           Default
                         </span>
@@ -216,7 +216,7 @@ export default function SavedCards({
                     <button
                       onClick={() => handleSetDefaultCard(card.id)}
                       disabled={settingDefaultId === card.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
                       title="Set as default payment method"
                     >
                       {settingDefaultId === card.id ? (
@@ -238,7 +238,7 @@ export default function SavedCards({
                     <button
                       onClick={() => handleChargeCard(card.id)}
                       disabled={chargingCardId === card.id}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+                      className="px-4 py-2 bg-lime-400 text-neutral-900 rounded-lg hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold"
                     >
                       {chargingCardId === card.id ? (
                         <span className="flex items-center gap-2">
