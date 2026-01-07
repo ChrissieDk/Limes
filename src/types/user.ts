@@ -5,6 +5,7 @@ export interface MsisdnData {
   subscriptionStatus: string
   nextPaymentDate: string
   productId: string
+  amountInCents: number
 }
 
 export interface User {

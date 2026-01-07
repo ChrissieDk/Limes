@@ -17,10 +17,19 @@ export interface SimCard {
 
 export interface Transaction {
   id: string;
-  type: string;
-  status: 'Success' | 'In Progress' | 'Failed';
-  date: string;
-  amount: number;
+  reference: string;
+  amountInCents: number;
+  amountInRands: number;
+  currency: string;
+  status: 'success' | 'pending' | 'failed';
+  channel: string;
+  cardLast4?: string;
+  cardType?: string;
+  bank?: string;
+  paidAt: string;
+  createdAt: string;
+  orderId?: string | null;
+  productId?: string | null;
 }
 
 export interface Plan {

@@ -278,6 +278,8 @@ export interface SubscriptionDetails {
 
 export interface CancelSubscriptionRequest {
   subscriptionCode: string
+  msisdn: string
+  productId: string
 }
 
 export interface CancelSubscriptionResponse {

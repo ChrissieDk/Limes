@@ -8,10 +8,11 @@ import { catalogService } from '../../catalog/services/catalogService';
 import { subscriptionService } from '../../subscription/services/subscriptionService';
 import { crmService } from '../../crm/services/crmService';
 import { userService } from '../services/userService';
+import { paymentService } from '../../payment/services/paymentService';
 import type { RicaAddress } from '../../../types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { SimCard as SimCardModel, Bundle as BundleModel } from '../components/dashboard/dashboardTypes.ts';
-import { mockSimCards, mockTransactions, mockCurrentPlan } from '../components/dashboard/dashboardMocks.ts';
+import type { SimCard as SimCardModel, Bundle as BundleModel, Transaction } from '../components/dashboard/dashboardTypes.ts';
+import { mockSimCards, mockCurrentPlan } from '../components/dashboard/dashboardMocks.ts';
 import { SimCard, PlanDetails } from '../components/dashboard/SimComponents.tsx';
 import { CurrentPlan } from '../components/dashboard/CurrentPlanCard.tsx';
 import { BundleCard } from '../components/dashboard/BundleCard.tsx';
@@ -38,6 +39,8 @@ function Dashboard() {
   const [ricaComplete, setRicaComplete] = useState<boolean>(false);
   const [bundles, setBundles] = useState<BundleModel[]>([]);
   const [currentPlan, setCurrentPlan] = useState<typeof mockCurrentPlan | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
 
   // Get selected package from navigation state or use mock as fallback
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
@@ -89,6 +92,10 @@ function Dashboard() {
             if (activeMsisdn) {
               console.log('[Dashboard] Active subscription found:', activeMsisdn);
               
+              // Use amountInCents from API (convert to Rands)
+              const planPrice = activeMsisdn.amountInCents / 100;
+              console.log('[Dashboard] Plan price from API:', planPrice, 'Rand (from', activeMsisdn.amountInCents, 'cents)');
+              
               // Try to fetch product details from catalog
               try {
                 const productDetails = await catalogService.getProductById(activeMsisdn.productId);
@@ -99,7 +106,7 @@ function Dashboard() {
                   mobileData: productDetails.description || '10GB',
                   messaging: '10 SMS',
                   phone: '10 Min',
-                  price: productDetails.price || 199.99,
+                  price: planPrice, // Use price from API (amountInCents / 100)
                   productId: activeMsisdn.productId,
                   hasActiveSubscription: activeMsisdn.hasActiveSubscription,
                   isAutoRenewing: activeMsisdn.isAutoRenewing,
@@ -121,7 +128,7 @@ function Dashboard() {
                   mobileData: '10GB',
                   messaging: '10 SMS',
                   phone: '10 Min',
-                  price: 199.99,
+                  price: planPrice, // Use price from API (amountInCents / 100)
                   productId: activeMsisdn.productId,
                   hasActiveSubscription: activeMsisdn.hasActiveSubscription,
                   isAutoRenewing: activeMsisdn.isAutoRenewing,
@@ -196,6 +203,32 @@ function Dashboard() {
     }
   }, [selectedPackageFromState, ricaComplete]);
 
+  // Fetch transactions
+  useEffect(() => {
+    let cancelled = false;
+    const fetchTransactions = async () => {
+      setTransactionsLoading(true);
+      try {
+        const response = await paymentService.getTransactionHistory(1, 10);
+        if (!cancelled) {
+          console.log('[Transactions] Fetched transactions:', response);
+          setTransactions(response);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[Transactions] Error fetching transactions:', err);
+          // Keep empty array on error
+        }
+      } finally {
+        if (!cancelled) setTransactionsLoading(false);
+      }
+    };
+    fetchTransactions();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Fetch account customer details
   useEffect(() => {
     let cancelled = false;
@@ -235,9 +268,18 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     const fetchBalances = async () => {
+      // Only fetch balances if we have at least one SIM card with a phone number
+      if (simCards.length === 0 || !simCards[0].phoneNumber) {
+        setBalancesLoading(false);
+        return;
+      }
+      
       setBalancesLoading(true);
+      const msisdnToFetch = simCards[0].phoneNumber;
+      
       try {
-        const response = await subscriptionService.getBalances('27644038847');
+        console.log('[Balance] Fetching balances for MSISDN:', msisdnToFetch);
+        const response = await subscriptionService.getBalances(msisdnToFetch);
         if (!cancelled && response.balances) {
           console.log('[Balance] Fetched balances:', response);
           
@@ -267,7 +309,7 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [simCards]);
 
   // TEMP: Log catalog endpoints to verify connectivity
   useEffect(() => {
@@ -407,7 +449,8 @@ function Dashboard() {
           {/* Right: Transaction History */}
           <div className="flex flex-col">
             <TransactionHistory
-              transactions={mockTransactions}
+              transactions={transactions}
+              loading={transactionsLoading}
               className="flex-1"
               onOpenFullView={() => setTransactionsModalOpen(true)}
             />
@@ -465,7 +508,7 @@ function Dashboard() {
       <TransactionsModal
         open={transactionsModalOpen}
         onClose={() => setTransactionsModalOpen(false)}
-        transactions={mockTransactions}
+        transactions={transactions}
       />
     </div>
   );
