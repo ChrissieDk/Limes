@@ -44,6 +44,11 @@ export interface CreateOrderResponse {
   [key: string]: any
 }
 
+export interface ProcessPendingOrdersResponse {
+  success: boolean
+  message: string
+}
+
 // Balance Types
 export interface BalanceFormattedParts {
   value: string
@@ -76,4 +81,12 @@ export interface Balance {
 
 export interface GetBalancesResponse {
   balances: Balance[]
+}
+
+// Check SIM Active Types
+export interface CheckSimActiveResponse {
+  msisdn: string
+  isActive: boolean
+  hasPendingOrders: boolean
+  message: string
 }

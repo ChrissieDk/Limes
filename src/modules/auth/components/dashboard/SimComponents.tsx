@@ -5,9 +5,12 @@ interface SimCardProps {
   sim: SimCardModel;
   onTopUp: (sim: SimCardModel) => void;
   onVerify: (sim: SimCardModel) => void;
+  onActivate: (sim: SimCardModel) => void;
+  canActivate?: boolean;
+  isActivating?: boolean;
 }
 
-export function SimCard({ sim, onTopUp, onVerify }: SimCardProps) {
+export function SimCard({ sim, onTopUp, onVerify, onActivate, canActivate = false, isActivating = false }: SimCardProps) {
   return (
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
@@ -58,6 +61,15 @@ export function SimCard({ sim, onTopUp, onVerify }: SimCardProps) {
         >
           Verify
         </button>
+        {canActivate && (
+          <button
+            onClick={() => onActivate(sim)}
+            disabled={isActivating}
+            className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isActivating ? 'Activating...' : 'Activate'}
+          </button>
+        )}
       </div>
     </div>
   );

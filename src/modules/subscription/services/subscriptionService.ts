@@ -4,7 +4,9 @@ import type {
   CreateSubscriptionResponse,
   CreateOrderRequest,
   CreateOrderResponse,
-  GetBalancesResponse
+  GetBalancesResponse,
+  CheckSimActiveResponse,
+  ProcessPendingOrdersResponse
 } from '../../../types'
 
 export const subscriptionService = {
@@ -23,6 +25,18 @@ export const subscriptionService = {
   // Get subscriber balances
   async getBalances(msisdn: string): Promise<GetBalancesResponse> {
     const response = await apiClient.get(`/subscriber/${msisdn}/balance`)
+    return response.data
+  },
+
+  // Check if SIM is active
+  async checkSimActive(msisdn: string): Promise<CheckSimActiveResponse> {
+    const response = await apiClient.get(`/subscriber/${msisdn}/is-active`)
+    return response.data
+  },
+
+  // Process pending orders (retry order creation)
+  async processPendingOrders(msisdn: string): Promise<ProcessPendingOrdersResponse> {
+    const response = await apiClient.post(`/order/process/${msisdn}`)
     return response.data
   },
 }
