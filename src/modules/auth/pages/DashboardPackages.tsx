@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardNavbar from '../components/DashboardNavbar'
-import ChoosePackageModal from '../components/ChoosePackageModal'
+import PlanBuilder from '../components/PlanBuilder'
 import { catalogService } from '../../catalog/services/catalogService'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
@@ -13,10 +13,13 @@ type SimStatus = 'has-sim' | 'needs-sim' | null
 // CRITICAL: SA = SIM in hand (already have SIM)
 //           SOA = Need SIM delivered (don't have SIM yet)
 const PRODUCT_IDS = {
-  PREPAID_SA: '7029225P',      // Prepaid - SIM in hand (already have SIM)
-  PREPAID_SOA: '7025225P',     // Prepaid - Need SIM delivered
-  CONTRACT_SOA: '7023225P',    // Contract - Need SIM delivered
-  STAFF_SOA: '7024225P',       // Staff - Need SIM delivered
+  // SA = SIM Already in hand (I have a SIM)
+  PREPAID_SA: '7029225P',      // Prepaid - SIM in hand → Mobile Prepaid Package
+  CONTRACT_SA: '7027225P',     // Contract - SIM in hand → Mobile Contract Package
+  // SOA = SIM On Arrival (Need a SIM delivered)
+  PREPAID_SOA: '7025225P',     // Prepaid - Need SIM → Mobile Prepaid Package
+  CONTRACT_SOA: '7023225P',    // Contract - Need SIM → Mobile Contract Package
+  STAFF_SOA: '7024225P',       // Staff - Need SIM → Mobile Staff Package
 } as const
 
 export default function DashboardPackages() {
@@ -24,7 +27,6 @@ export default function DashboardPackages() {
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
   const [showAll, setShowAll] = useState(false)
   
   // New selection states
@@ -34,8 +36,14 @@ export default function DashboardPackages() {
   const [selectedBundleCategory, setSelectedBundleCategory] = useState<string | null>(null)
   const [showPackages, setShowPackages] = useState(false)
   
-  // Store selected package for the entire flow
-  const [selectedPackage, setSelectedPackage] = useState<CatalogProduct | null>(null)
+  // Plan builder for CONTRACT only
+  const [showPlanBuilder, setShowPlanBuilder] = useState(false)
+  const [planAllocation, setPlanAllocation] = useState<{
+    data: number
+    voice: number
+    sms: number
+    whatsapp: number
+  } | null>(null)
   
   // Track the actual SIM package product ID (the parent product from SA/SOA categories)
   const [simPackageProductId, setSimPackageProductId] = useState<string | null>(null)
@@ -68,17 +76,36 @@ export default function DashboardPackages() {
     }
   }, [])
 
-  // Fetch bundle categories for needs-sim flow OR has-sim flow (after ICCID is confirmed)
+  // Handle post-SIM-status flow: Plan builder for CONTRACT, Bundle categories for PREPAID
   useEffect(() => {
-    // For needs-sim: fetch immediately
-    // For has-sim: only fetch after ICCID is confirmed
     if (simStatus === 'needs-sim' || (simStatus === 'has-sim' && iccidConfirmed)) {
-      // Continue with fetch
-    } else {
-      return
+      // Determine SIM package product ID
+      let simPkgId = null
+      if (packageType === 'contract') {
+        simPkgId = simStatus === 'has-sim' ? PRODUCT_IDS.CONTRACT_SA : PRODUCT_IDS.CONTRACT_SOA
+        // For CONTRACT: Show plan builder
+        setShowPlanBuilder(true)
+        console.log('======================================')
+        console.log('[PRODUCT ID SET] CONTRACT flow')
+        console.log(`[PRODUCT ID SET] SIM Status: ${simStatus}`)
+        console.log(`[PRODUCT ID SET] SIM Package Product ID: ${simPkgId}`)
+        console.log('======================================')
+      } else if (packageType === 'prepaid') {
+        simPkgId = simStatus === 'has-sim' ? PRODUCT_IDS.PREPAID_SA : PRODUCT_IDS.PREPAID_SOA
+        // For PREPAID: Fetch bundle categories
+        fetchBundleCategoriesForPrepaid()
+        console.log('======================================')
+        console.log('[PRODUCT ID SET] PREPAID flow')
+        console.log(`[PRODUCT ID SET] SIM Status: ${simStatus}`)
+        console.log(`[PRODUCT ID SET] SIM Package Product ID: ${simPkgId}`)
+        console.log('======================================')
+      }
+      setSimPackageProductId(simPkgId)
     }
+  }, [simStatus, iccidConfirmed, packageType])
 
-    const fetchBundleCategories = async () => {
+  // Fetch bundle categories for PREPAID only
+  const fetchBundleCategoriesForPrepaid = async () => {
       try {
         setLoading(true)
         setError(null)
@@ -86,37 +113,26 @@ export default function DashboardPackages() {
         const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
         console.log('[Catalog] Full category tree:', tree)
         
-        // Navigate: tree -> channel -> website -> gsm_products -> children
         const channel = tree.find((node) => node.id === 'channel')
-        
         if (!channel) {
           setError('Channel category not found')
           console.error('[Catalog] Channel node not found in tree')
           return
         }
         
-        const website = channel.children?.find((node) => node.id === 'website')
-        
-        if (!website) {
-          setError('Website category not found')
-          console.error('[Catalog] Website node not found under channel')
+      const onceOffTopUp = channel.children?.find((node) => node.id === 'once_off_top_up')
+      if (!onceOffTopUp) {
+        setError('Top-up category not found')
+        console.error('[Catalog] once_off_top_up node not found under channel')
           return
         }
         
-        const gsmProducts = website.children?.find((node) => node.id === 'gsm_products')
-        
-        if (!gsmProducts) {
-          setError('GSM Products category not found')
-          console.error('[Catalog] gsm_products node not found under website')
-          return
-        }
-        
-        if (gsmProducts.children && gsmProducts.children.length > 0) {
-          setBundleCategories(gsmProducts.children)
-          console.log('[Catalog] Bundle categories:', gsmProducts.children)
+      if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
+        setBundleCategories(onceOffTopUp.children)
+        console.log('[Catalog] Bundle categories for prepaid:', onceOffTopUp.children)
         } else {
           setError('No bundle categories found')
-          console.error('[Catalog] No children found under gsm_products')
+        console.error('[Catalog] No children found under once_off_top_up')
         }
       } catch (err) {
         setError('Failed to load bundle categories. Please try again later.')
@@ -126,20 +142,15 @@ export default function DashboardPackages() {
       }
     }
 
-    fetchBundleCategories()
-  }, [simStatus, iccidConfirmed])
-
-  // Fetch products from selected bundle category
+  // Fetch products from selected bundle category (PREPAID only)
   useEffect(() => {
-    if (!selectedBundleCategory) return
+    if (!selectedBundleCategory || packageType !== 'prepaid') return
     
     const fetchPackages = async () => {
       try {
         setLoading(true)
         setError(null)
         
-        // Fetch actual products from the selected bundle category
-        // e.g., /api/catalog/products/category/combo_deals
         const response = await catalogService.searchCategoryProducts(selectedBundleCategory, { 
           page: 1, 
           limit: 100 
@@ -147,25 +158,6 @@ export default function DashboardPackages() {
         
         setProducts(response.data)
         console.log(`[Catalog] Fetched products from ${selectedBundleCategory}:`, response)
-        
-        // Determine SIM package product ID based on package type and SIM status
-        // This is just metadata, NOT the product to display
-        let simPkgId = null
-        if (packageType === 'contract') {
-          // Contract always needs SIM delivery (SOA)
-          simPkgId = PRODUCT_IDS.CONTRACT_SOA
-        } else if (packageType === 'prepaid') {
-          if (simStatus === 'has-sim') {
-            // Prepaid with SIM in hand (SA)
-            simPkgId = PRODUCT_IDS.PREPAID_SA
-          } else {
-            // Prepaid needs SIM delivery (SOA)
-            simPkgId = PRODUCT_IDS.PREPAID_SOA
-          }
-        }
-        setSimPackageProductId(simPkgId)
-        console.log('[Catalog] SIM package type:', simPkgId, '(metadata only)')
-        
       } catch (err) {
         setError('Failed to load packages. Please try again later.')
         console.error('Error fetching packages:', err)
@@ -175,7 +167,7 @@ export default function DashboardPackages() {
     }
 
     fetchPackages()
-  }, [selectedBundleCategory, packageType, simStatus])
+  }, [selectedBundleCategory, packageType])
 
   const featured = useMemo(() => products.slice(0, 3), [products])
   const remaining = useMemo(() => products.slice(3), [products])
@@ -203,21 +195,11 @@ export default function DashboardPackages() {
     return features.length > 0 ? features : [description]
   }
 
-  // Determine if a product is once-off or monthly subscription
-  // Based on your backend plan configuration
   const getPlanChargeType = (productId: string): 'once-off' | 'monthly' => {
-    // Monthly plan IDs configured in Paystack as recurring subscriptions
-    // 40021 - Your original test plan
-    // 40022 - 300MB - R20 plan (PLN_h1tdp1icb27ss2w)
     const monthlyPlanIds = ['40021', '40022']
-    
-    // Check if this product ID is in your monthly plans
     if (monthlyPlanIds.includes(productId)) {
       return 'monthly'
     }
-    
-    // Default to once-off for other products
-    // You can adjust this logic based on your product catalog
     return 'once-off'
   }
 
@@ -229,22 +211,35 @@ export default function DashboardPackages() {
     setBundleCategories([])
     setSelectedBundleCategory(null)
     setSimPackageProductId(null)
-    
-    // If contract, automatically set needs-sim and fetch bundle categories
-    if (type === 'contract') {
-      setSimStatus('needs-sim')
-    }
+    setShowPlanBuilder(false)
   }
 
   const handleSimStatusSelect = (status: SimStatus) => {
+    // Log the product ID that will be used for this selection
+    let expectedProductId = ''
+    if (packageType === 'contract') {
+      expectedProductId = status === 'has-sim' ? PRODUCT_IDS.CONTRACT_SA : PRODUCT_IDS.CONTRACT_SOA
+      console.log('======================================')
+      console.log('[SIM Selection] CONTRACT flow selected')
+      console.log(`[SIM Selection] Status: ${status === 'has-sim' ? 'I have a SIM' : 'Need a SIM'}`)
+      console.log(`[SIM Selection] Product ID: ${expectedProductId}`)
+      console.log('======================================')
+    } else if (packageType === 'prepaid') {
+      expectedProductId = status === 'has-sim' ? PRODUCT_IDS.PREPAID_SA : PRODUCT_IDS.PREPAID_SOA
+      console.log('======================================')
+      console.log('[SIM Selection] PREPAID flow selected')
+      console.log(`[SIM Selection] Status: ${status === 'has-sim' ? 'I have a SIM' : 'Need a SIM'}`)
+      console.log(`[SIM Selection] Product ID: ${expectedProductId}`)
+      console.log('======================================')
+    }
+    
     setSimStatus(status)
     setSelectedBundleCategory(null)
+    setShowPackages(false)
     setProducts([])
+    setBundleCategories([])
     setSimPackageProductId(null)
-    setIccidConfirmed(false) // Reset ICCID confirmation
-    
-    // For has-sim: user must enter ICCID before seeing bundle categories
-    // For needs-sim: proceed directly to bundle categories
+    setIccidConfirmed(false)
   }
   
   const handleIccidSubmit = () => {
@@ -260,14 +255,79 @@ export default function DashboardPackages() {
     setShowPackages(true)
   }
 
+  // Helper to get category styling and icon
+  const getCategoryStyle = (categoryId: string) => {
+    const styles: Record<string, { bg: string, hover: string, icon: ReactNode }> = {
+      'data': {
+        bg: 'bg-[#A8E063]',
+        hover: 'hover:bg-[#98D053]',
+        icon: (
+          <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        )
+      },
+      'voice': {
+        bg: 'bg-[#FF6B9D]',
+        hover: 'hover:bg-[#EE5A8C]',
+        icon: (
+          <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+        )
+      },
+      'sms': {
+        bg: 'bg-[#FF9B5B]',
+        hover: 'hover:bg-[#EE8A4A]',
+        icon: (
+          <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        )
+      },
+      'whatsapp': {
+        bg: 'bg-[#56CCF2]',
+        hover: 'hover:bg-[#46BCE2]',
+        icon: (
+          <svg className="w-8 h-8 text-neutral-900" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+          </svg>
+        )
+      },
+      'airtime': {
+        bg: 'bg-[#D8B0FF]',
+        hover: 'hover:bg-[#C79FEE]',
+        icon: (
+          <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )
+      },
+      'data_fwa': {
+        bg: 'bg-[#4A90E2]',
+        hover: 'hover:bg-[#3A80D2]',
+        icon: (
+          <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+          </svg>
+        )
+      }
+    }
+
+    // Default combo bundles style
+    return styles[categoryId] || {
+      bg: 'bg-[#7B9FF5]',
+      hover: 'hover:bg-[#6B8FE5]',
+      icon: (
+        <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      )
+    }
+  }
+
   const handleBackFromBundleCategories = () => {
-    // If contract, go back to package type selection (step 1)
-    // If prepaid with has-sim, go back to ICCID input
-    // If prepaid with needs-sim, go back to SIM status selection (step 2)
-    if (packageType === 'contract') {
-      setPackageType(null)
-      setSimStatus(null)
-    } else if (simStatus === 'has-sim') {
+    if (simStatus === 'has-sim') {
       setIccidConfirmed(false)
     } else {
       setSimStatus(null)
@@ -277,6 +337,24 @@ export default function DashboardPackages() {
     setShowPackages(false)
     setProducts([])
   }
+
+  const handleBackFromPackages = () => {
+    setSelectedBundleCategory(null)
+    setShowPackages(false)
+    setProducts([])
+  }
+
+  const handleBackFromPlanBuilder = () => {
+    // Go back to ICCID input if has-sim, otherwise to SIM status selection
+    if (simStatus === 'has-sim') {
+      setIccidConfirmed(false)
+      setShowPlanBuilder(false)
+    } else {
+      setSimStatus(null)
+      setShowPlanBuilder(false)
+    }
+    setPlanAllocation(null)
+  }
   
   const handleBackFromIccidInput = () => {
     setSimStatus(null)
@@ -284,10 +362,35 @@ export default function DashboardPackages() {
     setIccidConfirmed(false)
   }
 
-  const handleBackFromPackages = () => {
-    setSelectedBundleCategory(null)
-    setShowPackages(false)
-    setProducts([])
+  const handlePlanContinue = (allocation: { data: number; voice: number; sms: number; whatsapp: number }) => {
+    setPlanAllocation(allocation)
+    console.log('[PlanBuilder] Plan allocation:', allocation)
+    
+    // Calculate total price
+    const totalPriceInRands = allocation.data + allocation.voice + allocation.sms + allocation.whatsapp
+    const totalPriceInCents = totalPriceInRands * 100 // For Paystack payment
+    
+    // Navigate to dashboard with contract plan details
+    navigate('/dashboard', {
+      state: {
+        selectedPackage: {
+          productId: 'dynamic-plan',
+          simPackageProductId: simPackageProductId,
+          name: 'Custom Plan',
+          price: totalPriceInRands, // Display price in Rands
+          priceInCents: totalPriceInCents, // For Paystack payment
+          packageType: 'contract',
+          simStatus: simStatus,
+          planChargeType: 'monthly',
+          iccid: simStatus === 'has-sim' ? iccid : undefined,
+          isDynamicPlan: true,
+          planAllocation: allocation, // { data: R, voice: R, sms: R, whatsapp: R }
+          features: {
+            description: `Data: R${allocation.data}, Voice: R${allocation.voice}, SMS: R${allocation.sms}, WhatsApp: R${allocation.whatsapp}`
+          }
+        }
+      }
+    })
   }
 
   const handleReset = () => {
@@ -297,39 +400,41 @@ export default function DashboardPackages() {
     setProducts([])
     setBundleCategories([])
     setSelectedBundleCategory(null)
-    setSelectedPackage(null)
     setSimPackageProductId(null)
+    setShowPlanBuilder(false)
+    setPlanAllocation(null)
     setIccid('')
     setIccidConfirmed(false)
     setError(null)
   }
 
   const handleBuyNow = (product: CatalogProduct) => {
-    // Store selected package and navigate to dashboard with package data
     const chargeType = getPlanChargeType(product.id)
     
-    console.log('[Package] Selected plan/bundle:', product)
+    console.log('[DashboardPackages] Navigating to dashboard for product:', product, 'chargeType:', chargeType)
     console.log('[Package] SIM package product ID:', simPackageProductId)
     console.log('[Package] Package type:', packageType)
     console.log('[Package] SIM status:', simStatus)
-    console.log('[Package] Charge type:', chargeType)
     
-    navigate('/dashboard', { 
-      state: { 
+    // Navigate to dashboard with prepaid package details
+    // Dashboard will check ricaComplete and open appropriate modal
+    navigate('/dashboard', {
+      state: {
         selectedPackage: {
-          productId: product.id,                    // The plan/bundle product ID
-          simPackageProductId: simPackageProductId, // The SIM package product ID (7029225P, 7025225P, 7023225P)
+          productId: product.id,
+          simPackageProductId: simPackageProductId,
           name: product.name,
-          price: product.price,
-          packageType: packageType,                 // 'contract' or 'prepaid'
-          simStatus: simStatus,                     // 'has-sim' or 'needs-sim'
-          planChargeType: chargeType,               // 'once-off' or 'monthly'
-          iccid: simStatus === 'has-sim' ? iccid : undefined, // ICCID only for has-sim flow
+          price: product.price / 100, // Display price in Rands
+          priceInCents: product.price, // For Paystack payment
+          packageType: 'prepaid',
+          simStatus: simStatus,
+          planChargeType: chargeType,
+          iccid: simStatus === 'has-sim' ? iccid : undefined,
           features: {
-            mobileData: product.description,
+            mobileData: product.description
           }
         }
-      } 
+      }
     })
   }
 
@@ -337,11 +442,6 @@ export default function DashboardPackages() {
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
       <main className="p-6 max-w-7xl mx-auto">
-        <ChoosePackageModal 
-          open={modalOpen} 
-          onClose={() => setModalOpen(false)}
-          selectedPackage={selectedPackage}
-        />
         <section className="relative bg-neutral-900">
           <div className="mx-auto max-w-6xl px-2 sm:px-6 pt-2 sm:pt-6">
             <div className="flex items-center justify-center text-sm text-neutral-400">
@@ -412,8 +512,8 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 2: SIM Status (only for prepaid) */}
-              {packageType === 'prepaid' && !simStatus && !selectedBundleCategory && (
+              {/* Step 2: SIM Status (for both contract and prepaid) */}
+              {packageType && !simStatus && !selectedBundleCategory && (
                 <div className="max-w-4xl mx-auto">
                   <button
                     onClick={handleReset}
@@ -511,12 +611,12 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 3: Bundle Category Selection */}
-              {simStatus && !selectedBundleCategory && (simStatus === 'needs-sim' || (simStatus === 'has-sim' && iccidConfirmed)) && (
-                <div className="max-w-6xl mx-auto">
+              {/* Step 3: Bundle Category Selection (PREPAID ONLY) */}
+              {packageType === 'prepaid' && bundleCategories.length > 0 && !selectedBundleCategory && !showPackages && (
+                <div className="max-w-7xl mx-auto">
                   <button
                     onClick={handleBackFromBundleCategories}
-                    className="mb-6 px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
+                    className="mb-6 px-6 py-3 rounded-xl bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -524,95 +624,27 @@ export default function DashboardPackages() {
                     Back
                   </button>
                   
-                  {loading && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <BundleCategorySkeleton />
-                      <BundleCategorySkeleton />
-                      <BundleCategorySkeleton />
-                      <BundleCategorySkeleton />
-                      <BundleCategorySkeleton />
-                      <BundleCategorySkeleton />
+                  {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[1, 2, 3, 4, 5, 6].map(i => <BundleCategorySkeleton key={i} />)}
                     </div>
-                  )}
-                  
-                  {error && (
-                    <div className="text-center py-12 text-red-400">{error}</div>
-                  )}
-                  
-                  {!loading && !error && bundleCategories.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {bundleCategories.map((category, idx) => {
-                        const colors = [
-                          'bg-[#5BA0FF] hover:bg-[#4A8FEE]',
-                          'bg-[#B8FF5B] hover:bg-[#A7EE4A]',
-                          'bg-[#D8B0FF] hover:bg-[#C79FEE]',
-                          'bg-[#FF9B5B] hover:bg-[#EE8A4A]',
-                          'bg-[#FF5B8D] hover:bg-[#EE4A7C]',
-                          'bg-[#5BFFD8] hover:bg-[#4AEEC7]',
-                        ]
-                        const colorClass = colors[idx % colors.length]
-                        
-                        // Icon selection based on bundle type
-                        const getIcon = () => {
-                          if (category.id.includes('combo')) {
-                            return (
-                              <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                              </svg>
-                            )
-                          } else if (category.id.includes('data')) {
-                            return (
-                              <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                              </svg>
-                            )
-                          } else if (category.id.includes('voice')) {
-                            return (
-                              <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                              </svg>
-                            )
-                          } else if (category.id.includes('sms')) {
-                            return (
-                              <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                              </svg>
-                            )
-                          } else if (category.id.includes('whatsapp')) {
-                            return (
-                              <svg className="w-8 h-8 text-neutral-900" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                              </svg>
-                            )
-                          } else if (category.id.includes('flexible') || category.id.includes('monthly')) {
-                            return (
-                              <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            )
-                          }
-                          return (
-                            <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                          )
-                        }
-                        
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {bundleCategories.map((category) => {
+                        const style = getCategoryStyle(category.id)
                         return (
                           <button
                             key={category.id}
                             onClick={() => handleBundleCategorySelect(category.id)}
-                            className={`group rounded-2xl p-8 ${colorClass} shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all min-h-[240px] flex flex-col items-center justify-center text-center`}
+                            className={`group rounded-2xl p-8 ${style.bg} ${style.hover} shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all min-h-[280px] flex flex-col items-center justify-center text-center`}
                           >
-                            <div className="size-16 rounded-full bg-white/20 grid place-items-center mb-4 group-hover:scale-110 transition-transform">
-                              {getIcon()}
+                            <div className="size-16 rounded-full bg-black/10 grid place-items-center mb-4">
+                              {style.icon}
                             </div>
-                            <h3 className="text-neutral-900 font-extrabold text-2xl mb-2">{category.name}</h3>
-                            <div className="mt-2 px-4 py-1.5 rounded-full bg-neutral-900/10 backdrop-blur-sm">
-                              <p className="text-neutral-900 font-semibold text-sm">
+                            <h3 className="text-neutral-900 font-extrabold text-3xl mb-3">{category.name}</h3>
+                            <p className="text-neutral-900/80 text-lg bg-black/10 px-4 py-1 rounded-full">
                                 {category.productCount} {category.productCount === 1 ? 'option' : 'options'}
                               </p>
-                            </div>
                           </button>
                         )
                       })}
@@ -621,13 +653,13 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 4: Show Packages */}
-              {showPackages && (
-                <>
-                  <div className="flex items-center gap-2 mb-6">
+              {/* Step 4: Show Packages (PREPAID ONLY) */}
+              {packageType === 'prepaid' && showPackages && selectedBundleCategory && (
+                <div>
+                  <div className="flex items-center gap-4 mb-6">
                     <button
                       onClick={handleBackFromPackages}
-                      className="px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
+                      className="px-6 py-3 rounded-xl bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -636,137 +668,108 @@ export default function DashboardPackages() {
                     </button>
                     <button
                       onClick={handleReset}
-                      className="px-4 py-2 rounded-lg bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
+                      className="px-6 py-3 rounded-xl bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
                     >
                       Start over
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {loading && (
-                      <>
-                        <PackageCardSkeleton variant={0} />
-                        <PackageCardSkeleton variant={1} />
-                        <PackageCardSkeleton variant={2} />
-                      </>
-                    )}
-                    {error && (
-                      <div className="col-span-1 lg:col-span-3 text-center text-red-400">{error}</div>
-                    )}
-                    {!loading && !error && featured.map((p, idx) => (
-                  <div
-                    key={p.id}
-                    className={`rounded-2xl p-6 lg:p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] ${idx === 0 ? 'bg-[#5BA0FF]' : idx === 1 ? 'bg-[#B8FF5B]' : 'bg-[#D8B0FF]'} min-h-[320px] flex flex-col`}
-                  >
-                    <div className="flex items-center gap-2 text-neutral-900">
-                      <img
-                        src={`${import.meta.env.BASE_URL}images/${idx === 0 ? 'plan_logo.png' : idx === 1 ? 'sms.png' : 'star.png'}`}
-                        alt="icon"
-                        className="h-7 w-7"
-                      />
-                      {getPlanChargeType(p.id) === 'monthly' && (
-                        <span className="ml-auto bg-neutral-900 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                          Monthly
-                        </span>
-                      )}
-                      {getPlanChargeType(p.id) === 'once-off' && (
-                        <span className="ml-auto bg-white text-neutral-900 text-xs px-2 py-1 rounded-full font-semibold">
-                          Once-off
-                        </span>
-                      )}
+                  {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                      {[1, 2, 3, 4, 5, 6].map(i => <PackageCardSkeleton key={i} />)}
                     </div>
-                    <h3 className="mt-4 text-neutral-900 font-extrabold text-2xl">{p.name}</h3>
-                    <ul className="mt-5 space-y-3 text-neutral-900">
-                      {parseFeatures(p.description).slice(0, 3).map((f, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="mt-1 size-4 rounded-full bg-white grid place-items-center">
-                            <img src={`${import.meta.env.BASE_URL}images/${idx === 0 ? 'plan_logo.png' : idx === 1 ? 'sms.png' : 'star.png'}`} alt="feature icon" className="h-3 w-3" />
-                          </span>
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-auto pt-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-neutral-900 font-bold text-lg">R{p.price.toFixed(2)}</span>
-                          <span className="text-neutral-900/70 text-sm ml-1">
-                            {getPlanChargeType(p.id) === 'monthly' ? '/mo' : ''}
-                          </span>
-                        </div>
-                        <button onClick={() => handleBuyNow(p)} className="inline-block w-28 bg-white text-neutral-900 text-center rounded-lg py-2 font-semibold hover:bg-neutral-100 transition-colors">
-                          Buy now
-                        </button>
-                      </div>
-                    </div>
-                      </div>
-                    ))}
+                  ) : error ? (
+                    <div className="text-center py-12">
+                      <p className="text-red-400 text-lg mb-4">{error}</p>
+                    <button
+                        onClick={handleBackFromPackages}
+                        className="px-6 py-3 bg-lime-400 text-neutral-900 rounded-xl font-semibold hover:bg-lime-300 transition-colors"
+                    >
+                        Go Back
+                    </button>
                   </div>
-
-                  {!loading && !error && remaining.length > 0 && (
-                    <div className="mt-12">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-white font-bold text-xl">
-                          All Packages <span className="text-neutral-500 text-base ml-2">({products.length} total)</span>
-                        </h3>
-                        <button
-                          onClick={() => setShowAll(!showAll)}
-                          className="px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
-                        >
-                          {showAll ? 'Show less' : 'View more'}
-                          <svg 
-                            className={`w-4 h-4 transition-transform ${showAll ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      {showAll && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {remaining.map((p) => (
+                  ) : products.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                        {(showAll ? products : featured).map((pkg, idx) => {
+                          // Cycle through colors for variety
+                          const colors = [
+                            { bg: 'bg-[#7B9FF5]', icon: 'bg-blue-500/20' },
+                            { bg: 'bg-[#A8E063]', icon: 'bg-lime-500/20' },
+                            { bg: 'bg-[#D8B0FF]', icon: 'bg-purple-500/20' },
+                          ]
+                          const colorScheme = colors[idx % colors.length]
+                          
+                          return (
                             <div
-                              key={p.id}
-                              className="rounded-xl p-5 bg-neutral-800 border border-neutral-700 hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/10"
+                              key={pkg.id}
+                              className={`rounded-2xl p-6 ${colorScheme.bg} shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all group relative overflow-hidden`}
                             >
-                              <div className="flex items-start justify-between mb-2">
-                                <h4 className="text-white font-bold text-lg">{p.name}</h4>
-                                {getPlanChargeType(p.id) === 'monthly' ? (
-                                  <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                                    Monthly
-                                  </span>
-                                ) : (
-                                  <span className="bg-lime-400 text-neutral-900 text-xs px-2 py-1 rounded-full font-semibold">
-                                    Once-off
-                                  </span>
-                                )}
+                              <div className={`size-12 rounded-full ${colorScheme.icon} grid place-items-center mb-4`}>
+                                <svg className="w-6 h-6 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                </svg>
                               </div>
-                              <p className="text-neutral-400 text-sm mb-4 line-clamp-2">{p.description}</p>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <span className="text-white font-bold">R{p.price.toFixed(2)}</span>
-                                  <span className="text-neutral-400 text-sm ml-1">
-                                    {getPlanChargeType(p.id) === 'monthly' ? '/mo' : ''}
+                              <h3 className="text-neutral-900 font-extrabold text-2xl mb-4">{pkg.name}</h3>
+                              
+                              {pkg.description && (
+                                <div className="mb-6 space-y-2">
+                                  {parseFeatures(pkg.description).map((feature, i) => (
+                                    <div key={i} className="flex items-start gap-2 text-neutral-900/80">
+                                      <svg className="w-5 h-5 text-neutral-900 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="text-sm">{feature}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="mt-auto pt-4 border-t border-neutral-900/10">
+                                <div className="flex items-baseline justify-between mb-3">
+                                  <span className="text-neutral-900 font-extrabold text-3xl">
+                                    R{(pkg.price / 100).toFixed(2)}
                                   </span>
                                 </div>
                                 <button
-                                  onClick={() => handleBuyNow(p)}
-                                  className="px-4 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-500 transition-colors"
+                                  onClick={() => handleBuyNow(pkg)}
+                                  className="w-full bg-white text-neutral-900 py-3 rounded-xl font-bold hover:bg-neutral-100 transition-colors shadow-md"
                                 >
                                   Buy now
                                 </button>
                               </div>
                             </div>
-                          ))}
+                          )
+                        })}
+                      </div>
+
+                      {!showAll && remaining.length > 0 && (
+                        <div className="text-center">
+                          <button
+                            onClick={() => setShowAll(true)}
+                            className="px-8 py-4 bg-lime-400 text-neutral-900 rounded-xl font-bold hover:bg-lime-300 transition-colors shadow-[4px_4px_0_0_rgba(0,0,0,0.7)]"
+                          >
+                            Show All Packages ({products.length} total)
+                          </button>
                         </div>
                       )}
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-neutral-400">
+                      <p className="text-lg">No packages available in this category.</p>
                     </div>
                   )}
-                </>
+                </div>
               )}
+
+              {/* Step 3: Plan Builder (CONTRACT ONLY) */}
+              {packageType === 'contract' && showPlanBuilder && !planAllocation && (
+                <PlanBuilder
+                  onContinue={handlePlanContinue}
+                  onBack={handleBackFromPlanBuilder}
+                />
+              )}
+
             </div>
           </div>
         </section>

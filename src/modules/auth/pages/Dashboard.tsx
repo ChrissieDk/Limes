@@ -41,6 +41,8 @@ function Dashboard() {
   const [currentPlan, setCurrentPlan] = useState<typeof mockCurrentPlan | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [canActivate, setCanActivate] = useState<Record<string, boolean>>({});
+  const [activatingSim, setActivatingSim] = useState<string | null>(null);
 
   // Get selected package from navigation state or use mock as fallback
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
@@ -311,6 +313,50 @@ function Dashboard() {
     };
   }, [simCards]);
 
+  // Check activation status for each SIM
+  useEffect(() => {
+    let cancelled = false;
+    const checkActivationStatuses = async () => {
+      if (simCards.length === 0) return;
+      
+      const statuses: Record<string, boolean> = {};
+      
+      for (const sim of simCards) {
+        if (!sim.phoneNumber) {
+          statuses[sim.phoneNumber || sim.id] = false;
+          continue;
+        }
+        
+        try {
+          const response = await subscriptionService.checkSimActive(sim.phoneNumber);
+          statuses[sim.phoneNumber] = response.isActive && response.hasPendingOrders; // Show button if SIM IS active AND has pending orders
+          
+          console.log(`[Activation] Full response for ${sim.phoneNumber}:`, response);
+          console.log(`[Activation] Checked status for ${sim.phoneNumber}:`, {
+            isActive: response.isActive,
+            hasPendingOrders: response.hasPendingOrders,
+            canActivate: statuses[sim.phoneNumber],
+            message: response.message
+          });
+        } catch (err) {
+          if (!cancelled) {
+            console.error(`[Activation] Error checking status for ${sim.phoneNumber}:`, err);
+            statuses[sim.phoneNumber] = false;
+          }
+        }
+      }
+      
+      if (!cancelled) {
+        setCanActivate(statuses);
+      }
+    };
+    
+    checkActivationStatuses();
+    return () => {
+      cancelled = true;
+    };
+  }, [simCards]);
+
   // TEMP: Log catalog endpoints to verify connectivity
   useEffect(() => {
     let cancelled = false;
@@ -352,6 +398,42 @@ function Dashboard() {
   const handleVerify = (sim: SimCardModel) => {
     setModalSim(sim);
     setShippingModalOpen(true);
+  };
+
+  const handleActivate = async (sim: SimCardModel) => {
+    if (!sim.phoneNumber) {
+      console.error('[Activate] No phone number for SIM:', sim);
+      return;
+    }
+
+    setActivatingSim(sim.phoneNumber);
+    
+    try {
+      console.log('[Activate] Processing pending orders for SIM:', sim.phoneNumber);
+      const response = await subscriptionService.processPendingOrders(sim.phoneNumber);
+      
+      if (response.success) {
+        console.log('[Activate] Success:', response.message);
+        
+        // Refresh activation status to update button visibility
+        const statusResponse = await subscriptionService.checkSimActive(sim.phoneNumber);
+        setCanActivate(prev => ({
+          ...prev,
+          [sim.phoneNumber]: statusResponse.isActive && statusResponse.hasPendingOrders
+        }));
+        
+        // TODO: Show success message to user (toast/notification)
+        // TODO: Refresh transactions if needed
+      } else {
+        console.error('[Activate] Failed:', response.message);
+        // TODO: Show error message to user
+      }
+    } catch (err) {
+      console.error('[Activate] Error processing pending orders:', err);
+      // TODO: Show error message to user
+    } finally {
+      setActivatingSim(null);
+    }
   };
 
   const handlePay = () => {
@@ -440,6 +522,9 @@ function Dashboard() {
                   sim={simCards[currentSimIndex]} 
                   onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
                   onVerify={handleVerify}
+                  onActivate={handleActivate}
+                  canActivate={canActivate[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id] || false}
+                  isActivating={activatingSim === simCards[currentSimIndex]?.phoneNumber}
                 />
                 <PlanDetails sim={simCards[currentSimIndex]} />
               </>
