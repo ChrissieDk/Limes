@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { catalogService } from '../../catalog/services/catalogService'
 import { paymentService } from '../../payment/services/paymentService'
+import { dynamicServicesPaymentService } from '../../payment/services/dynamicServicesPaymentService'
+import { getServiceDisplayValue, convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
+import type { ServiceType } from '../../payment/utils/dynamicPricing'
 import { Loader2 } from 'lucide-react'
 
 // Paystack Popup
 declare const PaystackPop: any
 
-type TopUpKind = 'data' | 'airtime' | 'bundles'
+type TopUpKind = 'airtime' | 'bundles'
 
 interface TopUpModalProps {
   open: boolean
@@ -43,7 +46,7 @@ const renderProductList = (products: CatalogProduct[], selectedProduct: CatalogP
 }
 
 export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }: TopUpModalProps) {
-  const [kind] = useState<TopUpKind>('bundles') // Default to bundles (data/airtime commented out)
+  const [kind, setKind] = useState<TopUpKind>('bundles')
   const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false)
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string>(phoneNumber ?? (phoneNumbers?.[0] ?? ''))
   
@@ -55,10 +58,14 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   
+  // Price input for voice/data/sms/whatsapp (cost-based only)
+  const [price, setPrice] = useState(50)
+  
   // Payment states
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [selectedMethod, setSelectedMethod] = useState<'wallet' | 'card' | 'eft'>('eft')
 
   useEffect(() => {
     if (!open) return
@@ -73,6 +80,22 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setSelectedPhoneNumber(phoneNumber ?? (phoneNumbers?.[0] ?? ''))
   }, [phoneNumber, phoneNumbers])
 
+  const adjustPrice = (delta: number) => {
+    setPrice((prev) => Math.max(1, Math.min(1000, prev + delta)))
+  }
+
+  const handlePriceInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '')
+    if (value === '') {
+      setPrice(1)
+    } else {
+      const numValue = parseInt(value, 10)
+      setPrice(Math.max(1, Math.min(1000, numValue)))
+    }
+  }
+
+  const formattedPrice = `R${price}`
+
   // Fetch bundle categories when modal opens and bundles tab is active
   useEffect(() => {
     if (!open || kind !== 'bundles') return
@@ -85,30 +108,26 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
         console.log('[TopUp] Full category tree:', tree)
         
-        // Navigate: tree -> channel -> website -> gsm_products -> children
         const channel = tree.find((node) => node.id === 'channel')
         if (!channel) {
           setError('Channel category not found')
+          console.error('[TopUp] Channel node not found in tree')
           return
         }
         
-        const website = channel.children?.find((node) => node.id === 'website')
-        if (!website) {
-          setError('Website category not found')
+        const onceOffTopUp = channel.children?.find((node) => node.id === 'once_off_top_up')
+        if (!onceOffTopUp) {
+          setError('Top-up category not found')
+          console.error('[TopUp] once_off_top_up node not found under channel')
           return
         }
         
-        const gsmProducts = website.children?.find((node) => node.id === 'gsm_products')
-        if (!gsmProducts) {
-          setError('GSM Products category not found')
-          return
-        }
-        
-        if (gsmProducts.children && gsmProducts.children.length > 0) {
-          setBundleCategories(gsmProducts.children)
-          console.log('[TopUp] Bundle categories:', gsmProducts.children)
+        if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
+          setBundleCategories(onceOffTopUp.children)
+          console.log('[TopUp] Bundle categories from once_off_top_up:', onceOffTopUp.children)
         } else {
           setError('No bundle categories found')
+          console.error('[TopUp] No children found under once_off_top_up')
         }
       } catch (err) {
         setError('Failed to load bundle categories')
@@ -222,6 +241,94 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setProducts([])
   }
 
+  // Handle dynamic service purchase (Voice, Data, SMS, WhatsApp)
+  const handlePurchaseDynamicService = async () => {
+    if (!selectedPhoneNumber || kind === 'bundles') {
+      setPaymentError('Please select a phone number')
+      return
+    }
+
+    setIsPaymentProcessing(true)
+    setPaymentError(null)
+
+    try {
+      const serviceType = kind.toUpperCase() as ServiceType
+      const serviceValue = convertRandsToServiceValue(serviceType, price)
+      const expiryDate = getDefaultExpiryDate()
+      const priceInCents = price * 100
+      
+      // Map AIRTIME to AIRTIME_ADVANCE for backend
+      const definitionCode = serviceType === 'AIRTIME' ? 'AIRTIME_ADVANCE' : serviceType
+
+      console.log('[TopUp] Initializing dynamic service payment:', {
+        serviceType,
+        definitionCode,
+        price,
+        serviceValue,
+        priceInCents,
+        expiryDate
+      })
+
+      const payload = {
+        msisdn: String(selectedPhoneNumber),
+        services: [
+          {
+            value: serviceValue,
+            definitionCode: definitionCode as any, // Backend expects AIRTIME_ADVANCE
+            expiryDate,
+            priceInCents,
+          },
+        ],
+      }
+
+      const initResponse = await dynamicServicesPaymentService.initializePayment(payload)
+
+      if (!initResponse.success || !initResponse.data) {
+        setPaymentError(initResponse.error || 'Failed to initialize payment')
+        return
+      }
+
+      console.log('[TopUp] Dynamic service transaction initialized, opening Paystack...')
+
+      // Use Paystack Popup
+      const popup = new PaystackPop()
+      popup.resumeTransaction(initResponse.data.access_code, {
+        onSuccess: async (transaction: any) => {
+          console.log('[TopUp] Dynamic service payment successful, verifying...')
+
+          try {
+            const verificationResponse = await dynamicServicesPaymentService.verifyPayment({
+              reference: transaction.reference || initResponse.data?.reference || '',
+              saveCard: false,
+            })
+
+            if (verificationResponse.success) {
+              setPaymentSuccess(true)
+              setTimeout(() => {
+                setPaymentSuccess(false)
+                setPrice(50) // Reset to default
+                onClose()
+              }, 2000)
+            } else {
+              setPaymentError(verificationResponse.error || 'Payment verification failed')
+            }
+          } catch (err: any) {
+            setPaymentError(err.response?.data?.message || 'Payment verification failed')
+          }
+        },
+        onCancel: () => {
+          console.log('[TopUp] Dynamic service payment cancelled')
+          setPaymentError(null)
+        },
+      })
+    } catch (error: any) {
+      console.error('[TopUp] Dynamic service payment error:', error)
+      setPaymentError(error.response?.data?.message || error.message || 'Failed to process payment')
+    } finally {
+      setIsPaymentProcessing(false)
+    }
+  }
+
   if (!open) return null
 
   return (
@@ -241,103 +348,75 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
         <div className="flex-1 overflow-y-auto">
           <div className="px-5 pt-4 pb-5 space-y-5">
-          {/* Tab Selection - Data and Airtime commented out for future use */}
-          <div className="flex items-center justify-center gap-3">
-            {/* <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'data' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('data')}>Data</button>
-            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'airtime' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('airtime')}>Airtime</button> */}
-            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold bg-neutral-900 text-white`}>Bundles</button>
+          {/* Tab Selection */}
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'airtime' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('airtime')}>Airtime</button>
+            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'bundles' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('bundles')}>Bundles</button>
           </div>
 
-          {/* Commented out for future use - Data/Airtime entry modes */}
-          {/* {kind !== 'bundles' && (
-            <div className="flex items-center justify-center gap-2 text-sm text-neutral-500">
-              <span>Switch to</span>
-              {entryMode === 'price' ? (
-                <button className="px-2 py-0.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700" onClick={() => setEntryMode('quantity')}>{kind === 'data' ? 'Data' : 'Cost Price'}</button>
-              ) : (
-                <button className="px-2 py-0.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700" onClick={() => setEntryMode('price')}>Cost Price</button>
-              )}
-            </div>
-          )} */}
-
-          {/* Commented out for future use - Price/Data entry UI */}
-          {/* {kind !== 'bundles' && (entryMode === 'price' ? (
-            <div className="flex items-center justify-center gap-4 select-none">
-              <button className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100" onClick={() => adjustPrice(-10)}>−</button>
-              <div className="font-grotesque font-extrabold text-6xl tracking-tight">{formattedPrice}</div>
-              <button className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100" onClick={() => adjustPrice(10)}>+</button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-4 select-none">
-              <button className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100" onClick={() => adjustData(-1)}>−</button>
-              <div className="flex items-center gap-2">
-                <div className="font-grotesque font-extrabold text-6xl tracking-tight">{dataQty}</div>
-                {kind === 'data' && (
-                  <div className="relative">
-                    <select className="appearance-none bg-neutral-100 text-neutral-700 rounded-lg px-2 py-1 text-sm" value={dataUnit} onChange={(e) => setDataUnit(e.target.value as 'GB' | 'MB')}>
-                      <option value="GB">GB</option>
-                      <option value="MB">MB</option>
-                    </select>
-                  </div>
-                )}
+          {/* Price Entry UI for Airtime */}
+          {kind !== 'bundles' && (
+            <div className="flex items-center justify-center gap-4">
+              <button 
+                className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100 transition-colors" 
+                onClick={() => adjustPrice(-5)}
+              >
+                −
+              </button>
+              <div className="flex items-center justify-center gap-1">
+                <span className="font-grotesque font-extrabold text-6xl tracking-tight text-neutral-900">R</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={price}
+                  onChange={handlePriceInput}
+                  className="w-32 text-center font-grotesque font-extrabold text-6xl tracking-tight bg-transparent border-0 outline-none focus:ring-0 p-0"
+                  style={{ appearance: 'none' }}
+                />
               </div>
-              <button className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100" onClick={() => adjustData(1)}>+</button>
+              <button 
+                className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100 transition-colors" 
+                onClick={() => adjustPrice(5)}
+              >
+                +
+              </button>
             </div>
-          ))} */}
+          )}
 
-          {/* Commented out for future use - Save banner */}
-          {/* {kind !== 'bundles' && (
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center rounded-full bg-lime-100 text-lime-700 px-3 py-1 text-sm">Save R20!</span>
-              {entryMode === 'price' && <span className="text-neutral-500 text-sm">{formattedPrice}.00</span>}
-            </div>
-          )} */}
-
-          {/* Commented out for future use - Payment method selection */}
-          {/* <div className="space-y-3">
-            <div className={`rounded-xl border-2 ${selectedMethod === 'wallet' ? 'border-neutral-900' : 'border-neutral-200'} bg-lime-400/80 px-4 py-3 text-neutral-900`}
-                 onClick={() => setSelectedMethod('wallet')}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="grid place-items-center size-9 rounded-lg bg-neutral-900/10">▣</div>
-                  <div>
-                    <div className="font-semibold">Wallet</div>
-                    <div className="text-sm">Total: R230.60</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="rounded-lg bg-white text-neutral-900 px-3 py-1.5 text-sm ring-2 ring-neutral-900/90">Apply max amount</button>
-                  <span className={`size-4 rounded-full ${selectedMethod === 'wallet' ? 'bg-neutral-900' : 'bg-white ring-1 ring-neutral-300'}`} />
-                </div>
+          {/* Display what user will get for their money */}
+          {kind !== 'bundles' && (
+            <div className="flex items-center justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full bg-lime-100 px-4 py-2">
+                <span className="text-sm text-neutral-600">You'll get:</span>
+                <span className="text-sm font-bold text-neutral-900">
+                  {getServiceDisplayValue(kind.toUpperCase() as ServiceType, price)}
+                </span>
               </div>
             </div>
+          )}
 
-            <div className={`rounded-xl border ${selectedMethod === 'card' ? 'border-neutral-900' : 'border-neutral-200'} px-4 py-3 cursor-pointer`} onClick={() => setSelectedMethod('card')}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="size-6 rounded bg-red-500 inline-block" />
-                  <div>
-                    <div className="font-medium">Mastercard ending in 1234</div>
-                    <div className="text-sm text-neutral-500">Expiry 06/2028</div>
+          {/* Payment method selection for Voice/Data/SMS/WhatsApp */}
+          {kind !== 'bundles' && (
+            <div className="space-y-3">
+              <h3 className="text-neutral-900 font-semibold text-sm">Payment Method</h3>
+              
+
+              
+
+              <div className={`rounded-xl border ${selectedMethod === 'eft' ? 'border-neutral-900' : 'border-neutral-200'} px-4 py-3 cursor-pointer`} onClick={() => setSelectedMethod('eft')}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="size-6 rounded bg-emerald-400 inline-block" />
+                    <div>
+                      <div className="font-medium">Instant EFT</div>
+                      <div className="text-sm text-neutral-500">Credit or debit card</div>
+                    </div>
                   </div>
+                  <span className={`size-4 rounded-full ${selectedMethod === 'eft' ? 'bg-neutral-900' : 'bg-white ring-1 ring-neutral-300'}`} />
                 </div>
-                <span className={`size-4 rounded-full ${selectedMethod === 'card' ? 'bg-neutral-900' : 'bg-white ring-1 ring-neutral-300'}`} />
               </div>
             </div>
-
-            <div className={`rounded-xl border ${selectedMethod === 'eft' ? 'border-neutral-900' : 'border-neutral-200'} px-4 py-3 cursor-pointer`} onClick={() => setSelectedMethod('eft')}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="size-6 rounded bg-emerald-400 inline-block" />
-                  <div>
-                    <div className="font-medium">Instant EFT</div>
-                    <div className="text-sm text-neutral-500">Credit or debit card</div>
-                  </div>
-                </div>
-                <span className={`size-4 rounded-full ${selectedMethod === 'eft' ? 'bg-neutral-900' : 'bg-white ring-1 ring-neutral-300'}`} />
-              </div>
-            </div>
-          </div> */}
+          )}
 
           {/* Bundles - Show Categories or Products */}
           {kind === 'bundles' && !selectedCategory && (
@@ -416,8 +495,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             </div>
           )}
 
-          {/* Phone Number Selection - Only show when product is selected */}
-          {selectedProduct && (
+          {/* Phone Number Selection - Show for bundles when product selected, or always for data/airtime */}
+          {(selectedProduct || kind !== 'bundles') && (
             <div className="space-y-2">
               <div className="text-neutral-600 text-sm font-medium">Phone number to top-up</div>
               <div className="relative">
@@ -454,8 +533,44 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             </div>
           )}
 
-          {/* Purchase Button - Only show when product is selected */}
-          {selectedProduct && (
+          {/* Purchase Button for Voice/Data/SMS/WhatsApp */}
+          {kind !== 'bundles' && selectedPhoneNumber && (
+            <div className="space-y-3 pt-2">
+              <div className="rounded-xl bg-neutral-100 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-600">Type</span>
+                  <span className="font-semibold text-neutral-900 capitalize">{kind}</span>
+                </div>
+                <div className="border-t border-neutral-300 pt-2 flex items-center justify-between">
+                  <span className="font-bold text-neutral-900">Total</span>
+                  <span className="font-bold text-2xl text-neutral-900">{formattedPrice}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handlePurchaseDynamicService}
+                disabled={isPaymentProcessing || paymentSuccess}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-3 hover:bg-lime-300 active:scale-[0.99] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPaymentProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : paymentSuccess ? (
+                  <span>✓ Success</span>
+                ) : (
+                  <>
+                    <span>Purchase Airtime</span>
+                    <span>→</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Purchase Button - Only show when product is selected for bundles */}
+          {kind === 'bundles' && selectedProduct && (
             <div className="space-y-3 pt-2">
               <div className="rounded-xl bg-neutral-100 p-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">

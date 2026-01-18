@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Plus, MapPin, Package, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
+import { dynamicServicesPaymentService, type DynamicService } from '../../payment/services/dynamicServicesPaymentService'
+import { convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
 
 // Load Paystack Inline JS
 declare const PaystackPop: any
@@ -21,11 +23,21 @@ interface SelectedPackage {
   simPackageProductId?: string  // The actual SIM package product ID (7029225P, 7025225P, 7023225P)
   name: string
   price: number
+  priceInCents?: number  // For Paystack payment
   packageType?: 'contract' | 'prepaid'
   simStatus?: 'has-sim' | 'needs-sim'
   planChargeType?: 'once-off' | 'monthly'  // Indicates if it's a one-time or recurring charge
-  features: {
+  iccid?: string
+  isDynamicPlan?: boolean  // True for contract dynamic plans
+  planAllocation?: {  // Allocation in Rands for each service (contract dynamic plans)
+    data: number
+    voice: number
+    sms: number
+    whatsapp: number
+  }
+  features?: {
     mobileData?: string
+    description?: string
     airtime?: string
     messaging?: string
     phone?: string
@@ -152,26 +164,82 @@ export default function ShippingModal({
       console.log('[Payment] Plan charge type:', selectedPackage.planChargeType)
       
       // Validate required fields
-      if (!selectedPackage.productId) {
-        setVerificationError('Product ID is missing')
-        console.error('[Payment] ❌ Product ID is missing from selectedPackage')
-        return
-      }
-      
       if (!msisdn) {
         setVerificationError('MSISDN is required. Please ensure subscriber was created successfully.')
         console.error('[Payment] ❌ MSISDN is missing')
         return
       }
-      
-      // Backend fetches price from MVNX, we only send productId and msisdn
-      const payload = {
-        productId: String(selectedPackage.productId),
-        msisdn: String(msisdn)
+
+      let initResponse: { success: boolean; data?: { access_code: string; reference: string }; error?: string }
+
+      // Check if this is a dynamic plan (contract with custom allocation)
+      if (selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
+        console.log('[Payment] Dynamic plan detected, using dynamic services API')
+        const { planAllocation } = selectedPackage
+        const expiryDate = getDefaultExpiryDate()
+        
+        // Build services array from plan allocation
+        const services: DynamicService[] = []
+        
+        if (planAllocation.data > 0) {
+          services.push({
+            value: convertRandsToServiceValue('DATA', planAllocation.data),
+            definitionCode: 'DATA',
+            expiryDate,
+            priceInCents: planAllocation.data * 100
+          })
+        }
+        
+        if (planAllocation.voice > 0) {
+          services.push({
+            value: convertRandsToServiceValue('VOICE', planAllocation.voice),
+            definitionCode: 'VOICE',
+            expiryDate,
+            priceInCents: planAllocation.voice * 100
+          })
+        }
+        
+        if (planAllocation.sms > 0) {
+          services.push({
+            value: convertRandsToServiceValue('SMS', planAllocation.sms),
+            definitionCode: 'SMS',
+            expiryDate,
+            priceInCents: planAllocation.sms * 100
+          })
+        }
+        
+        if (planAllocation.whatsapp > 0) {
+          services.push({
+            value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
+            definitionCode: 'WHATSAPP',
+            expiryDate,
+            priceInCents: planAllocation.whatsapp * 100
+          })
+        }
+
+        const dynamicPayload = {
+          msisdn: String(msisdn),
+          services
+        }
+        console.log('[Payment] Dynamic services payload:', dynamicPayload)
+        
+        initResponse = await dynamicServicesPaymentService.initializePayment(dynamicPayload)
+      } else {
+        // Regular prepaid bundle payment
+        if (!selectedPackage.productId) {
+          setVerificationError('Product ID is missing')
+          console.error('[Payment] ❌ Product ID is missing from selectedPackage')
+          return
+        }
+        
+        const payload = {
+          productId: String(selectedPackage.productId),
+          msisdn: String(msisdn)
+        }
+        console.log('[Payment] Initialize payload:', payload)
+        
+        initResponse = await paymentService.initializeTransaction(payload)
       }
-      console.log('[Payment] Initialize payload:', payload)
-      
-      const initResponse = await paymentService.initializeTransaction(payload)
 
       if (!initResponse.success || !initResponse.data) {
         setVerificationError(initResponse.error || 'Failed to initialize payment')
@@ -221,8 +289,97 @@ export default function ShippingModal({
 
       if (verificationResponse.success) {
         
-        // Phase 2: If this is a subscription product, automatically create subscription
-        if (isSubscription && verificationResponse.cardSaved) {
+        // Phase 2A: If this is a MONTHLY dynamic plan, create subscription (which will also provision services)
+        if (selectedPackage?.isDynamicPlan && selectedPackage?.planAllocation && isSubscription && verificationResponse.cardSaved) {
+          console.log('[Payment] Monthly dynamic plan detected, creating subscription...')
+          try {
+            const savedCards = await paymentService.getSavedCards()
+            
+            if (!savedCards || savedCards.length === 0) {
+              throw new Error('No saved cards found')
+            }
+            
+            const paymentMethodId = savedCards[0].id
+            const { planAllocation } = selectedPackage
+            const expiryDate = getDefaultExpiryDate()
+            
+            // Build services array from plan allocation
+            const services: DynamicService[] = []
+            
+            if (planAllocation.data > 0) {
+              services.push({
+                value: convertRandsToServiceValue('DATA', planAllocation.data),
+                definitionCode: 'DATA',
+                expiryDate,
+                priceInCents: planAllocation.data * 100
+              })
+            }
+            
+            if (planAllocation.voice > 0) {
+              services.push({
+                value: convertRandsToServiceValue('VOICE', planAllocation.voice),
+                definitionCode: 'VOICE',
+                expiryDate,
+                priceInCents: planAllocation.voice * 100
+              })
+            }
+            
+            if (planAllocation.sms > 0) {
+              services.push({
+                value: convertRandsToServiceValue('SMS', planAllocation.sms),
+                definitionCode: 'SMS',
+                expiryDate,
+                priceInCents: planAllocation.sms * 100
+              })
+            }
+            
+            if (planAllocation.whatsapp > 0) {
+              services.push({
+                value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
+                definitionCode: 'WHATSAPP',
+                expiryDate,
+                priceInCents: planAllocation.whatsapp * 100
+              })
+            }
+
+            const subscribePayload = {
+              msisdn: String(msisdn),
+              paymentMethodId: String(paymentMethodId),
+              services
+            }
+            console.log('[Payment] Dynamic subscription payload:', subscribePayload)
+            
+            const subscribeResponse = await dynamicServicesPaymentService.subscribe(subscribePayload)
+            console.log('[Payment] Dynamic subscription response:', subscribeResponse)
+            
+            if (subscribeResponse.success) {
+              console.log('[Payment] ✅ Dynamic subscription created successfully')
+              
+              // Store subscription ID in localStorage
+              if (subscribeResponse.subscription?.id) {
+                const storedIds = localStorage.getItem('subscriptionIds');
+                const idsArray = storedIds ? JSON.parse(storedIds) : [];
+                if (!idsArray.includes(subscribeResponse.subscription.id)) {
+                  idsArray.push(subscribeResponse.subscription.id);
+                  localStorage.setItem('subscriptionIds', JSON.stringify(idsArray));
+                }
+              }
+            } else {
+              console.error('[Payment] Dynamic subscription creation failed:', subscribeResponse.error)
+            }
+          } catch (subError: any) {
+            console.error('[Payment] Dynamic subscription error:', subError.response?.data || subError.message)
+          }
+        }
+        // Phase 2B: If this is a ONE-TIME dynamic plan, provision services directly
+        else if (selectedPackage?.isDynamicPlan && selectedPackage?.planAllocation && !isSubscription) {
+          console.log('[Payment] One-time dynamic plan detected, provisioning will happen on subscriber activation')
+          // Note: Services will be provisioned when the subscriber is activated on the network
+          // The provisioning call needs to happen AFTER subscriber exists, not now
+        }
+        
+        // Phase 2C: If this is a regular subscription product (non-dynamic), create subscription
+        else if (!selectedPackage?.isDynamicPlan && isSubscription && verificationResponse.cardSaved) {
           try {
             const savedCards = await paymentService.getSavedCards()
             
@@ -374,33 +531,63 @@ export default function ShippingModal({
                     </div>
                   </div>
                   
-                  {/* Package Features */}
+                  {/* Package Features - Dynamic Plan Allocation */}
+                  {selectedPackage.isDynamicPlan && selectedPackage.planAllocation ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedPackage.planAllocation.data > 0 && (
+                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                          <div className="text-xs text-neutral-600 mb-1">Data</div>
+                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.data}</div>
+                        </div>
+                      )}
+                      {selectedPackage.planAllocation.voice > 0 && (
+                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                          <div className="text-xs text-neutral-600 mb-1">Voice</div>
+                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.voice}</div>
+                        </div>
+                      )}
+                      {selectedPackage.planAllocation.sms > 0 && (
+                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                          <div className="text-xs text-neutral-600 mb-1">SMS</div>
+                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.sms}</div>
+                        </div>
+                      )}
+                      {selectedPackage.planAllocation.whatsapp > 0 && (
+                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                          <div className="text-xs text-neutral-600 mb-1">WhatsApp</div>
+                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.whatsapp}</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                  /* Package Features - Regular Bundle */
                   <div className="grid grid-cols-2 gap-2">
-                    {selectedPackage.features.mobileData && (
+                    {selectedPackage.features?.mobileData && (
                       <div className="bg-white rounded-lg p-3 border border-neutral-200">
                         <div className="text-xs text-neutral-600 mb-1">Mobile Data</div>
                         <div className="font-semibold text-neutral-900">{selectedPackage.features.mobileData}</div>
                       </div>
                     )}
-                    {selectedPackage.features.messaging && (
+                    {selectedPackage.features?.messaging && (
                       <div className="bg-white rounded-lg p-3 border border-neutral-200">
                         <div className="text-xs text-neutral-600 mb-1">Messaging</div>
                         <div className="font-semibold text-neutral-900">{selectedPackage.features.messaging}</div>
                       </div>
                     )}
-                    {selectedPackage.features.phone && (
+                    {selectedPackage.features?.phone && (
                       <div className="bg-white rounded-lg p-3 border border-neutral-200">
                         <div className="text-xs text-neutral-600 mb-1">Phone</div>
                         <div className="font-semibold text-neutral-900">{selectedPackage.features.phone}</div>
                       </div>
                     )}
-                    {selectedPackage.features.airtime && (
+                    {selectedPackage.features?.airtime && (
                       <div className="bg-white rounded-lg p-3 border border-neutral-200">
                         <div className="text-xs text-neutral-600 mb-1">Airtime</div>
                         <div className="font-semibold text-neutral-900">{selectedPackage.features.airtime}</div>
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
               </div>
             )}
