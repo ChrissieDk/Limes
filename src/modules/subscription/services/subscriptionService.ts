@@ -15,7 +15,7 @@ export const subscriptionService = {
   // Create subscription (with extended timeout due to backend processing time)
   async createSubscription(payload: CreateSubscriptionRequest): Promise<CreateSubscriptionResponse> {
     const response = await apiClient.post('/subscriber/create', payload, {
-      timeout: 40000, // 40 seconds timeout for subscriber creation
+      timeout: 120000, // 2 minutes timeout for subscriber creation
     })
     return response.data
   },
@@ -23,7 +23,7 @@ export const subscriptionService = {
   // Create order (with extended timeout for backend processing)
   async createOrder(payload: CreateOrderRequest): Promise<CreateOrderResponse> {
     const response = await apiClient.post('/order/create', payload, {
-      timeout: 40000, // 40 seconds timeout for order creation
+      timeout: 120000, // 2 minutes timeout for order creation
     })
     return response.data
   },
@@ -43,7 +43,7 @@ export const subscriptionService = {
   // Process pending orders (retry order creation) - extended timeout for backend processing
   async processPendingOrders(msisdn: string): Promise<ProcessPendingOrdersResponse> {
     const response = await apiClient.post(`/order/pending/${msisdn}/process`, {}, {
-      timeout: 40000, // 40 seconds timeout for order processing
+      timeout: 120000, // 2 minutes timeout for order processing
     })
     return response.data
   },
@@ -51,7 +51,7 @@ export const subscriptionService = {
   // Process pending dynamic services - extended timeout for backend processing
   async processPendingDynamicServices(msisdn: string): Promise<ProcessPendingOrdersResponse> {
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic/pending/process`, {}, {
-      timeout: 40000, // 40 seconds timeout for dynamic service processing
+      timeout: 120000, // 2 minutes timeout for dynamic service processing
     })
     return response.data
   },
@@ -59,7 +59,7 @@ export const subscriptionService = {
   // Create dynamic services for a subscriber (with extended timeout)
   async createDynamicServices(msisdn: string, payload: CreateDynamicServicesRequest): Promise<CreateDynamicServicesResponse> {
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic`, payload, {
-      timeout: 40000, // 40 seconds timeout for dynamic service creation
+      timeout: 120000, // 2 minutes timeout for dynamic service creation
     })
     return response.data
   },
@@ -72,7 +72,7 @@ export const subscriptionService = {
     paymentReference: string
   }): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post('/order/pending', payload, {
-      timeout: 40000,
+      timeout: 120000, // 2 minutes timeout for storing pending order
     })
     return response.data
   },
@@ -86,7 +86,7 @@ export const subscriptionService = {
     paymentReference: string
   }): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic/pending`, payload, {
-      timeout: 40000,
+      timeout: 120000, // 2 minutes timeout for storing pending dynamic service
     })
     return response.data
   },
