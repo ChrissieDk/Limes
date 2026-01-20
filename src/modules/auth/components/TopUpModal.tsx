@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { catalogService } from '../../catalog/services/catalogService'
 import { paymentService } from '../../payment/services/paymentService'
+import { subscriptionService } from '../../subscription/services/subscriptionService'
 import { dynamicServicesPaymentService } from '../../payment/services/dynamicServicesPaymentService'
 import { getServiceDisplayValue, convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
@@ -215,24 +216,52 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           console.log('[TopUp] Payment successful, verifying...')
           
           try {
+            // STEP 1: Verify payment
             const verificationResponse = await paymentService.verifyPayment({
               reference: transaction.reference || initResponse.data?.reference || '',
               saveCard: false, // Once-off top-up, don't save card
             })
 
-            if (verificationResponse.success) {
-              setPaymentSuccess(true)
-              setTimeout(() => {
-                setPaymentSuccess(false)
-                setSelectedCategory(null)
-                setSelectedProduct(null)
-                onClose()
-              }, 2000)
-            } else {
-              setPaymentError(verificationResponse.error || 'Payment verification failed')
+            if (!verificationResponse.success) {
+              throw new Error(verificationResponse.error || 'Payment verification failed')
             }
+            console.log('[TopUp] ✓ Payment verified')
+            
+            // STEP 2: Create order (NO subscriber creation - already exists)
+            console.log('[TopUp] Creating order...')
+            const orderResponse = await subscriptionService.createOrder({
+              products: [{ id: selectedProduct.id, amount: selectedProduct.price }],
+              msisdn: selectedPhoneNumber
+            })
+            
+            if (orderResponse.orderId) {
+              // Order created immediately - link transaction
+              console.log('[TopUp] ✓ Order created:', orderResponse.orderId)
+              
+              // STEP 3: Link transaction to order
+              console.log('[TopUp] Linking transaction to order...')
+              await paymentService.linkTransactionToOrder({
+                transactionReference: transaction.reference || initResponse.data?.reference || '',
+                orderId: orderResponse.orderId
+              })
+              console.log('[TopUp] ✓ Transaction linked')
+            } else if (orderResponse.message) {
+              // Order queued/pending
+              console.log('[TopUp] ℹ Order pending:', orderResponse.message)
+              console.log('[TopUp] Order will be created and linked when SIM activates')
+            } else {
+              throw new Error('Order creation failed - no orderId or message in response')
+            }
+            
+            setPaymentSuccess(true)
+            setTimeout(() => {
+              setPaymentSuccess(false)
+              setSelectedCategory(null)
+              setSelectedProduct(null)
+              onClose()
+            }, 2000)
           } catch (err: any) {
-            setPaymentError(err.response?.data?.message || 'Payment verification failed')
+            setPaymentError(err.response?.data?.message || err.message || 'Payment processing failed')
           }
         },
         onCancel: () => {
@@ -310,23 +339,58 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           console.log('[TopUp] Dynamic service payment successful, verifying...')
 
           try {
-            const verificationResponse = await dynamicServicesPaymentService.verifyPayment({
+            // STEP 1: Verify payment
+            const verificationResponse = await paymentService.verifyPayment({
               reference: transaction.reference || initResponse.data?.reference || '',
               saveCard: false,
             })
 
-            if (verificationResponse.success) {
-              setPaymentSuccess(true)
-              setTimeout(() => {
-                setPaymentSuccess(false)
-                setPrice(50) // Reset to default
-                onClose()
-              }, 2000)
-            } else {
-              setPaymentError(verificationResponse.error || 'Payment verification failed')
+            if (!verificationResponse.success) {
+              throw new Error(verificationResponse.error || 'Payment verification failed')
             }
+            console.log('[TopUp] ✓ Payment verified')
+            
+            // STEP 2: Create dynamic services (NO subscriber creation - already exists)
+            console.log('[TopUp] Creating dynamic services...')
+            const serviceValue = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price)
+            const definitionCode = kind.toUpperCase() === 'AIRTIME' ? 'AIRTIME_ADVANCE' : kind.toUpperCase()
+            
+            const servicesResponse = await subscriptionService.createDynamicServices(
+              selectedPhoneNumber,
+              {
+                services: [{
+                  value: serviceValue,
+                  definitionCode: definitionCode as any,
+                  expiryDate: getDefaultExpiryDate()
+                }]
+              }
+            )
+            
+            const serviceIds = servicesResponse.results
+              .filter(r => r.success && r.id)
+              .map(r => r.id!)
+            
+            if (serviceIds.length === 0) {
+              throw new Error('No services created')
+            }
+            console.log('[TopUp] ✓ Dynamic services created:', serviceIds)
+            
+            // STEP 3: Link transaction to services
+            console.log('[TopUp] Linking transaction to services...')
+            await paymentService.linkTransactionToServices({
+              transactionReference: transaction.reference || initResponse.data?.reference || '',
+              serviceIds: serviceIds
+            })
+            console.log('[TopUp] ✓ Transaction linked to services')
+            
+            setPaymentSuccess(true)
+            setTimeout(() => {
+              setPaymentSuccess(false)
+              setPrice(50) // Reset to default
+              onClose()
+            }, 2000)
           } catch (err: any) {
-            setPaymentError(err.response?.data?.message || 'Payment verification failed')
+            setPaymentError(err.response?.data?.message || err.message || 'Payment processing failed')
           }
         },
         onCancel: () => {

@@ -88,5 +88,29 @@ export interface CheckSimActiveResponse {
   msisdn: string
   isActive: boolean
   hasPendingOrders: boolean
+  hasPendingDynamicServices?: boolean  // Optional for backwards compatibility
   message: string
+}
+
+// Dynamic Services Types
+export interface CreateDynamicServicesRequest {
+  services: Array<{
+    value: number
+    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE'
+    expiryDate: string
+  }>
+}
+
+export interface CreateDynamicServicesResponse {
+  totalRequested: number
+  successCount: number
+  failedCount: number
+  results: Array<{
+    success: boolean
+    id?: string
+    transactionId?: string
+    definitionCode: string
+    value: number
+    message: string
+  }>
 }

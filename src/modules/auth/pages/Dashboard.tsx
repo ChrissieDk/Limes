@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import TopUpModal from '../components/TopUpModal';
 import ShippingModal from '../components/ShippingModal';
@@ -43,6 +43,10 @@ function Dashboard() {
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [canActivate, setCanActivate] = useState<Record<string, boolean>>({});
   const [activatingSim, setActivatingSim] = useState<string | null>(null);
+
+  // Refs to prevent infinite loops in useEffects
+  const balancesFetchedForRef = useRef<string>(''); // Track MSISDN we've fetched balances for
+  const activationCheckedForRef = useRef<string>(''); // Track MSISDNs we've checked activation for
 
   // Get selected package from navigation state or use mock as fallback
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
@@ -201,8 +205,9 @@ function Dashboard() {
       console.log('[Dashboard] RICA complete:', ricaComplete);
       
       if (ricaComplete) {
-        // RICA already done, go straight to payment
-        console.log('[Dashboard] Opening shipping modal (RICA already complete)');
+        // RICA already done - go straight to payment
+        // Subscriber will be created AFTER payment using CRM address
+        console.log('[Dashboard] RICA complete, opening shipping modal for returning user');
         setShippingModalOpen(true);
       } else {
         // RICA not done, open RICA flow first
@@ -273,28 +278,38 @@ function Dashboard() {
     };
   }, []);
 
-  // Fetch balances for the SIM
+  // Fetch balances for the currently selected SIM - uses ref to prevent infinite loops
   useEffect(() => {
     let cancelled = false;
     const fetchBalances = async () => {
-      // Only fetch balances if we have at least one SIM card with a phone number
-      if (simCards.length === 0 || !simCards[0].phoneNumber) {
+      // Only fetch balances if we have a SIM card at the current index with a phone number
+      if (simCards.length === 0 || !simCards[currentSimIndex]?.phoneNumber) {
+        setBalancesLoading(false);
+        return;
+      }
+      
+      const msisdnToFetch = simCards[currentSimIndex].phoneNumber;
+      
+      // Skip if we've already fetched balances for this MSISDN
+      if (balancesFetchedForRef.current === msisdnToFetch) {
         setBalancesLoading(false);
         return;
       }
       
       setBalancesLoading(true);
-      const msisdnToFetch = simCards[0].phoneNumber;
       
       try {
-        console.log('[Balance] Fetching balances for MSISDN:', msisdnToFetch);
+        console.log('[Balance] Fetching balances for MSISDN:', msisdnToFetch, '(SIM', currentSimIndex + 1, ')');
         const response = await subscriptionService.getBalances(msisdnToFetch);
         if (!cancelled && response.balances) {
-          console.log('[Balance] Fetched balances:', response);
+          console.log('[Balance] Fetched balances for SIM', currentSimIndex + 1, ':', response);
           
-          // Update the sim card with balances
+          // Mark as fetched BEFORE updating state to prevent re-trigger
+          balancesFetchedForRef.current = msisdnToFetch;
+          
+          // Update the currently selected sim card with balances
           setSimCards(prevSims => prevSims.map((sim, idx) => {
-            if (idx === 0) { // Update first sim with real data
+            if (idx === currentSimIndex) { // Update currently selected sim with real data
               return {
                 ...sim,
                 balances: response.balances,
@@ -318,13 +333,21 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [simCards]);
+  }, [simCards, currentSimIndex]);
 
-  // Check activation status for each SIM
+  // Check activation status for each SIM - uses ref to prevent infinite loops
   useEffect(() => {
     let cancelled = false;
     const checkActivationStatuses = async () => {
       if (simCards.length === 0) return;
+      
+      // Create a key from all MSISDNs to track if we've already checked
+      const msisdnsKey = simCards.map(s => s.phoneNumber).filter(Boolean).sort().join(',');
+      
+      // Skip if we've already checked these MSISDNs
+      if (activationCheckedForRef.current === msisdnsKey) {
+        return;
+      }
       
       const statuses: Record<string, boolean> = {};
       
@@ -336,12 +359,14 @@ function Dashboard() {
         
         try {
           const response = await subscriptionService.checkSimActive(sim.phoneNumber);
-          statuses[sim.phoneNumber] = response.isActive && response.hasPendingOrders; // Show button if SIM IS active AND has pending orders
+          // Show button if SIM IS active AND has pending orders OR pending dynamic services
+          statuses[sim.phoneNumber] = response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false);
           
           console.log(`[Activation] Full response for ${sim.phoneNumber}:`, response);
           console.log(`[Activation] Checked status for ${sim.phoneNumber}:`, {
             isActive: response.isActive,
             hasPendingOrders: response.hasPendingOrders,
+            hasPendingDynamicServices: response.hasPendingDynamicServices,
             canActivate: statuses[sim.phoneNumber],
             message: response.message
           });
@@ -354,6 +379,8 @@ function Dashboard() {
       }
       
       if (!cancelled) {
+        // Mark as checked BEFORE updating state
+        activationCheckedForRef.current = msisdnsKey;
         setCanActivate(statuses);
       }
     };
@@ -402,11 +429,6 @@ function Dashboard() {
     setCurrentSimIndex((prev) => (prev - 1 + simCards.length) % simCards.length);
   };
 
-  const handleVerify = (sim: SimCardModel) => {
-    setModalSim(sim);
-    setShippingModalOpen(true);
-  };
-
   const handleActivate = async (sim: SimCardModel) => {
     if (!sim.phoneNumber) {
       console.error('[Activate] No phone number for SIM:', sim);
@@ -416,27 +438,40 @@ function Dashboard() {
     setActivatingSim(sim.phoneNumber);
     
     try {
-      console.log('[Activate] Processing pending orders for SIM:', sim.phoneNumber);
-      const response = await subscriptionService.processPendingOrders(sim.phoneNumber);
+      console.log('[Activate] Processing pending orders and services for SIM:', sim.phoneNumber);
       
-      if (response.success) {
-        console.log('[Activate] Success:', response.message);
+      // Process pending orders
+      console.log('[Activate] Step 1: Processing pending orders...');
+      const ordersResponse = await subscriptionService.processPendingOrders(sim.phoneNumber);
+      console.log('[Activate] Orders response:', ordersResponse);
+      
+      // Process pending dynamic services
+      console.log('[Activate] Step 2: Processing pending dynamic services...');
+      const servicesResponse = await subscriptionService.processPendingDynamicServices(sim.phoneNumber);
+      console.log('[Activate] Services response:', servicesResponse);
+      
+      if (ordersResponse.success || servicesResponse.success) {
+        console.log('[Activate] ✓ Successfully processed pending items');
+        console.log('[Activate] Orders:', ordersResponse.message);
+        console.log('[Activate] Services:', servicesResponse.message);
         
         // Refresh activation status to update button visibility
         const statusResponse = await subscriptionService.checkSimActive(sim.phoneNumber);
         setCanActivate(prev => ({
           ...prev,
-          [sim.phoneNumber]: statusResponse.isActive && statusResponse.hasPendingOrders
+          [sim.phoneNumber]: statusResponse.isActive && (statusResponse.hasPendingOrders || statusResponse.hasPendingDynamicServices || false)
         }));
         
         // TODO: Show success message to user (toast/notification)
         // TODO: Refresh transactions if needed
       } else {
-        console.error('[Activate] Failed:', response.message);
+        console.error('[Activate] Failed to process pending items');
+        console.error('[Activate] Orders:', ordersResponse.message);
+        console.error('[Activate] Services:', servicesResponse.message);
         // TODO: Show error message to user
       }
     } catch (err) {
-      console.error('[Activate] Error processing pending orders:', err);
+      console.error('[Activate] Error processing pending items:', err);
       // TODO: Show error message to user
     } finally {
       setActivatingSim(null);
@@ -457,6 +492,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
+
       <TopUpModal 
         open={modalOpen}
         onClose={() => setModalOpen(false)} 
@@ -471,7 +507,9 @@ function Dashboard() {
       {shippingModalOpen && (
         <ShippingModal
           open={shippingModalOpen}
-          onClose={() => setShippingModalOpen(false)}
+          onClose={() => {
+            setShippingModalOpen(false);
+          }}
           defaultAddress={customerAddress ? {
             streetNo: customerAddress.streetNo,
             streetName: customerAddress.streetName,
@@ -486,7 +524,23 @@ function Dashboard() {
           customerEmail={customerEmail}
           customerName={customerName}
           customerPhone={customerPhone}
-          allocatedMsisdn={simCards[0]?.phoneNumber || ''}  // Use the actual SIM phone number
+          ricaData={customerAddress ? {
+            address: {
+              streetNo: customerAddress.streetNo,
+              streetName: customerAddress.streetName,
+              suburb: customerAddress.suburb || '',
+              city: customerAddress.city,
+              stateOrProvince: customerAddress.stateOrProvince,
+              postCode: customerAddress.postCode,
+              country: customerAddress.country,
+            },
+            customerInfo: {
+              firstname: customerName.split(' ')[0] || '',
+              lastname: customerName.split(' ').slice(1).join(' ') || '',
+              billEmail: customerEmail,
+              phoneNumber: customerPhone
+            }
+          } : undefined}
         />
       )}
       <main className="p-6 max-w-7xl mx-auto space-y-6">
@@ -545,7 +599,6 @@ function Dashboard() {
                 <SimCard 
                   sim={simCards[currentSimIndex]} 
                   onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
-                  onVerify={handleVerify}
                   onActivate={handleActivate}
                   canActivate={canActivate[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id] || false}
                   isActivating={activatingSim === simCards[currentSimIndex]?.phoneNumber}

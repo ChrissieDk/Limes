@@ -2,16 +2,22 @@ import { apiClient } from '../../../config/api'
 import type {
   InitializeTransactionRequest,
   InitializeTransactionResponse,
+  InitializeDynamicServicesPaymentRequest,
+  InitializeDynamicServicesPaymentResponse,
   VerifyPaymentRequest,
   VerifyPaymentResponse,
   SavedCard,
   ChargeCardRequest,
   ChargeCardResponse,
-  SubscribeRequest,
-  SubscribeResponse,
   SubscriptionDetails,
   CancelSubscriptionRequest,
   CancelSubscriptionResponse,
+  CreateDynamicServicesRecurringRequest,
+  CreateDynamicServicesRecurringResponse,
+  LinkTransactionToOrderRequest,
+  LinkTransactionToOrderResponse,
+  LinkTransactionToServicesRequest,
+  LinkTransactionToServicesResponse,
 } from '../../../types/payment'
 
 export const paymentService = {
@@ -25,6 +31,15 @@ export const paymentService = {
    */
   async initializeTransaction(payload: InitializeTransactionRequest): Promise<InitializeTransactionResponse> {
     const response = await apiClient.post('/payment/paystack/initialize', payload)
+    return response.data
+  },
+
+  /**
+   * Initialize dynamic services payment (Step 1 for contract plans)
+   * Used for contract plans where user selects service allocations
+   */
+  async initializeDynamicServicesPayment(payload: InitializeDynamicServicesPaymentRequest): Promise<InitializeDynamicServicesPaymentResponse> {
+    const response = await apiClient.post('/payment/dynamic-services/initialize', payload)
     return response.data
   },
 
@@ -80,11 +95,12 @@ export const paymentService = {
   // ============================================
 
   /**
-   * Subscribe user to a recurring plan
+   * Create recurring dynamic services subscription (for ALL monthly plans)
+   * Replaces the old /payment/paystack/subscribe endpoint
    * Requires a saved card
    */
-  async subscribe(payload: SubscribeRequest): Promise<SubscribeResponse> {
-    const response = await apiClient.post('/payment/paystack/subscribe', payload)
+  async createDynamicServicesRecurring(payload: CreateDynamicServicesRecurringRequest): Promise<CreateDynamicServicesRecurringResponse> {
+    const response = await apiClient.post('/payment/dynamic-services/recurring', payload)
     return response.data
   },
 
@@ -123,6 +139,28 @@ export const paymentService = {
    */
   async getTransaction(reference: string) {
     const response = await apiClient.get(`/payment/transactions/${reference}`)
+    return response.data
+  },
+
+  // ============================================
+  // TRANSACTION LINKING (New Backend Flow)
+  // ============================================
+
+  /**
+   * Link transaction to order
+   * Must be called after order creation to link payment to order
+   */
+  async linkTransactionToOrder(payload: LinkTransactionToOrderRequest): Promise<LinkTransactionToOrderResponse> {
+    const response = await apiClient.post('/payment/paystack/link-transaction', payload)
+    return response.data
+  },
+
+  /**
+   * Link transaction to dynamic services
+   * Must be called after dynamic service creation to link payment to services
+   */
+  async linkTransactionToServices(payload: LinkTransactionToServicesRequest): Promise<LinkTransactionToServicesResponse> {
+    const response = await apiClient.post('/payment/paystack/link-transaction-to-services', payload)
     return response.data
   },
 }

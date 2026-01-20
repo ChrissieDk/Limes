@@ -6,7 +6,9 @@ import type {
   CreateOrderResponse,
   GetBalancesResponse,
   CheckSimActiveResponse,
-  ProcessPendingOrdersResponse
+  ProcessPendingOrdersResponse,
+  CreateDynamicServicesRequest,
+  CreateDynamicServicesResponse
 } from '../../../types'
 
 export const subscriptionService = {
@@ -40,8 +42,51 @@ export const subscriptionService = {
 
   // Process pending orders (retry order creation) - extended timeout for backend processing
   async processPendingOrders(msisdn: string): Promise<ProcessPendingOrdersResponse> {
-    const response = await apiClient.post(`/order/process/${msisdn}`, {}, {
+    const response = await apiClient.post(`/order/pending/${msisdn}/process`, {}, {
       timeout: 40000, // 40 seconds timeout for order processing
+    })
+    return response.data
+  },
+
+  // Process pending dynamic services - extended timeout for backend processing
+  async processPendingDynamicServices(msisdn: string): Promise<ProcessPendingOrdersResponse> {
+    const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic/pending/process`, {}, {
+      timeout: 40000, // 40 seconds timeout for dynamic service processing
+    })
+    return response.data
+  },
+
+  // Create dynamic services for a subscriber (with extended timeout)
+  async createDynamicServices(msisdn: string, payload: CreateDynamicServicesRequest): Promise<CreateDynamicServicesResponse> {
+    const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic`, payload, {
+      timeout: 40000, // 40 seconds timeout for dynamic service creation
+    })
+    return response.data
+  },
+
+  // Store pending order (when SIM is not yet active)
+  async storePendingOrder(payload: {
+    msisdn: string
+    productId: string
+    productAmount: number
+    paymentReference: string
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/order/pending', payload, {
+      timeout: 40000,
+    })
+    return response.data
+  },
+
+  // Store pending dynamic service (when SIM is not yet active)
+  async storePendingDynamicService(msisdn: string, payload: {
+    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE'
+    value: number
+    priceInCents: number
+    expiryDate: string
+    paymentReference: string
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic/pending`, payload, {
+      timeout: 40000,
     })
     return response.data
   },
