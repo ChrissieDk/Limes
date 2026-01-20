@@ -382,6 +382,23 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
             </div>
           )}
 
+          {/* Loading message for subscriber creation */}
+          {subscriberCreating && (
+            <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="inline-block size-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-blue-900 mb-1">Creating your subscription...</div>
+                  <div className="text-sm text-blue-700">
+                    This may take up to 30 seconds. Please don't close this window.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Step content */}
           {step === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

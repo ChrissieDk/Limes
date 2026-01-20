@@ -10,15 +10,19 @@ import type {
 } from '../../../types'
 
 export const subscriptionService = {
-  // Create subscription
+  // Create subscription (with extended timeout due to backend processing time)
   async createSubscription(payload: CreateSubscriptionRequest): Promise<CreateSubscriptionResponse> {
-    const response = await apiClient.post('/subscriber/create', payload)
+    const response = await apiClient.post('/subscriber/create', payload, {
+      timeout: 40000, // 40 seconds timeout for subscriber creation
+    })
     return response.data
   },
 
-  // Create order
+  // Create order (with extended timeout for backend processing)
   async createOrder(payload: CreateOrderRequest): Promise<CreateOrderResponse> {
-    const response = await apiClient.post('/order/create', payload)
+    const response = await apiClient.post('/order/create', payload, {
+      timeout: 40000, // 40 seconds timeout for order creation
+    })
     return response.data
   },
 
@@ -34,9 +38,11 @@ export const subscriptionService = {
     return response.data
   },
 
-  // Process pending orders (retry order creation)
+  // Process pending orders (retry order creation) - extended timeout for backend processing
   async processPendingOrders(msisdn: string): Promise<ProcessPendingOrdersResponse> {
-    const response = await apiClient.post(`/order/process/${msisdn}`)
+    const response = await apiClient.post(`/order/process/${msisdn}`, {}, {
+      timeout: 40000, // 40 seconds timeout for order processing
+    })
     return response.data
   },
 }

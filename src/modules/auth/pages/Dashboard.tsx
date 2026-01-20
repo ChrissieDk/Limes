@@ -525,6 +525,23 @@ function Dashboard() {
               </>
             ) : (
               <>
+                {/* Loading message for SIM activation */}
+                {activatingSim === simCards[currentSimIndex]?.phoneNumber && (
+                  <div className="mb-4 p-4 rounded-xl bg-blue-900/50 border border-blue-500/50">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <div className="inline-block size-5 border-2 border-blue-200 border-t-blue-400 rounded-full animate-spin" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-white mb-1">Activating your SIM...</div>
+                        <div className="text-sm text-blue-200">
+                          This may take up to 30 seconds. Please don't close this window.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <SimCard 
                   sim={simCards[currentSimIndex]} 
                   onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
