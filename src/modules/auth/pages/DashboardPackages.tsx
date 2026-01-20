@@ -128,8 +128,14 @@ export default function DashboardPackages() {
         }
         
       if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
-        setBundleCategories(onceOffTopUp.children)
-        console.log('[Catalog] Bundle categories for prepaid:', onceOffTopUp.children)
+        // Filter out FWA categories
+        const filteredCategories = onceOffTopUp.children.filter(category => 
+          !category.name?.toUpperCase().includes('FWA') && 
+          !category.id?.toUpperCase().includes('FWA')
+        )
+        setBundleCategories(filteredCategories)
+        console.log('[Catalog] Bundle categories for prepaid:', filteredCategories)
+        console.log('[Catalog] Filtered out FWA categories')
         } else {
           setError('No bundle categories found')
         console.error('[Catalog] No children found under once_off_top_up')
@@ -156,8 +162,15 @@ export default function DashboardPackages() {
           limit: 100 
         })
         
-        setProducts(response.data)
+        // Filter out FWA products
+        const filteredProducts = response.data.filter(product => 
+          !product.name?.toUpperCase().includes('FWA') && 
+          !product.description?.toUpperCase().includes('FWA')
+        )
+        
+        setProducts(filteredProducts)
         console.log(`[Catalog] Fetched products from ${selectedBundleCategory}:`, response)
+        console.log(`[Catalog] Filtered out ${response.data.length - filteredProducts.length} FWA products`)
       } catch (err) {
         setError('Failed to load packages. Please try again later.')
         console.error('Error fetching packages:', err)
@@ -424,8 +437,8 @@ export default function DashboardPackages() {
           productId: product.id,
           simPackageProductId: simPackageProductId,
           name: product.name,
-          price: product.price / 100, // Display price in Rands
-          priceInCents: product.price, // For Paystack payment
+          price: product.price, // Display price in Rands
+          priceInCents: product.price * 100, // For Paystack payment (convert to cents)
           packageType: 'prepaid',
           simStatus: simStatus,
           planChargeType: chargeType,
@@ -728,7 +741,7 @@ export default function DashboardPackages() {
                               <div className="mt-auto pt-4 border-t border-neutral-900/10">
                                 <div className="flex items-baseline justify-between mb-3">
                                   <span className="text-neutral-900 font-extrabold text-3xl">
-                                    R{(pkg.price / 100).toFixed(2)}
+                                    R{pkg.price.toFixed(2)}
                                   </span>
                                 </div>
                                 <button

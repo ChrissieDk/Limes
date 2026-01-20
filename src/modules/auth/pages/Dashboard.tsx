@@ -164,8 +164,15 @@ function Dashboard() {
         if (!cancelled && response.data) {
           console.log('[Dashboard] Fetched data bundles:', response.data);
           
+          // Filter out FWA products
+          const filteredProducts = response.data.filter(product => 
+            !product.name?.toUpperCase().includes('FWA') && 
+            !product.description?.toUpperCase().includes('FWA')
+          );
+          console.log(`[Dashboard] Filtered out ${response.data.length - filteredProducts.length} FWA products`);
+          
           // Map catalog products to Bundle format
-          const mappedBundles: BundleModel[] = response.data.map((product, index) => ({
+          const mappedBundles: BundleModel[] = filteredProducts.map((product, index) => ({
             name: product.name,
             type: index === 0 ? 'flex' : index === 1 ? 'lite' : '3-month',
             dayData: product.description || 'Data Bundle',

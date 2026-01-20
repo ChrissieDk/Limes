@@ -123,8 +123,14 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         }
         
         if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
-          setBundleCategories(onceOffTopUp.children)
-          console.log('[TopUp] Bundle categories from once_off_top_up:', onceOffTopUp.children)
+          // Filter out FWA categories
+          const filteredCategories = onceOffTopUp.children.filter(category => 
+            !category.name?.toUpperCase().includes('FWA') && 
+            !category.id?.toUpperCase().includes('FWA')
+          )
+          setBundleCategories(filteredCategories)
+          console.log('[TopUp] Bundle categories from once_off_top_up:', filteredCategories)
+          console.log('[TopUp] Filtered out FWA categories')
         } else {
           setError('No bundle categories found')
           console.error('[TopUp] No children found under once_off_top_up')
@@ -154,8 +160,15 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           limit: 100 
         })
         
-        setProducts(response.data)
+        // Filter out FWA products
+        const filteredProducts = response.data.filter(product => 
+          !product.name?.toUpperCase().includes('FWA') && 
+          !product.description?.toUpperCase().includes('FWA')
+        )
+        
+        setProducts(filteredProducts)
         console.log(`[TopUp] Fetched products from ${selectedCategory}:`, response)
+        console.log(`[TopUp] Filtered out ${response.data.length - filteredProducts.length} FWA products`)
       } catch (err) {
         setError('Failed to load products')
         console.error('Error fetching products:', err)
