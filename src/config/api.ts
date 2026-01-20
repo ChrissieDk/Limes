@@ -5,8 +5,8 @@ import { auth } from './firebase'
 const isDev = import.meta.env.DEV
 
 export const apiClient = axios.create({
-  baseURL: isDev ? '/api' : 'https://limes-production.up.railway.app/api',
-  timeout: 10000,
+  baseURL: isDev ? '/api' : 'https://limes-staging.up.railway.app/api',
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },
