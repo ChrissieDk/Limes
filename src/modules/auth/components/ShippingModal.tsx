@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, MapPin, Package, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
-import { dynamicServicesPaymentService, type DynamicService } from '../../payment/services/dynamicServicesPaymentService'
+import { subscriptionService } from '../../subscription/services/subscriptionService'
 import { convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
 
 // Load Paystack Inline JS
@@ -44,6 +44,24 @@ interface SelectedPackage {
   }
 }
 
+interface RicaData {
+  address: {
+    streetNo: string
+    streetName: string
+    suburb?: string
+    city: string
+    stateOrProvince: string
+    postCode: string
+    country: string
+  }
+  customerInfo: {
+    firstname: string
+    lastname: string
+    billEmail: string
+    phoneNumber: string
+  }
+}
+
 interface ShippingModalProps {
   open: boolean
   onClose: () => void
@@ -53,7 +71,8 @@ interface ShippingModalProps {
   customerEmail?: string
   customerName?: string
   customerPhone?: string
-  allocatedMsisdn?: string  // CRITICAL: The actual SIM phone number (NOT the signup/contact number)
+  allocatedMsisdn?: string  // DEPRECATED: Will be removed - MSISDN now allocated after payment
+  ricaData?: RicaData  // NEW: RICA data for post-payment subscriber creation
 }
 
 export default function ShippingModal({ 
@@ -65,7 +84,7 @@ export default function ShippingModal({
   customerEmail = '',
   customerName = '',
   customerPhone = '',
-  allocatedMsisdn = ''
+  ricaData
 }: ShippingModalProps) {
   const [showAddAddress, setShowAddAddress] = useState(false)
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0)
@@ -74,17 +93,6 @@ export default function ShippingModal({
   const [email, setEmail] = useState(customerEmail)
   const [name, setName] = useState(customerName)
   const [phone, setPhone] = useState(customerPhone)
-  
-  // MSISDN: The actual SIM phone number (different from signup contact number)
-  const [msisdn, setMsisdn] = useState(allocatedMsisdn)
-  
-  // Update MSISDN when allocatedMsisdn prop changes (e.g., after subscriber creation)
-  useEffect(() => {
-    if (allocatedMsisdn) {
-      console.log('[ShippingModal] Allocated MSISDN received:', allocatedMsisdn)
-      setMsisdn(allocatedMsisdn)
-    }
-  }, [allocatedMsisdn])
   
   // Address form states
   const [streetNo, setStreetNo] = useState('')
@@ -103,6 +111,7 @@ export default function ShippingModal({
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false)
   const [verificationError, setVerificationError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [allocatedMsisdn, setAllocatedMsisdn] = useState<string | null>(null)  // For contract flow: MSISDN allocated before payment
 
   const formatAddress = (addr: Address) => {
     const parts = [
@@ -138,18 +147,11 @@ export default function ShippingModal({
     setEmail(customerEmail)
     setName(customerName)
     setPhone(customerPhone)
-    setMsisdn(allocatedMsisdn)
-  }, [customerEmail, customerName, customerPhone, allocatedMsisdn]) 
+  }, [customerEmail, customerName, customerPhone]) 
 
   // Initialize payment (SECURE - Backend controls amount and creates order)
   const handleInitializePayment = async () => {
     if (!email || !name || !phone || !selectedPackage) {
-      return
-    }
-
-    // CRITICAL: Validate MSISDN before payment
-    if (!msisdn) {
-      setVerificationError('MSISDN (SIM phone number) is required. Please ensure a SIM has been allocated.')
       return
     }
 
@@ -159,73 +161,96 @@ export default function ShippingModal({
     try {
       console.log('[Payment] Initializing transaction on backend...')
       console.log('[Payment] Selected package:', selectedPackage)
-      console.log('[Payment] Using MSISDN:', msisdn)
       console.log('[Payment] Product ID:', selectedPackage.productId)
       console.log('[Payment] Plan charge type:', selectedPackage.planChargeType)
-      
-      // Validate required fields
-      if (!msisdn) {
-        setVerificationError('MSISDN is required. Please ensure subscriber was created successfully.')
-        console.error('[Payment] ❌ MSISDN is missing')
-        return
-      }
+      console.log('[Payment] Package type:', selectedPackage.packageType)
+      console.log('[Payment] Is dynamic plan:', selectedPackage.isDynamicPlan)
 
       let initResponse: { success: boolean; data?: { access_code: string; reference: string }; error?: string }
 
-      // Check if this is a dynamic plan (contract with custom allocation)
-      if (selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
-        console.log('[Payment] Dynamic plan detected, using dynamic services API')
-        const { planAllocation } = selectedPackage
+      // CONTRACT DYNAMIC PLANS: Create subscriber FIRST, then initialize with MSISDN + services
+      if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
+        console.log('[Payment] CONTRACT FLOW: Creating subscriber first, then initializing dynamic services payment')
+        
+        if (!ricaData) {
+          setVerificationError('RICA data is required for contract plans')
+          console.error('[Payment] ❌ RICA data is missing')
+          return
+        }
+
+        if (!selectedPackage.simPackageProductId) {
+          setVerificationError('SIM package product ID is required')
+          console.error('[Payment] ❌ SIM package product ID is missing')
+          return
+        }
+
+        // STEP 1: Create subscriber to get MSISDN
+        console.log('[Payment] Step 1: Creating subscriber to allocate MSISDN...')
+        const subscriberPayload = {
+          productId: selectedPackage.simPackageProductId,
+          eSim: false,
+          address: ricaData.address ? [{
+            referredType: 'SUBSCRIBER',
+            addressType: 'INSTALLATION',
+            ...ricaData.address,
+            oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
+          }] : []
+        }
+        console.log('[Payment] Subscriber payload:', subscriberPayload)
+        
+        const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
+        const allocatedMsisdn = subscriberResponse.msisdn
+        console.log('[Payment] ✓ Subscriber created, MSISDN:', allocatedMsisdn)
+
+        // Store MSISDN for later use in verification
+        setAllocatedMsisdn(allocatedMsisdn)
+
+        // STEP 2: Initialize dynamic services payment with MSISDN
+        console.log('[Payment] Step 2: Initializing dynamic services payment...')
+        
+        // Convert plan allocation (in Rands) to services array
+        const services = []
         const expiryDate = getDefaultExpiryDate()
         
-        // Build services array from plan allocation
-        const services: DynamicService[] = []
-        
-        if (planAllocation.data > 0) {
+        if (selectedPackage.planAllocation.data > 0) {
           services.push({
-            value: convertRandsToServiceValue('DATA', planAllocation.data),
+            value: convertRandsToServiceValue('DATA', selectedPackage.planAllocation.data),
             definitionCode: 'DATA',
             expiryDate,
-            priceInCents: planAllocation.data * 100
+            priceInCents: selectedPackage.planAllocation.data * 100
           })
         }
         
-        if (planAllocation.voice > 0) {
+        if (selectedPackage.planAllocation.voice > 0) {
           services.push({
-            value: convertRandsToServiceValue('VOICE', planAllocation.voice),
-            definitionCode: 'VOICE',
+            value: selectedPackage.planAllocation.voice,
+            definitionCode: 'AIRTIME_ADVANCE',
             expiryDate,
-            priceInCents: planAllocation.voice * 100
+            priceInCents: selectedPackage.planAllocation.voice * 100
           })
         }
         
-        if (planAllocation.sms > 0) {
+        if (selectedPackage.planAllocation.sms > 0) {
           services.push({
-            value: convertRandsToServiceValue('SMS', planAllocation.sms),
+            value: convertRandsToServiceValue('SMS', selectedPackage.planAllocation.sms),
             definitionCode: 'SMS',
             expiryDate,
-            priceInCents: planAllocation.sms * 100
-          })
-        }
-        
-        if (planAllocation.whatsapp > 0) {
-          services.push({
-            value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
-            definitionCode: 'WHATSAPP',
-            expiryDate,
-            priceInCents: planAllocation.whatsapp * 100
+            priceInCents: selectedPackage.planAllocation.sms * 100
           })
         }
 
         const dynamicPayload = {
-          msisdn: String(msisdn),
+          msisdn: allocatedMsisdn,
           services
         }
         console.log('[Payment] Dynamic services payload:', dynamicPayload)
         
-        initResponse = await dynamicServicesPaymentService.initializePayment(dynamicPayload)
+        initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
+        
       } else {
-        // Regular prepaid bundle payment
+        // PREPAID FLOW: Payment first, then subscriber creation
+        console.log('[Payment] PREPAID FLOW: MSISDN will be allocated AFTER payment')
+        
         if (!selectedPackage.productId) {
           setVerificationError('Product ID is missing')
           console.error('[Payment] ❌ Product ID is missing from selectedPackage')
@@ -234,9 +259,9 @@ export default function ShippingModal({
         
         const payload = {
           productId: String(selectedPackage.productId),
-          msisdn: String(msisdn)
+          msisdn: null  // Payment-first, MSISDN allocated after payment
         }
-        console.log('[Payment] Initialize payload:', payload)
+        console.log('[Payment] Initialize payload (payment-first):', payload)
         
         initResponse = await paymentService.initializeTransaction(payload)
       }
@@ -273,6 +298,7 @@ export default function ShippingModal({
   }
 
   // Handle payment verification after Paystack success
+  // NEW FLOW: Verify → Create Subscriber → Create Order/Services → Link Transaction → Paystack Subscription
   const handlePaymentVerification = async (reference: string) => {
     setIsVerifyingPayment(true)
     setVerificationError(null)
@@ -280,160 +306,299 @@ export default function ShippingModal({
     try {
       const isSubscription = selectedPackage?.planChargeType === 'monthly'
       
-      const verificationResponse = await paymentService.verifyPayment({
+      // STEP 1: Verify payment (no longer creates order automatically)
+      console.log('[Payment] Step 1: Verifying payment...')
+      const verifyResponse = await paymentService.verifyPayment({
         reference: reference,
-        saveCard: isSubscription ? true : false,
+        saveCard: isSubscription
       })
-
-      console.log('[Payment] Verification response:', verificationResponse)
-
-      if (verificationResponse.success) {
+      
+      if (!verifyResponse.success) {
+        throw new Error(verifyResponse.error || 'Payment verification failed')
+      }
+      console.log('[Payment] ✓ Payment verified')
+      
+      // STEP 2: Create subscriber (get MSISDN) - SKIP if already created in contract flow
+      let newMsisdn: string
+      
+      if (allocatedMsisdn) {
+        // Contract flow: Subscriber was already created before payment
+        console.log('[Payment] Step 2: Using pre-allocated MSISDN from contract flow:', allocatedMsisdn)
+        newMsisdn = allocatedMsisdn
+      } else {
+        // Prepaid flow: Create subscriber after payment
+        console.log('[Payment] Step 2: Creating subscriber...')
+        if (!ricaData) {
+          throw new Error('RICA data is required for subscriber creation')
+        }
         
-        // Phase 2A: If this is a MONTHLY dynamic plan, create subscription (which will also provision services)
-        if (selectedPackage?.isDynamicPlan && selectedPackage?.planAllocation && isSubscription && verificationResponse.cardSaved) {
-          console.log('[Payment] Monthly dynamic plan detected, creating subscription...')
-          try {
-            const savedCards = await paymentService.getSavedCards()
+        const subscriberPayload = {
+          productId: selectedPackage!.simPackageProductId!,  // SIM package ID ending with P (e.g., 7029225P)
+          ...(selectedPackage!.simStatus === 'has-sim' && selectedPackage!.iccid 
+            ? { iccid: selectedPackage!.iccid }
+            : {}),
+          eSim: false,
+          address: [{
+            referredType: 'SUBSCRIBER',
+            addressType: 'INSTALLATION',
+            ...ricaData.address,
+            oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
+          }]
+        }
+        
+        console.log('[Payment] Subscriber payload:', subscriberPayload)
+        const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
+        newMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
+        
+        if (!newMsisdn) {
+          throw new Error('Failed to allocate MSISDN')
+        }
+        console.log('[Payment] ✓ Subscriber created, MSISDN:', newMsisdn)
+      }
+      
+      // Check if SIM is active
+      console.log('[Payment] Checking SIM activation status...')
+      const simStatus = await subscriptionService.checkSimActive(newMsisdn)
+      console.log('[Payment] SIM Status:', {
+        isActive: simStatus.isActive,
+        hasPendingOrders: simStatus.hasPendingOrders,
+        message: simStatus.message
+      })
+      
+      if (simStatus.isActive) {
+        console.log('[Payment] ✓ SIM is active - order will be created immediately')
+      } else {
+        console.log('[Payment] ⏳ SIM not yet active - order will be queued')
+      }
+      
+      // STEP 3: Create order OR dynamic services (based on SIM active status)
+      if (selectedPackage!.isDynamicPlan && selectedPackage!.planAllocation) {
+        // Dynamic services flow
+        const planAllocation = selectedPackage!.planAllocation!
+        const expiryDate = getDefaultExpiryDate()
+        
+        if (!simStatus.isActive) {
+          // SIM not active - store pending dynamic services
+          console.log('[Payment] Step 3: Storing pending dynamic services...')
+          
+          const pendingServices = []
+          if (planAllocation.data > 0) {
+            pendingServices.push({
+              definitionCode: 'DATA' as const,
+              value: convertRandsToServiceValue('DATA', planAllocation.data),
+              priceInCents: planAllocation.data * 100,
+              expiryDate,
+              paymentReference: reference
+            })
+          }
+          if (planAllocation.voice > 0) {
+            pendingServices.push({
+              definitionCode: 'AIRTIME_ADVANCE' as const,
+              value: planAllocation.voice,
+              priceInCents: planAllocation.voice * 100,
+              expiryDate,
+              paymentReference: reference
+            })
+          }
+          if (planAllocation.sms > 0) {
+            pendingServices.push({
+              definitionCode: 'SMS' as const,
+              value: convertRandsToServiceValue('SMS', planAllocation.sms),
+              priceInCents: planAllocation.sms * 100,
+              expiryDate,
+              paymentReference: reference
+            })
+          }
+          if (planAllocation.whatsapp > 0) {
+            pendingServices.push({
+              definitionCode: 'WHATSAPP' as const,
+              value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
+              priceInCents: planAllocation.whatsapp * 100,
+              expiryDate,
+              paymentReference: reference
+            })
+          }
+          
+          // Store each pending service
+          for (const service of pendingServices) {
+            await subscriptionService.storePendingDynamicService(newMsisdn, service)
+          }
+          console.log('[Payment] ✓ Pending dynamic services stored:', pendingServices.length)
+          console.log('[Payment] Services will be created and linked when SIM activates')
+          
+        } else {
+          // SIM is active - create services immediately
+          console.log('[Payment] Step 3: Creating dynamic services...')
+          const services = []
+          
+          if (planAllocation.data > 0) {
+            services.push({
+              value: convertRandsToServiceValue('DATA', planAllocation.data),
+              definitionCode: 'DATA' as const,
+              expiryDate
+            })
+          }
+          if (planAllocation.voice > 0) {
+            services.push({
+              value: planAllocation.voice,
+              definitionCode: 'AIRTIME_ADVANCE' as const,
+              expiryDate
+            })
+          }
+          if (planAllocation.sms > 0) {
+            services.push({
+              value: convertRandsToServiceValue('SMS', planAllocation.sms),
+              definitionCode: 'SMS' as const,
+              expiryDate
+            })
+          }
+          if (planAllocation.whatsapp > 0) {
+            services.push({
+              value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
+              definitionCode: 'WHATSAPP' as const,
+              expiryDate
+            })
+          }
+          
+          const servicesResponse = await subscriptionService.createDynamicServices(newMsisdn, { services })
+          const serviceIds = servicesResponse.results
+            .filter(r => r.success && r.id)
+            .map(r => r.id!)
+          
+          console.log('[Payment] ✓ Dynamic services created:', serviceIds.length)
+          
+          // STEP 4: Link transaction to services
+          console.log('[Payment] Step 4: Linking transaction to services...')
+          await paymentService.linkTransactionToServices({
+            transactionReference: reference,
+            serviceIds: serviceIds
+          })
+          console.log('[Payment] ✓ Transaction linked to services')
+        }
+        
+      } else {
+        // Regular order flow
+        if (!simStatus.isActive) {
+          // SIM not active - store pending order
+          console.log('[Payment] Step 3: Storing pending order...')
+          await subscriptionService.storePendingOrder({
+            msisdn: newMsisdn,
+            productId: selectedPackage!.productId,
+            productAmount: selectedPackage!.price,
+            paymentReference: reference
+          })
+          console.log('[Payment] ✓ Pending order stored')
+          console.log('[Payment] Order will be created and linked when SIM activates')
+          
+        } else {
+          // SIM is active - create order immediately
+          console.log('[Payment] Step 3: Creating order...')
+          const orderResponse = await subscriptionService.createOrder({
+            products: [{ id: selectedPackage!.productId, amount: selectedPackage!.price }],
+            msisdn: newMsisdn
+          })
+          
+          if (orderResponse.orderId) {
+            // Order created immediately - link transaction
+            console.log('[Payment] ✓ Order created:', orderResponse.orderId)
             
-            if (!savedCards || savedCards.length === 0) {
-              throw new Error('No saved cards found')
-            }
+            // STEP 4: Link transaction to order
+            console.log('[Payment] Step 4: Linking transaction to order...')
+            await paymentService.linkTransactionToOrder({
+              transactionReference: reference,
+              orderId: orderResponse.orderId
+            })
+            console.log('[Payment] ✓ Transaction linked to order')
+          } else {
+            throw new Error('Order creation failed - no orderId in response')
+          }
+        }
+      }
+      
+      // STEP 5: Create recurring subscription if monthly
+      if (isSubscription && verifyResponse.cardSaved) {
+        console.log('[Payment] Step 5: Creating recurring dynamic services subscription...')
+        const savedCards = await paymentService.getSavedCards()
+        if (savedCards && savedCards.length > 0) {
+          
+          // Build services array from plan allocation
+          const services = []
+          const expiryDate = getDefaultExpiryDate()
+          
+          if (selectedPackage!.planAllocation) {
+            // CONTRACT OR PREPAID WITH ALLOCATION: Use plan allocation
+            console.log('[Payment] Building services from plan allocation')
             
-            const paymentMethodId = savedCards[0].id
-            const { planAllocation } = selectedPackage
-            const expiryDate = getDefaultExpiryDate()
-            
-            // Build services array from plan allocation
-            const services: DynamicService[] = []
-            
-            if (planAllocation.data > 0) {
+            if (selectedPackage!.planAllocation.data > 0) {
               services.push({
-                value: convertRandsToServiceValue('DATA', planAllocation.data),
+                value: convertRandsToServiceValue('DATA', selectedPackage!.planAllocation.data),
                 definitionCode: 'DATA',
                 expiryDate,
-                priceInCents: planAllocation.data * 100
+                priceInCents: selectedPackage!.planAllocation.data * 100
               })
             }
             
-            if (planAllocation.voice > 0) {
+            if (selectedPackage!.planAllocation.voice > 0) {
               services.push({
-                value: convertRandsToServiceValue('VOICE', planAllocation.voice),
-                definitionCode: 'VOICE',
+                value: selectedPackage!.planAllocation.voice,
+                definitionCode: 'AIRTIME_ADVANCE',
                 expiryDate,
-                priceInCents: planAllocation.voice * 100
+                priceInCents: selectedPackage!.planAllocation.voice * 100
               })
             }
             
-            if (planAllocation.sms > 0) {
+            if (selectedPackage!.planAllocation.sms > 0) {
               services.push({
-                value: convertRandsToServiceValue('SMS', planAllocation.sms),
+                value: convertRandsToServiceValue('SMS', selectedPackage!.planAllocation.sms),
                 definitionCode: 'SMS',
                 expiryDate,
-                priceInCents: planAllocation.sms * 100
+                priceInCents: selectedPackage!.planAllocation.sms * 100
               })
             }
             
-            if (planAllocation.whatsapp > 0) {
+            if (selectedPackage!.planAllocation.whatsapp && selectedPackage!.planAllocation.whatsapp > 0) {
               services.push({
-                value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
+                value: convertRandsToServiceValue('WHATSAPP', selectedPackage!.planAllocation.whatsapp),
                 definitionCode: 'WHATSAPP',
                 expiryDate,
-                priceInCents: planAllocation.whatsapp * 100
+                priceInCents: selectedPackage!.planAllocation.whatsapp * 100
               })
             }
+          } else {
+            // PREPAID WITHOUT ALLOCATION: Backend should derive services from productId
+            console.log('[Payment] No plan allocation - backend will derive services from productId')
+            // Create a placeholder service that backend will expand based on productId
+            const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
+            services.push({
+              value: priceInCents,
+              definitionCode: 'PACKAGE',  // Backend recognizes this and expands to actual services
+              expiryDate,
+              priceInCents: priceInCents
+            })
+          }
 
-            const subscribePayload = {
-              msisdn: String(msisdn),
-              paymentMethodId: String(paymentMethodId),
-              services
-            }
-            console.log('[Payment] Dynamic subscription payload:', subscribePayload)
-            
-            const subscribeResponse = await dynamicServicesPaymentService.subscribe(subscribePayload)
-            console.log('[Payment] Dynamic subscription response:', subscribeResponse)
-            
-            if (subscribeResponse.success) {
-              console.log('[Payment] ✅ Dynamic subscription created successfully')
-              
-              // Store subscription ID in localStorage
-              if (subscribeResponse.subscription?.id) {
-                const storedIds = localStorage.getItem('subscriptionIds');
-                const idsArray = storedIds ? JSON.parse(storedIds) : [];
-                if (!idsArray.includes(subscribeResponse.subscription.id)) {
-                  idsArray.push(subscribeResponse.subscription.id);
-                  localStorage.setItem('subscriptionIds', JSON.stringify(idsArray));
-                }
-              }
-            } else {
-              console.error('[Payment] Dynamic subscription creation failed:', subscribeResponse.error)
-            }
-          } catch (subError: any) {
-            console.error('[Payment] Dynamic subscription error:', subError.response?.data || subError.message)
+          if (services.length === 0) {
+            throw new Error('No services defined for recurring subscription')
           }
+
+          await paymentService.createDynamicServicesRecurring({
+            msisdn: newMsisdn,
+            paymentMethodId: savedCards[0].id,
+            services
+          })
+          console.log('[Payment] ✓ Dynamic services recurring subscription created')
         }
-        // Phase 2B: If this is a ONE-TIME dynamic plan, provision services directly
-        else if (selectedPackage?.isDynamicPlan && selectedPackage?.planAllocation && !isSubscription) {
-          console.log('[Payment] One-time dynamic plan detected, provisioning will happen on subscriber activation')
-          // Note: Services will be provisioned when the subscriber is activated on the network
-          // The provisioning call needs to happen AFTER subscriber exists, not now
-        }
-        
-        // Phase 2C: If this is a regular subscription product (non-dynamic), create subscription
-        else if (!selectedPackage?.isDynamicPlan && isSubscription && verificationResponse.cardSaved) {
-          try {
-            const savedCards = await paymentService.getSavedCards()
-            
-            if (!savedCards || savedCards.length === 0) {
-              throw new Error('No saved cards found')
-            }
-            
-            const paymentMethodId = savedCards[0].id
-            const subscribePayload = {
-              productId: String(selectedPackage.productId),
-              paymentMethodId: String(paymentMethodId),
-              msisdn: String(msisdn)
-            }
-            
-            const subscribeResponse = await paymentService.subscribe(subscribePayload)
-            console.log('[Payment] Subscribe response:', subscribeResponse)
-            
-            if (subscribeResponse.success) {
-              console.log('[Payment] ✅ Paystack subscription created successfully')
-              
-              // Store subscription ID in localStorage
-              if (subscribeResponse.subscription?.id) {
-                const storedIds = localStorage.getItem('subscriptionIds');
-                const idsArray = storedIds ? JSON.parse(storedIds) : [];
-                if (!idsArray.includes(subscribeResponse.subscription.id)) {
-                  idsArray.push(subscribeResponse.subscription.id);
-                  localStorage.setItem('subscriptionIds', JSON.stringify(idsArray));
-                }
-              }
-            } else {
-              console.error('[Payment] Paystack subscription creation failed:', subscribeResponse.error)
-            }
-          } catch (subError: any) {
-            console.error('[Payment] Subscription error:', subError.response?.data || subError.message)
-          }
-        }
-        
-        setPaymentSuccess(true)
-        
-        // Wait a moment to show success message
-        setTimeout(() => {
-          if (onPay) onPay()
-          onClose()
-        }, 2000)
-      } else {
-        setVerificationError(verificationResponse.error || 'Payment verification failed. Please contact support with reference: ' + reference)
       }
+      
+      setPaymentSuccess(true)
+      setTimeout(() => {
+        if (onPay) onPay()
+        onClose()
+      }, 2000)
+      
     } catch (error: any) {
-      console.error('[Payment] Verification error:', error)
-      setVerificationError(
-        error.response?.data?.message || 
-        error.message || 
-        'Failed to verify payment. Please contact support with reference: ' + reference
-      )
+      console.error('[Payment] Error:', error)
+      setVerificationError(error.message || 'Payment processing failed')
     } finally {
       setIsVerifyingPayment(false)
     }
@@ -750,18 +915,8 @@ export default function ShippingModal({
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="27123456789"
                   />
-                  <TextField
-                    label="SIM Phone Number (MSISDN)"
-                    value={msisdn}
-                    onChange={(e) => setMsisdn(e.target.value)}
-                    placeholder="2761234567890"
-                  />
                 </div>
                 <div className="space-y-2">
-                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
-                    <strong>Note:</strong> The SIM phone number (MSISDN) is the actual phone number allocated to your new SIM card, 
-                    not your contact number. If you don't have this yet, you'll receive it after SIM activation.
-                  </div>
                   {selectedPackage.planChargeType === 'monthly' && (
                     <div className="rounded-lg bg-purple-50 border border-purple-200 p-3 text-xs text-purple-800">
                       <strong>Monthly Subscription:</strong> You'll be charged today for Month 1. Your card will be saved and 
@@ -821,7 +976,7 @@ export default function ShippingModal({
                   </div>
                 </div>
 
-                {email && name && phone && msisdn ? (
+                {email && name && phone ? (
                   isInitializing || isVerifyingPayment || paymentSuccess ? (
                     <button 
                       disabled
@@ -842,7 +997,7 @@ export default function ShippingModal({
                   )
                 ) : (
                   <div className="text-center py-2">
-                    <p className="text-sm text-neutral-600">Please fill in all payment details above (including MSISDN)</p>
+                    <p className="text-sm text-neutral-600">Please fill in all payment details above</p>
                   </div>
                 )}
               </div>

@@ -4,13 +4,12 @@ import type { SimCard as SimCardModel } from './dashboardTypes.ts';
 interface SimCardProps {
   sim: SimCardModel;
   onTopUp: (sim: SimCardModel) => void;
-  onVerify: (sim: SimCardModel) => void;
   onActivate: (sim: SimCardModel) => void;
   canActivate?: boolean;
   isActivating?: boolean;
 }
 
-export function SimCard({ sim, onTopUp, onVerify, onActivate, canActivate = false, isActivating = false }: SimCardProps) {
+export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActivating = false }: SimCardProps) {
   return (
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
@@ -55,12 +54,6 @@ export function SimCard({ sim, onTopUp, onVerify, onActivate, canActivate = fals
         >
           Top Up +
         </button>
-        <button
-          onClick={() => onVerify(sim)}
-          className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
-        >
-          Verify
-        </button>
         {canActivate && (
           <button
             onClick={() => onActivate(sim)}
@@ -81,23 +74,27 @@ interface PlanDetailsProps {
 
 export function PlanDetails({ sim }: PlanDetailsProps) {
   // Get balances from sim.balances or use defaults
-  const getBalanceValue = (grouping: string) => {
+  const getBalanceValue = (grouping: string, definitionCode?: string) => {
     if (!sim.balances) return null;
-    const balance = sim.balances.find((b) => b.grouping === grouping);
+    const balance = sim.balances.find((b) => 
+      definitionCode ? b.definitionCode === definitionCode : b.grouping === grouping
+    );
     return balance?.formattedParts?.value || null;
   };
 
-  const mobileData = getBalanceValue('data') || sim.plan.mobileData;
-  const airtime = getBalanceValue('gpa') || sim.plan.airtime;
-  const messaging = sim.plan.messaging; // No specific balance for messaging in API
-  const phone = sim.plan.phone; // No specific balance for phone minutes in API
+  // Fetch all balance types from API
+  const mobileData = getBalanceValue('data', 'DATA') || sim.plan.mobileData;
+  // Try AIRTIME_ADVANCE first, fall back to GPA_CREDIT, then default
+  const airtime = getBalanceValue('gpa', 'AIRTIME_ADVANCE') || getBalanceValue('gpa', 'GPA_CREDIT') || sim.plan.airtime;
+  const voiceMinutes = getBalanceValue('voice', 'VOICE') || sim.plan.phone;
+  const smsCount = getBalanceValue('sms', 'SMS') || sim.plan.messaging;
 
   return (
     <div className="bg-white rounded-2xl p-5">
       <h4 className="text-neutral-900 font-extrabold text-2xl mb-4">Sim Details</h4>
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-lime-400 rounded-2xl p-4">
-          <div className="text-neutral-900 text-sm font-medium mb-1">Mobile data</div>
+          <div className="text-neutral-900 text-sm font-medium mb-1">Mobile Data</div>
           <div className="text-neutral-900 font-semibold text-xl leading-none">{mobileData}</div>
         </div>
         <div className="bg-purple-400 rounded-2xl p-4">
@@ -105,12 +102,12 @@ export function PlanDetails({ sim }: PlanDetailsProps) {
           <div className="text-neutral-900 font-semibold text-xl leading-none">{airtime}</div>
         </div>
         <div className="bg-blue-500 rounded-2xl p-4">
-          <div className="text-neutral-900 text-sm font-medium mb-1">Messaging</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{messaging}</div>
+          <div className="text-neutral-900 text-sm font-medium mb-1">Voice Minutes</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{voiceMinutes}</div>
         </div>
         <div className="bg-pink-400 rounded-2xl p-4">
-          <div className="text-neutral-900 text-sm font-medium mb-1">Phone</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{phone}</div>
+          <div className="text-neutral-900 text-sm font-medium mb-1">SMS</div>
+          <div className="text-neutral-900 font-semibold text-xl leading-none">{smsCount}</div>
         </div>
       </div>
     </div>

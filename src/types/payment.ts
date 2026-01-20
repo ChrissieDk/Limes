@@ -147,8 +147,8 @@ export interface PaystackSubscription {
 // Transaction initialization request/response (SECURE - Backend controls amount)
 // Backend fetches price from MVNX, frontend only provides productId and msisdn
 export interface InitializeTransactionRequest {
-  productId: string   // REQUIRED - Product ID to purchase (backend gets price from MVNX)
-  msisdn: string      // REQUIRED - ACTUAL SIM phone number (NOT signup contact number)
+  productId: string        // REQUIRED - Product ID to purchase (backend gets price from MVNX)
+  msisdn: string | null    // OPTIONAL - Can be null for payment-first flow (MSISDN allocated after payment)
 }
 
 export interface InitializeTransactionResponse {
@@ -158,6 +158,48 @@ export interface InitializeTransactionResponse {
     authorization_url: string
     access_code: string
     reference: string
+  }
+  error?: string
+}
+
+// Dynamic Services Payment Initialization (for contract plans)
+export interface DynamicServicePaymentItem {
+  value: number           // The value/amount of the service (e.g., 1073741824 for bytes, 20 for minutes)
+  definitionCode: string  // Service type: "DATA", "VOICE", "SMS", "WHATSAPP", "AIRTIME_ADVANCE"
+  expiryDate: string      // ISO format date: "2026-07-30"
+  priceInCents: number    // Price in cents (e.g., 5000 = R50)
+}
+
+export interface InitializeDynamicServicesPaymentRequest {
+  msisdn: string
+  services: DynamicServicePaymentItem[]
+}
+
+export interface InitializeDynamicServicesPaymentResponse {
+  success: boolean
+  message: string
+  data?: {
+    authorization_url: string
+    access_code: string
+    reference: string
+  }
+  error?: string
+}
+
+// Dynamic Services Recurring Subscription (for contract monthly plans)
+export interface CreateDynamicServicesRecurringRequest {
+  msisdn: string
+  paymentMethodId: string  // UUID of saved card
+  services: DynamicServicePaymentItem[]
+}
+
+export interface CreateDynamicServicesRecurringResponse {
+  success: boolean
+  message: string
+  subscription?: {
+    subscriptionId: string
+    status: string
+    nextPaymentDate: string
   }
   error?: string
 }
@@ -283,6 +325,28 @@ export interface CancelSubscriptionRequest {
 }
 
 export interface CancelSubscriptionResponse {
+  success: boolean
+  message: string
+}
+
+// Link Transaction to Order
+export interface LinkTransactionToOrderRequest {
+  transactionReference: string
+  orderId: string
+}
+
+export interface LinkTransactionToOrderResponse {
+  success: boolean
+  message: string
+}
+
+// Link Transaction to Services
+export interface LinkTransactionToServicesRequest {
+  transactionReference: string
+  serviceIds: string[]
+}
+
+export interface LinkTransactionToServicesResponse {
   success: boolean
   message: string
 }
