@@ -98,10 +98,23 @@ export default function SubscriptionManagement({
     setError(null)
 
     try {
-      const response = await paymentService.subscribe({
-        productId: planCode,
+      // Create dynamic services recurring subscription
+      // Backend will expand PACKAGE to actual services based on productId
+      const expiryDate = new Date()
+      expiryDate.setMonth(expiryDate.getMonth() + 1)
+      const expiryDateStr = expiryDate.toISOString().split('T')[0]
+
+      const response = await paymentService.createDynamicServicesRecurring({
+        msisdn: userMsisdn,
         paymentMethodId: selectedCardId,
-        msisdn: userMsisdn // Use actual user MSISDN from API
+        services: [
+          {
+            value: 0, // Backend derives from productId
+            definitionCode: 'PACKAGE',
+            expiryDate: expiryDateStr,
+            priceInCents: 0 // Backend derives from productId
+          }
+        ]
       })
 
       if (response.success && response.subscription) {
