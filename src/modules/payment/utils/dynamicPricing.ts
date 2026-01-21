@@ -9,14 +9,6 @@ import { getRateForService, type ServiceType as RatingServiceType, type PackageT
 
 export type ServiceType = 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP' | 'MMS'
 
-interface PricingRate {
-  ratePerRand: number
-  unit: string
-  displayUnit: string
-  minRands: number
-  maxRands: number
-}
-
 /**
  * Get pricing rate per Rand for a service
  * Uses the rating table which has per-unit prices (e.g., R0.89/min)
