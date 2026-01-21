@@ -70,9 +70,9 @@ export function TransactionHistory({ transactions, loading, className, onOpenFul
   };
 
   return (
-    <div className={`bg-neutral-800 rounded-xl p-6 h-full border border-neutral-700 ${className ?? ''}`}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-white font-semibold text-lg">Recent Transaction History</h3>
+    <div className={`bg-neutral-800 rounded-xl p-3 md:p-6 h-full border border-neutral-700 ${className ?? ''}`}>
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h3 className="text-white font-semibold text-base md:text-lg">Recent Transaction History</h3>
         <button
           type="button"
           onClick={onOpenFullView}
@@ -162,21 +162,21 @@ export function TransactionHistory({ transactions, loading, className, onOpenFul
           </div>
 
           {/* Mobile stacked view */}
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-2 md:hidden">
             {transactions.slice(0, 5).map((transaction) => (
               <div
                 key={transaction.id}
-                className="rounded-xl border border-neutral-700 bg-neutral-900/40 px-4 py-3 flex items-center justify-between gap-3"
+                className="rounded-lg border border-neutral-700 bg-neutral-900/40 px-3 py-2.5 flex items-start justify-between gap-3"
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white">{getTransactionType(transaction)}</span>
-                    <StatusBadge status={transaction.status} />
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white">{getTransactionType(transaction)}</div>
                   <div className="mt-1 text-xs text-neutral-400">{formatDate(transaction.paidAt || transaction.createdAt)}</div>
                 </div>
-                <div className="text-sm font-semibold text-lime-400">
-                  +R{transaction.amountInRands.toFixed(2)}
+                <div className="flex flex-col items-end gap-1">
+                  <div className="text-sm font-semibold text-lime-400 whitespace-nowrap">
+                    +R{transaction.amountInRands.toFixed(2)}
+                  </div>
+                  <StatusBadge status={transaction.status} />
                 </div>
               </div>
             ))}

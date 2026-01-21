@@ -581,8 +581,8 @@ export default function DashboardPackages() {
                     Back
                   </button>
 
-                  <div className="rounded-2xl p-8 bg-[#D8B0FF] shadow-[8px_8px_0_0_rgba(0,0,0,0.7)]">
-                    <div className="flex items-center justify-center mb-6">
+                  <div className="rounded-2xl p-6 md:p-8 bg-[#D8B0FF] shadow-[8px_8px_0_0_rgba(0,0,0,0.7)]">
+                    <div className="flex items-center justify-center mb-8">
                       <div className="size-16 rounded-full bg-white/20 grid place-items-center">
                         <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -590,12 +590,12 @@ export default function DashboardPackages() {
                       </div>
                     </div>
                     
-                    <h3 className="text-neutral-900 font-extrabold text-3xl mb-3 text-center">Enter Your ICCID</h3>
-                    <p className="text-neutral-900/80 text-lg mb-6 text-center">
+                    <h3 className="text-neutral-900 font-extrabold text-2xl md:text-3xl mb-4 text-center">Enter Your ICCID</h3>
+                    <p className="text-neutral-900/80 text-base md:text-lg mb-8 text-center">
                       Your ICCID is printed on the back of your SIM card
                     </p>
 
-                    <div className="bg-white/20 rounded-xl p-6 mb-6">
+                    <div className="bg-white/20 rounded-xl p-4 md:p-6 mb-8">
                       <label htmlFor="iccid" className="block text-neutral-900 font-semibold mb-2">
                         ICCID Number
                       </label>
