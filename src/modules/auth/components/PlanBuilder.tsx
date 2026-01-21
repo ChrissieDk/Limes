@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { getServiceDisplayValue } from '../../payment/utils/dynamicPricing'
+import { getServiceDisplayValue, isServiceAvailable } from '../../payment/utils/dynamicPricing'
 import type { ServiceType } from '../../payment/utils/dynamicPricing'
+import type { PackageType } from '../../payment/config/ratingTable'
 
 interface ServiceAllocation {
   data: number
@@ -15,11 +16,14 @@ interface PlanBuilderProps {
 }
 
 export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
+  // Plan builder is for contract packages
+  const packageType: PackageType = 'contract'
+  
   const [allocation, setAllocation] = useState<ServiceAllocation>({
     data: 50,
     voice: 20,
     sms: 10,
-    whatsapp: 20,
+    whatsapp: 0, // Default to 0 for coming soon services
   })
 
   const updateAllocation = (service: keyof ServiceAllocation, value: number) => {
@@ -38,7 +42,12 @@ export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
     updateAllocation(service, numValue)
   }
 
-  const totalPrice = allocation.data + allocation.voice + allocation.sms + allocation.whatsapp
+  // Only include available services in total price calculation
+  const totalPrice = 
+    (isServiceAvailable('DATA', packageType) ? allocation.data : 0) +
+    (isServiceAvailable('VOICE', packageType) ? allocation.voice : 0) +
+    (isServiceAvailable('SMS', packageType) ? allocation.sms : 0) +
+    (isServiceAvailable('WHATSAPP', packageType) ? allocation.whatsapp : 0)
 
   const services = [
     {
@@ -108,27 +117,43 @@ export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {services.map((service) => {
           const value = allocation[service.key]
-          const displayValue = getServiceDisplayValue(service.name.toUpperCase() as ServiceType, value)
+          const serviceTypeUpper = service.name.toUpperCase() as ServiceType
+          const isAvailable = isServiceAvailable(serviceTypeUpper, packageType)
+          const displayValue = isAvailable 
+            ? getServiceDisplayValue(serviceTypeUpper, value, packageType)
+            : null
 
           return (
             <div
               key={service.key}
-              className={`rounded-2xl p-6 ${service.color} shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] transition-all`}
+              className={`rounded-2xl p-6 ${service.color} shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] transition-all relative ${
+                !isAvailable ? 'opacity-60' : ''
+              }`}
             >
+              {/* Coming Soon Badge */}
+              {!isAvailable && (
+                <div className="absolute top-4 right-4 bg-neutral-900 text-white px-3 py-1 rounded-full text-xs font-bold">
+                  Coming Soon
+                </div>
+              )}
+
               <div className="flex items-center gap-3 mb-4">
                 <div className="size-12 rounded-full bg-white/20 grid place-items-center">
                   {service.icon}
                 </div>
                 <div>
                   <h3 className="text-neutral-900 font-extrabold text-2xl">{service.name}</h3>
-                  <p className="text-neutral-900/70 text-sm font-semibold">You'll get: {displayValue}</p>
+                  <p className="text-neutral-900/70 text-sm font-semibold">
+                    {isAvailable ? `You'll get: ${displayValue}` : 'Not available yet'}
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-3 ${!isAvailable ? 'pointer-events-none' : ''}`}>
                 <button
                   onClick={() => adjustAllocation(service.key, -5)}
-                  className="size-10 grid place-items-center rounded-xl bg-neutral-900/10 hover:bg-neutral-900/20 transition-colors font-bold text-neutral-900 text-xl"
+                  disabled={!isAvailable}
+                  className="size-10 grid place-items-center rounded-xl bg-neutral-900/10 hover:bg-neutral-900/20 transition-colors font-bold text-neutral-900 text-xl disabled:opacity-50"
                 >
                   −
                 </button>
@@ -140,14 +165,16 @@ export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
                     inputMode="numeric"
                     value={value}
                     onChange={(e) => handleInputChange(service.key, e.target.value)}
-                    className="w-20 text-center font-extrabold text-3xl text-neutral-900 bg-transparent border-0 outline-none p-0"
+                    disabled={!isAvailable}
+                    className="w-20 text-center font-extrabold text-3xl text-neutral-900 bg-transparent border-0 outline-none p-0 disabled:opacity-50"
                     style={{ appearance: 'none' }}
                   />
                 </div>
 
                 <button
                   onClick={() => adjustAllocation(service.key, 5)}
-                  className="size-10 grid place-items-center rounded-xl bg-neutral-900/10 hover:bg-neutral-900/20 transition-colors font-bold text-neutral-900 text-xl"
+                  disabled={!isAvailable}
+                  className="size-10 grid place-items-center rounded-xl bg-neutral-900/10 hover:bg-neutral-900/20 transition-colors font-bold text-neutral-900 text-xl disabled:opacity-50"
                 >
                   +
                 </button>
@@ -174,7 +201,12 @@ export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
           {services.map((service) => {
             const value = allocation[service.key]
             if (value === 0) return null
-            const displayValue = getServiceDisplayValue(service.name.toUpperCase() as ServiceType, value)
+            
+            const serviceTypeUpper = service.name.toUpperCase() as ServiceType
+            const isAvailable = isServiceAvailable(serviceTypeUpper, packageType)
+            const displayValue = isAvailable 
+              ? getServiceDisplayValue(serviceTypeUpper, value, packageType)
+              : 'Coming Soon'
 
             return (
               <div key={service.key} className="rounded-xl bg-neutral-50 p-4">

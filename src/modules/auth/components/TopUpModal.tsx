@@ -6,6 +6,7 @@ import { dynamicServicesPaymentService } from '../../payment/services/dynamicSer
 import { getServiceDisplayValue, convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import type { ServiceType } from '../../payment/utils/dynamicPricing'
+import type { PackageType } from '../../payment/config/ratingTable'
 import { Loader2 } from 'lucide-react'
 
 // Paystack Popup
@@ -295,7 +296,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
     try {
       const serviceType = kind.toUpperCase() as ServiceType
-      const serviceValue = convertRandsToServiceValue(serviceType, price)
+      const serviceValue = convertRandsToServiceValue(serviceType, price, 'prepaid')
       const expiryDate = getDefaultExpiryDate()
       const priceInCents = price * 100
       
@@ -352,7 +353,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             
             // STEP 2: Create dynamic services (NO subscriber creation - already exists)
             console.log('[TopUp] Creating dynamic services...')
-            const serviceValue = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price)
+            const serviceValue = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
             const definitionCode = kind.toUpperCase() === 'AIRTIME' ? 'AIRTIME_ADVANCE' : kind.toUpperCase()
             
             const servicesResponse = await subscriptionService.createDynamicServices(

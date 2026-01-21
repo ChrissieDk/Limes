@@ -213,12 +213,15 @@ export default function ShippingModal({
         const expiryDate = getDefaultExpiryDate()
         
         if (selectedPackage.planAllocation.data > 0) {
-          services.push({
-            value: convertRandsToServiceValue('DATA', selectedPackage.planAllocation.data),
-            definitionCode: 'DATA',
-            expiryDate,
-            priceInCents: selectedPackage.planAllocation.data * 100
-          })
+          const dataValue = convertRandsToServiceValue('DATA', selectedPackage.planAllocation.data, selectedPackage.packageType || 'prepaid')
+          if (dataValue !== null) {
+            services.push({
+              value: dataValue,
+              definitionCode: 'DATA',
+              expiryDate,
+              priceInCents: selectedPackage.planAllocation.data * 100
+            })
+          }
         }
         
         if (selectedPackage.planAllocation.voice > 0) {
@@ -231,12 +234,15 @@ export default function ShippingModal({
         }
         
         if (selectedPackage.planAllocation.sms > 0) {
-          services.push({
-            value: convertRandsToServiceValue('SMS', selectedPackage.planAllocation.sms),
-            definitionCode: 'SMS',
-            expiryDate,
-            priceInCents: selectedPackage.planAllocation.sms * 100
-          })
+          const smsValue = convertRandsToServiceValue('SMS', selectedPackage.planAllocation.sms, selectedPackage.packageType || 'prepaid')
+          if (smsValue !== null) {
+            services.push({
+              value: smsValue,
+              definitionCode: 'SMS',
+              expiryDate,
+              priceInCents: selectedPackage.planAllocation.sms * 100
+            })
+          }
         }
 
         const dynamicPayload = {
@@ -383,13 +389,16 @@ export default function ShippingModal({
           
           const pendingServices = []
           if (planAllocation.data > 0) {
-            pendingServices.push({
-              definitionCode: 'DATA' as const,
-              value: convertRandsToServiceValue('DATA', planAllocation.data),
-              priceInCents: planAllocation.data * 100,
-              expiryDate,
-              paymentReference: reference
-            })
+            const dataValue = convertRandsToServiceValue('DATA', planAllocation.data, selectedPackage!.packageType || 'prepaid')
+            if (dataValue !== null) {
+              pendingServices.push({
+                definitionCode: 'DATA' as const,
+                value: dataValue,
+                priceInCents: planAllocation.data * 100,
+                expiryDate,
+                paymentReference: reference
+              })
+            }
           }
           if (planAllocation.voice > 0) {
             pendingServices.push({
@@ -401,22 +410,28 @@ export default function ShippingModal({
             })
           }
           if (planAllocation.sms > 0) {
-            pendingServices.push({
-              definitionCode: 'SMS' as const,
-              value: convertRandsToServiceValue('SMS', planAllocation.sms),
-              priceInCents: planAllocation.sms * 100,
-              expiryDate,
-              paymentReference: reference
-            })
+            const smsValue = convertRandsToServiceValue('SMS', planAllocation.sms, selectedPackage!.packageType || 'prepaid')
+            if (smsValue !== null) {
+              pendingServices.push({
+                definitionCode: 'SMS' as const,
+                value: smsValue,
+                priceInCents: planAllocation.sms * 100,
+                expiryDate,
+                paymentReference: reference
+              })
+            }
           }
           if (planAllocation.whatsapp > 0) {
-            pendingServices.push({
-              definitionCode: 'WHATSAPP' as const,
-              value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
-              priceInCents: planAllocation.whatsapp * 100,
-              expiryDate,
-              paymentReference: reference
-            })
+            const whatsappValue = convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp, selectedPackage!.packageType || 'prepaid')
+            if (whatsappValue !== null) {
+              pendingServices.push({
+                definitionCode: 'WHATSAPP' as const,
+                value: whatsappValue,
+                priceInCents: planAllocation.whatsapp * 100,
+                expiryDate,
+                paymentReference: reference
+              })
+            }
           }
           
           // Store each pending service
@@ -432,11 +447,14 @@ export default function ShippingModal({
           const services = []
           
           if (planAllocation.data > 0) {
-            services.push({
-              value: convertRandsToServiceValue('DATA', planAllocation.data),
-              definitionCode: 'DATA' as const,
-              expiryDate
-            })
+            const dataValue = convertRandsToServiceValue('DATA', planAllocation.data, selectedPackage!.packageType || 'prepaid')
+            if (dataValue !== null) {
+              services.push({
+                value: dataValue,
+                definitionCode: 'DATA' as const,
+                expiryDate
+              })
+            }
           }
           if (planAllocation.voice > 0) {
             services.push({
@@ -446,18 +464,24 @@ export default function ShippingModal({
             })
           }
           if (planAllocation.sms > 0) {
-            services.push({
-              value: convertRandsToServiceValue('SMS', planAllocation.sms),
-              definitionCode: 'SMS' as const,
-              expiryDate
-            })
+            const smsValue = convertRandsToServiceValue('SMS', planAllocation.sms, selectedPackage!.packageType || 'prepaid')
+            if (smsValue !== null) {
+              services.push({
+                value: smsValue,
+                definitionCode: 'SMS' as const,
+                expiryDate
+              })
+            }
           }
           if (planAllocation.whatsapp > 0) {
-            services.push({
-              value: convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp),
-              definitionCode: 'WHATSAPP' as const,
-              expiryDate
-            })
+            const whatsappValue = convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp, selectedPackage!.packageType || 'prepaid')
+            if (whatsappValue !== null) {
+              services.push({
+                value: whatsappValue,
+                definitionCode: 'WHATSAPP' as const,
+                expiryDate
+              })
+            }
           }
           
           const servicesResponse = await subscriptionService.createDynamicServices(newMsisdn, { services })
@@ -530,12 +554,15 @@ export default function ShippingModal({
             console.log('[Payment] Building services from plan allocation')
             
             if (selectedPackage!.planAllocation.data > 0) {
-              services.push({
-                value: convertRandsToServiceValue('DATA', selectedPackage!.planAllocation.data),
-                definitionCode: 'DATA',
-                expiryDate,
-                priceInCents: selectedPackage!.planAllocation.data * 100
-              })
+              const dataValue = convertRandsToServiceValue('DATA', selectedPackage!.planAllocation.data, selectedPackage!.packageType || 'prepaid')
+              if (dataValue !== null) {
+                services.push({
+                  value: dataValue,
+                  definitionCode: 'DATA',
+                  expiryDate,
+                  priceInCents: selectedPackage!.planAllocation.data * 100
+                })
+              }
             }
             
             if (selectedPackage!.planAllocation.voice > 0) {
@@ -548,21 +575,27 @@ export default function ShippingModal({
             }
             
             if (selectedPackage!.planAllocation.sms > 0) {
-              services.push({
-                value: convertRandsToServiceValue('SMS', selectedPackage!.planAllocation.sms),
-                definitionCode: 'SMS',
-                expiryDate,
-                priceInCents: selectedPackage!.planAllocation.sms * 100
-              })
+              const smsValue = convertRandsToServiceValue('SMS', selectedPackage!.planAllocation.sms, selectedPackage!.packageType || 'prepaid')
+              if (smsValue !== null) {
+                services.push({
+                  value: smsValue,
+                  definitionCode: 'SMS',
+                  expiryDate,
+                  priceInCents: selectedPackage!.planAllocation.sms * 100
+                })
+              }
             }
             
             if (selectedPackage!.planAllocation.whatsapp && selectedPackage!.planAllocation.whatsapp > 0) {
-              services.push({
-                value: convertRandsToServiceValue('WHATSAPP', selectedPackage!.planAllocation.whatsapp),
-                definitionCode: 'WHATSAPP',
-                expiryDate,
-                priceInCents: selectedPackage!.planAllocation.whatsapp * 100
-              })
+              const whatsappValue = convertRandsToServiceValue('WHATSAPP', selectedPackage!.planAllocation.whatsapp, selectedPackage!.packageType || 'prepaid')
+              if (whatsappValue !== null) {
+                services.push({
+                  value: whatsappValue,
+                  definitionCode: 'WHATSAPP',
+                  expiryDate,
+                  priceInCents: selectedPackage!.planAllocation.whatsapp * 100
+                })
+              }
             }
           } else {
             // PREPAID WITHOUT ALLOCATION: Backend should derive services from productId

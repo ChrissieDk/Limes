@@ -1,14 +1,13 @@
 /**
- * MOCK PRICING CONFIGURATION
+ * Dynamic Pricing Utilities
  * 
- * TODO: Replace these mock values with real pricing logic
- * Options for replacement:
- * 1. API endpoint that returns pricing rates
- * 2. Database-driven pricing configuration
- * 3. Dynamic pricing based on business rules
+ * Handles pricing calculations for both contract and prepaid packages.
+ * All pricing uses the rating tables from config/ratingTable.ts
  */
 
-export type ServiceType = 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP'
+import { getRateForService, type ServiceType as RatingServiceType, type PackageType } from '../config/ratingTable'
+
+export type ServiceType = 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP' | 'MMS'
 
 interface PricingRate {
   ratePerRand: number
@@ -19,77 +18,77 @@ interface PricingRate {
 }
 
 /**
- * MOCK CONVERSION RATES
- * Currently using fixed rates - REPLACE WITH ACTUAL PRICING LOGIC
+ * Get pricing rate per Rand for a service
+ * Uses the rating table which has per-unit prices (e.g., R0.89/min)
+ * Converts to rate per Rand (e.g., 1/0.89 minutes per Rand)
  */
-const MOCK_PRICING_RATES: Record<ServiceType, PricingRate> = {
-  AIRTIME: {
-    ratePerRand: 1 / 0.90,        // 90 cents per unit → R1 = 1.11 units
-    unit: 'rands',
-    displayUnit: 'airtime',
-    minRands: 1,
-    maxRands: 1000,
-  },
-  VOICE: {
-    ratePerRand: 5,           // R1 = 5 minutes (MOCK VALUE)
-    unit: 'minutes',
-    displayUnit: 'min',
-    minRands: 1,
-    maxRands: 1000,
-  },
-  DATA: {
-    ratePerRand: 104857600,   // R1 = 100MB in bytes (MOCK VALUE)
-    unit: 'bytes',
-    displayUnit: 'MB',
-    minRands: 1,
-    maxRands: 1000,
-  },
-  SMS: {
-    ratePerRand: 10,          // R1 = 10 SMS (MOCK VALUE)
-    unit: 'messages',
-    displayUnit: 'SMS',
-    minRands: 1,
-    maxRands: 1000,
-  },
-  WHATSAPP: {
-    ratePerRand: 52428800,    // R1 = 50MB in bytes (MOCK VALUE)
-    unit: 'bytes',
-    displayUnit: 'MB',
-    minRands: 1,
-    maxRands: 1000,
-  },
+function getRatePerRand(serviceType: ServiceType, packageType: PackageType): number | null {
+  const pricePerUnit = getRateForService(serviceType as RatingServiceType, packageType, 'local')
+  
+  if (pricePerUnit === null) {
+    return null
+  }
+
+  // For AIRTIME: price is the cost per Rand of airtime
+  // e.g., R0.90 cost means R1 payment buys 1/0.90 = R1.11 airtime (customer wins!)
+  if (serviceType === 'AIRTIME') {
+    return 1 / pricePerUnit // Invert to give customer MORE airtime
+  }
+
+  // For DATA and WHATSAPP: price is per MB, we need to convert to bytes per Rand
+  if (serviceType === 'DATA' || serviceType === 'WHATSAPP') {
+    const mbPerRand = 1 / pricePerUnit
+    return mbPerRand * 1048576 // Convert MB to bytes
+  }
+
+  // For VOICE, SMS, MMS: price is per unit, so we need units per Rand
+  return 1 / pricePerUnit
 }
 
 /**
  * Convert Rands to service units
- * @param serviceType - Type of service (VOICE, DATA, SMS, WHATSAPP)
+ * @param serviceType - Type of service (VOICE, DATA, SMS, WHATSAPP, MMS, AIRTIME)
  * @param rands - Amount in Rands
- * @returns Service value in appropriate units (minutes, bytes, messages)
+ * @param packageType - Package type (contract or prepaid)
+ * @returns Service value in appropriate units (minutes, bytes, messages, rands for airtime), or null if not available
  */
-export function convertRandsToServiceValue(serviceType: ServiceType, rands: number): number {
-  const rate = MOCK_PRICING_RATES[serviceType]
-  if (!rate) {
-    throw new Error(`Unknown service type: ${serviceType}`)
+export function convertRandsToServiceValue(
+  serviceType: ServiceType, 
+  rands: number, 
+  packageType: PackageType = 'prepaid'
+): number | null {
+  // Use rating table for both contract and prepaid
+  const ratePerRand = getRatePerRand(serviceType, packageType)
+  if (ratePerRand === null) {
+    // Service not available for this package type
+    return null
   }
   
-  return Math.floor(rands * rate.ratePerRand)
+  return Math.floor(rands * ratePerRand)
 }
 
 /**
  * Convert service value to human-readable display
  * @param serviceType - Type of service
  * @param rands - Amount in Rands
- * @returns Human-readable string (e.g., "500 MB", "25 min", "50 SMS", "R25 airtime")
+ * @param packageType - Package type (contract or prepaid)
+ * @returns Human-readable string (e.g., "500 MB", "25 min", "50 SMS", "R25 airtime"), or null if not available
  */
-export function getServiceDisplayValue(serviceType: ServiceType, rands: number): string {
-  const rate = MOCK_PRICING_RATES[serviceType]
-  if (!rate) {
-    return 'Unknown'
+export function getServiceDisplayValue(
+  serviceType: ServiceType, 
+  rands: number, 
+  packageType: PackageType = 'prepaid'
+): string | null {
+  // Use rating table for both contract and prepaid
+  const ratePerRand = getRatePerRand(serviceType, packageType)
+  if (ratePerRand === null) {
+    // Service not available for this package type
+    return null
   }
 
-  const rawValue = rands * rate.ratePerRand
+  const rawValue = rands * ratePerRand
 
-  // Special handling for AIRTIME (1:1 conversion)
+  // Special handling for AIRTIME (rands to rands conversion)
   if (serviceType === 'AIRTIME') {
     return `R${rawValue.toFixed(2)} airtime`
   }
@@ -106,8 +105,19 @@ export function getServiceDisplayValue(serviceType: ServiceType, rands: number):
     return `${Math.floor(mb)} MB`
   }
 
-  // For VOICE and SMS, just return the count with unit
-  return `${Math.floor(rawValue)} ${rate.displayUnit}`
+  // For VOICE, SMS, MMS, return the count with unit
+  const displayUnits: Record<string, string> = {
+    VOICE: 'min',
+    SMS: 'SMS',
+    MMS: 'MMS',
+  }
+
+  const unit = displayUnits[serviceType]
+  if (unit) {
+    return `${Math.floor(rawValue)} ${unit}`
+  }
+
+  return null
 }
 
 /**
@@ -133,6 +143,7 @@ export function validateServiceValue(serviceType: ServiceType, value: number): b
     SMS: { min: 0.0001, max: 2000, unit: 'messages' },
     DATA: { min: 0.0001, max: 214748364800, unit: 'bytes' },
     WHATSAPP: { min: 0.0001, max: 214748364800, unit: 'bytes' },
+    MMS: { min: 0.0001, max: 2000, unit: 'messages' },
   }
 
   const limit = limits[serviceType]
@@ -146,10 +157,11 @@ export function validateServiceValue(serviceType: ServiceType, value: number): b
 }
 
 /**
- * Get pricing information for a service
+ * Check if a service is available for a given package type
  * @param serviceType - Type of service
- * @returns Pricing rate information
+ * @param packageType - Package type (contract or prepaid)
+ * @returns true if the service is available
  */
-export function getPricingRate(serviceType: ServiceType): PricingRate {
-  return MOCK_PRICING_RATES[serviceType]
+export function isServiceAvailable(serviceType: ServiceType, packageType: PackageType): boolean {
+  return getRatePerRand(serviceType, packageType) !== null
 }
