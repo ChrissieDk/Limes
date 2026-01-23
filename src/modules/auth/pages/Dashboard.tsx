@@ -180,7 +180,7 @@ function Dashboard() {
         console.log('[Dashboard] Category tree:', tree);
         
         // Navigate: channel → once_off_top_up → data_bundles
-        const channel = tree.find((node) => node.id === 'channel');
+        const channel = tree.find((node) => node.id === 'channels');
         if (!channel?.children) {
           console.error('[Dashboard] No channel found');
           return;

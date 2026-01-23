@@ -109,7 +109,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
         console.log('[TopUp] Full category tree:', tree)
         
-        const channel = tree.find((node) => node.id === 'channel')
+        const channel = tree.find((node) => node.id === 'channels')
         if (!channel) {
           setError('Channel category not found')
           console.error('[TopUp] Channel node not found in tree')
