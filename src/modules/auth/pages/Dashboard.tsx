@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import TopUpModal from '../components/TopUpModal';
 import ShippingModal from '../components/ShippingModal';
 import ChoosePackageModal from '../components/ChoosePackageModal';
@@ -10,7 +10,7 @@ import { crmService } from '../../crm/services/crmService';
 import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
 import type { RicaAddress } from '../../../types';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Plus } from 'lucide-react';
 import type { SimCard as SimCardModel, Bundle as BundleModel, Transaction } from '../components/dashboard/dashboardTypes.ts';
 import { mockSimCards, mockCurrentPlan } from '../components/dashboard/dashboardMocks.ts';
 import { SimCard, PlanDetails } from '../components/dashboard/SimComponents.tsx';
@@ -24,6 +24,7 @@ import { SimCardSkeleton, PlanDetailsSkeleton, BundleCardSkeleton } from '../com
 // Main Dashboard Component
 function Dashboard() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCardModel | null>(null);
@@ -38,7 +39,9 @@ function Dashboard() {
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [ricaComplete, setRicaComplete] = useState<boolean>(false);
   const [bundles, setBundles] = useState<BundleModel[]>([]);
+  const [bundlesLoading, setBundlesLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState<typeof mockCurrentPlan | null>(null);
+  const [currentPlanChecked, setCurrentPlanChecked] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [canActivate, setCanActivate] = useState<Record<string, boolean>>({});
@@ -150,6 +153,11 @@ function Dashboard() {
           console.error('[Dashboard] Error fetching user data:', err);
           setRicaComplete(false);
         }
+      } finally {
+        // UI-only: marks the "current plan" check as complete so we can show an empty state.
+        // Always set this, even if cancelled, since it's just a UI flag
+        console.log('[Dashboard] Current plan check completed');
+        setCurrentPlanChecked(true);
       }
     };
     fetchUserData();
@@ -158,38 +166,89 @@ function Dashboard() {
     };
   }, []);
 
-  // Fetch bundles from catalog API
+  // Fetch bundles from catalog API (using TopUpModal's exact approach)
   useEffect(() => {
     let cancelled = false;
     const fetchBundles = async () => {
+      setBundlesLoading(true);
       try {
-        // Fetch data bundles from gsm_products category
-        const response = await catalogService.searchCategoryProducts('data_bundles', { page: 1, limit: 3 });
-        if (!cancelled && response.data) {
-          console.log('[Dashboard] Fetched data bundles:', response.data);
+        console.log('[Dashboard] Fetching category tree...');
+        const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true });
+        
+        if (cancelled) return;
+        
+        console.log('[Dashboard] Category tree:', tree);
+        
+        // Navigate: channel → once_off_top_up → data_bundles
+        const channel = tree.find((node) => node.id === 'channel');
+        if (!channel?.children) {
+          console.error('[Dashboard] No channel found');
+          return;
+        }
+        
+        const onceOffTopUp = channel.children.find((node) => node.id === 'once_off_top_up');
+        if (!onceOffTopUp?.children) {
+          console.error('[Dashboard] No once_off_top_up found');
+          return;
+        }
+        
+        console.log('[Dashboard] Available categories:', onceOffTopUp.children.map(c => c.id));
+        
+        // Try to find data bundles category
+        const dataBundlesCategory = onceOffTopUp.children.find((node) => 
+          node.id === 'data_bundles' || node.id?.includes('data')
+        );
+        
+        if (!dataBundlesCategory) {
+          console.error('[Dashboard] No data bundles category found');
+          console.log('[Dashboard] Available categories:', onceOffTopUp.children);
+          return;
+        }
+        
+        console.log('[Dashboard] Using category:', dataBundlesCategory.id);
+        
+        // Fetch products from the found category
+        const response = await catalogService.searchCategoryProducts(dataBundlesCategory.id, { 
+          page: 1, 
+          limit: 100 
+        });
+        
+        if (!cancelled) {
+          console.log('[Dashboard] Bundle response:', response);
           
-          // Filter out FWA products
-          const filteredProducts = response.data.filter(product => 
-            !product.name?.toUpperCase().includes('FWA') && 
-            !product.description?.toUpperCase().includes('FWA')
-          );
-          console.log(`[Dashboard] Filtered out ${response.data.length - filteredProducts.length} FWA products`);
-          
-          // Map catalog products to Bundle format
-          const mappedBundles: BundleModel[] = filteredProducts.map((product, index) => ({
-            name: product.name,
-            type: index === 0 ? 'flex' : index === 1 ? 'lite' : '3-month',
-            dayData: product.description || 'Data Bundle',
-            featured: index === 0,
-            hasImage: index === 0,
-            isOnceOff: true
-          }));
-          
-          setBundles(mappedBundles);
+          if (response.data && response.data.length > 0) {
+            // Filter out FWA products
+            const filteredProducts = response.data.filter(product => 
+              !product.name?.toUpperCase().includes('FWA') && 
+              !product.description?.toUpperCase().includes('FWA')
+            );
+            
+            console.log(`[Dashboard] Filtered ${filteredProducts.length} bundles`);
+            
+            // Take first 3 and map to Bundle format for display
+            const mappedBundles: BundleModel[] = filteredProducts
+              .slice(0, 3)
+              .map((product, index) => ({
+                name: product.name,
+                type: index === 0 ? 'flex' : index === 1 ? 'lite' : '3-month',
+                dayData: product.description || product.name,
+                featured: index === 0,
+                hasImage: index === 0,
+                isOnceOff: true
+              }));
+            
+            console.log('[Dashboard] Mapped bundles:', mappedBundles);
+            setBundles(mappedBundles);
+          }
         }
       } catch (err) {
-        console.error('[Dashboard] Error fetching bundles:', err);
-        // Keep empty bundles array on error
+        if (!cancelled) {
+          console.error('[Dashboard] Error fetching bundles:', err);
+        }
+      } finally {
+        if (!cancelled) {
+          setBundlesLoading(false);
+        }
       }
     };
     fetchBundles();
@@ -626,7 +685,7 @@ function Dashboard() {
             <div className="flex flex-col">
               {currentPlan ? (
                 <CurrentPlan plan={currentPlan} className="flex-1" />
-              ) : (
+              ) : !currentPlanChecked ? (
                 <div className="bg-neutral-800 rounded-2xl p-6 h-full border border-neutral-700">
                   <div className="animate-pulse space-y-4">
                     <div className="h-6 bg-neutral-700 rounded w-1/3"></div>
@@ -637,6 +696,47 @@ function Dashboard() {
                     </div>
                   </div>
                 </div>
+              ) : (
+                <div className="bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-2xl p-8 h-full border border-lime-500/20 relative overflow-hidden">
+                  {/* Background decoration */}
+                  <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-lime-400/5 rounded-full blur-2xl"></div>
+                  <div className="absolute -left-4 -top-4 w-24 h-24 bg-lime-400/5 rounded-full blur-2xl"></div>
+                  
+                  <div className="relative space-y-6">
+                    {/* Header */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-xl bg-lime-400/10 flex items-center justify-center">
+                          <Sparkles className="w-5 h-5 text-lime-400" />
+                        </div>
+                        <div className="text-white font-bold text-xl">Current Plan</div>
+                      </div>
+                      <div className="text-neutral-400 text-sm">
+                        No active plans yet.
+                      </div>
+                    </div>
+                    
+                    {/* Lime emoji/text */}
+                    <div className="flex items-center gap-2 text-lime-400">
+                      
+                      <span className="font-medium text-base">Ready to add some zest?</span>
+                      <span className="text-2xl">🍋</span>
+                    </div>
+                    
+                    {/* CTA Button */}
+                    <button
+                      onClick={() => navigate('/dashboard/packages')}
+                      className="w-full bg-lime-400 hover:bg-lime-300 text-neutral-900 font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group shadow-lg shadow-lime-400/20 hover:shadow-lime-400/30"
+                    >
+                      <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+                      Choose a Package
+                    </button>
+                    
+                    <div className="text-neutral-500 text-xs text-center">
+                      Start your journey with a plan that suits you best
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             {/* <div className="flex flex-col">
@@ -644,9 +744,17 @@ function Dashboard() {
             </div> */}
             <div className="flex flex-col">
               <div className="grid grid-cols-1 gap-4 flex-1">
-                {bundles.length > 0 ? (
+                {bundlesLoading ? (
                   <>
-                    <BundleCard bundle={bundles[0]} />
+                    <BundleCardSkeleton />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <BundleCardSkeleton />
+                      <BundleCardSkeleton />
+                    </div>
+                  </>
+                ) : bundles.length > 0 ? (
+                  <>
+                    {bundles[0] && <BundleCard bundle={bundles[0]} />}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {bundles[1] && <BundleCard bundle={bundles[1]} />}
                       {bundles[2] && <BundleCard bundle={bundles[2]} />}

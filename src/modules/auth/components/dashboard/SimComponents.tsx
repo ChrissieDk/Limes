@@ -14,13 +14,6 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-8 rounded overflow-hidden border border-neutral-600">
-            <img
-              src={`${import.meta.env.BASE_URL}images/limes_sim.png`}
-              alt="Limes SIM"
-              className="w-full h-full object-cover"
-            />
-          </div>
           <div>
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-white font-semibold text-base">{sim.name}</h3>
@@ -50,7 +43,7 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
       <div className="flex space-x-2">
         <button
           onClick={() => onTopUp(sim)}
-          className="flex-1 bg-green-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-300 transition-colors"
+          className="flex-1 bg-lime-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-lime-300 transition-colors"
         >
           Top Up +
         </button>
@@ -92,7 +85,7 @@ export function PlanDetails({ sim }: PlanDetailsProps) {
   return (
     <div className="bg-white rounded-2xl p-5">
       <h4 className="text-neutral-900 font-extrabold text-2xl mb-4">Sim Details</h4>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-lime-400 rounded-2xl p-4">
           <div className="text-neutral-900 text-sm font-medium mb-1">Mobile Data</div>
           <div className="text-neutral-900 font-semibold text-xl leading-none">{mobileData}</div>
