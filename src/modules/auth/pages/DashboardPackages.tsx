@@ -113,7 +113,7 @@ export default function DashboardPackages() {
         const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
         console.log('[Catalog] Full category tree:', tree)
         
-        const channel = tree.find((node) => node.id === 'channel')
+        const channel = tree.find((node) => node.id === 'channels')
         if (!channel) {
           setError('Channel category not found')
           console.error('[Catalog] Channel node not found in tree')
