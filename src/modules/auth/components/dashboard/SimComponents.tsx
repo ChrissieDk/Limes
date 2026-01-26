@@ -7,9 +7,10 @@ interface SimCardProps {
   onActivate: (sim: SimCardModel) => void;
   canActivate?: boolean;
   isActivating?: boolean;
+  isActive?: boolean;
 }
 
-export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActivating = false }: SimCardProps) {
+export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActivating = false, isActive }: SimCardProps) {
   return (
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
@@ -17,11 +18,15 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
           <div>
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-white font-semibold text-base">{sim.name}</h3>
-              {sim.isActive && (
+              {isActive === true ? (
                 <span className="bg-green-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-medium">
                   Active
                 </span>
-              )}
+              ) : isActive === false ? (
+                <span className="bg-orange-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-medium">
+                  Inactive
+                </span>
+              ) : null}
             </div>
             <p className="text-neutral-500 text-xs mb-1">Phone Number</p>
             <div className="flex items-center space-x-2">
@@ -43,9 +48,14 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
       <div className="flex space-x-2">
         <button
           onClick={() => onTopUp(sim)}
-          className="flex-1 bg-lime-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-lime-300 transition-colors"
+          disabled={isActive === false}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+            isActive === false
+              ? 'bg-neutral-600 text-neutral-400 cursor-not-allowed'
+              : 'bg-lime-400 text-gray-900 hover:bg-lime-300'
+          }`}
         >
-          Top Up +
+          {isActive === false ? 'Awaiting Activation' : 'Top Up +'}
         </button>
         {canActivate && (
           <button
