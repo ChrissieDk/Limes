@@ -6,7 +6,7 @@ const isDev = import.meta.env.DEV
 const apiUrl = import.meta.env.VITE_API_URL || 'https://limes-staging.up.railway.app'
 
 export const apiClient = axios.create({
-  baseURL: isDev ? '/api' : `${apiUrl}/api`,
+  baseURL: isDev ? '/api' : 'https://limes-production.up.railway.app/api',
   timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
