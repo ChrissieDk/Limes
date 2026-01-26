@@ -47,6 +47,7 @@ function Dashboard() {
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [canActivate, setCanActivate] = useState<Record<string, boolean>>({});
   const [simIsActive, setSimIsActive] = useState<Record<string, boolean>>({});
+  const [activationStatusLoading, setActivationStatusLoading] = useState(true);
   const [activatingSim, setActivatingSim] = useState<string | null>(null);
 
   // Refs to prevent infinite loops in useEffects
@@ -417,55 +418,78 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     const checkActivationStatuses = async () => {
-      if (simCards.length === 0) return;
+      if (simCards.length === 0) {
+        setActivationStatusLoading(false);
+        return;
+      }
       
       // Create a key from all MSISDNs to track if we've already checked
       const msisdnsKey = simCards.map(s => s.phoneNumber).filter(Boolean).sort().join(',');
       
       // Skip if we've already checked these MSISDNs
       if (activationCheckedForRef.current === msisdnsKey) {
+        setActivationStatusLoading(false);
         return;
       }
+      
+      // Start loading
+      setActivationStatusLoading(true);
       
       const canActivateStatuses: Record<string, boolean> = {};
       const isActiveStatuses: Record<string, boolean> = {};
       
-      for (const sim of simCards) {
+      // Check all SIMs in parallel for better performance
+      const checkPromises = simCards.map(async (sim) => {
         if (!sim.phoneNumber) {
-          canActivateStatuses[sim.phoneNumber || sim.id] = false;
-          isActiveStatuses[sim.phoneNumber || sim.id] = false;
-          continue;
+          return {
+            phoneNumber: sim.phoneNumber || sim.id,
+            canActivate: false,
+            isActive: false
+          };
         }
         
         try {
           const response = await subscriptionService.checkSimActive(sim.phoneNumber);
-          // Store isActive status separately
-          isActiveStatuses[sim.phoneNumber] = response.isActive;
-          // Show activate button if SIM IS active AND has pending orders OR pending dynamic services
-          canActivateStatuses[sim.phoneNumber] = response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false);
           
           console.log(`[Activation] Full response for ${sim.phoneNumber}:`, response);
           console.log(`[Activation] Checked status for ${sim.phoneNumber}:`, {
             isActive: response.isActive,
             hasPendingOrders: response.hasPendingOrders,
             hasPendingDynamicServices: response.hasPendingDynamicServices,
-            canActivate: canActivateStatuses[sim.phoneNumber],
+            canActivate: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
             message: response.message
           });
+          
+          return {
+            phoneNumber: sim.phoneNumber,
+            canActivate: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
+            isActive: response.isActive
+          };
         } catch (err) {
-          if (!cancelled) {
-            console.error(`[Activation] Error checking status for ${sim.phoneNumber}:`, err);
-            canActivateStatuses[sim.phoneNumber] = false;
-            isActiveStatuses[sim.phoneNumber] = false;
-          }
+          console.error(`[Activation] Error checking status for ${sim.phoneNumber}:`, err);
+          return {
+            phoneNumber: sim.phoneNumber,
+            canActivate: false,
+            isActive: false
+          };
         }
-      }
+      });
+      
+      // Wait for all checks to complete in parallel
+      const results = await Promise.all(checkPromises);
+      
+      // Build status objects from results
+      results.forEach(result => {
+        canActivateStatuses[result.phoneNumber] = result.canActivate;
+        isActiveStatuses[result.phoneNumber] = result.isActive;
+      });
       
       if (!cancelled) {
         // Mark as checked BEFORE updating state
         activationCheckedForRef.current = msisdnsKey;
         setCanActivate(canActivateStatuses);
         setSimIsActive(isActiveStatuses);
+        setActivationStatusLoading(false);
       }
     };
     
@@ -691,6 +715,7 @@ function Dashboard() {
                   canActivate={canActivate[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id] || false}
                   isActivating={activatingSim === simCards[currentSimIndex]?.phoneNumber}
                   isActive={simIsActive[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id]}
+                  activationStatusLoading={activationStatusLoading}
                 />
                 <PlanDetails sim={simCards[currentSimIndex]} />
               </>
