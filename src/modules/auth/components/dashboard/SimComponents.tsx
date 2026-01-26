@@ -7,9 +7,11 @@ interface SimCardProps {
   onActivate: (sim: SimCardModel) => void;
   canActivate?: boolean;
   isActivating?: boolean;
+  isActive?: boolean;
+  activationStatusLoading?: boolean;
 }
 
-export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActivating = false }: SimCardProps) {
+export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActivating = false, isActive, activationStatusLoading = false }: SimCardProps) {
   return (
     <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
       <div className="flex items-start justify-between mb-4">
@@ -17,11 +19,19 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
           <div>
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-white font-semibold text-base">{sim.name}</h3>
-              {sim.isActive && (
+              {activationStatusLoading ? (
+                <span className="bg-neutral-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                  Checking...
+                </span>
+              ) : isActive === true ? (
                 <span className="bg-green-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-medium">
                   Active
                 </span>
-              )}
+              ) : isActive === false ? (
+                <span className="bg-orange-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-medium">
+                  Inactive
+                </span>
+              ) : null}
             </div>
             <p className="text-neutral-500 text-xs mb-1">Phone Number</p>
             <div className="flex items-center space-x-2">
@@ -43,9 +53,14 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
       <div className="flex space-x-2">
         <button
           onClick={() => onTopUp(sim)}
-          className="flex-1 bg-lime-400 text-gray-900 py-2 px-3 rounded-lg text-sm font-medium hover:bg-lime-300 transition-colors"
+          disabled={activationStatusLoading || isActive !== true}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+            activationStatusLoading || isActive !== true
+              ? 'bg-neutral-600 text-neutral-400 cursor-not-allowed'
+              : 'bg-lime-400 text-gray-900 hover:bg-lime-300'
+          }`}
         >
-          Top Up +
+          {activationStatusLoading ? 'Checking Status...' : isActive === false ? 'Awaiting Activation' : 'Top Up +'}
         </button>
         {canActivate && (
           <button

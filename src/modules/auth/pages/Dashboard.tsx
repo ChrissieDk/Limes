@@ -38,6 +38,7 @@ function Dashboard() {
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [ricaComplete, setRicaComplete] = useState<boolean>(false);
+  const [ricaStatusChecked, setRicaStatusChecked] = useState<boolean>(false);
   const [bundles, setBundles] = useState<BundleModel[]>([]);
   const [bundlesLoading, setBundlesLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState<typeof mockCurrentPlan | null>(null);
@@ -45,11 +46,14 @@ function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [canActivate, setCanActivate] = useState<Record<string, boolean>>({});
+  const [simIsActive, setSimIsActive] = useState<Record<string, boolean>>({});
+  const [activationStatusLoading, setActivationStatusLoading] = useState(true);
   const [activatingSim, setActivatingSim] = useState<string | null>(null);
 
   // Refs to prevent infinite loops in useEffects
   const balancesFetchedForRef = useRef<string>(''); // Track MSISDN we've fetched balances for
   const activationCheckedForRef = useRef<string>(''); // Track MSISDNs we've checked activation for
+  const packageSelectionHandledRef = useRef<boolean>(false); // Track if we've handled package selection
 
   // Get selected package from navigation state or use mock as fallback
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
@@ -154,10 +158,13 @@ function Dashboard() {
           setRicaComplete(false);
         }
       } finally {
-        // UI-only: marks the "current plan" check as complete so we can show an empty state.
-        // Always set this, even if cancelled, since it's just a UI flag
-        console.log('[Dashboard] Current plan check completed');
-        setCurrentPlanChecked(true);
+        if (!cancelled) {
+          // Mark RICA status as checked (whether successful or not)
+          setRicaStatusChecked(true);
+          // UI-only: marks the "current plan" check as complete so we can show an empty state.
+          console.log('[Dashboard] Current plan check completed');
+          setCurrentPlanChecked(true);
+        }
       }
     };
     fetchUserData();
@@ -258,10 +265,20 @@ function Dashboard() {
   }, []);
 
   // Auto-open correct modal based on RICA status when package is selected
+  // This should only run ONCE when navigating from packages page, not on every reload
   useEffect(() => {
-    if (selectedPackageFromState) {
+    // Skip if we've already handled the package selection
+    if (packageSelectionHandledRef.current) {
+      return;
+    }
+    
+    // Only process if there's a package from navigation state AND RICA status has been checked
+    if (selectedPackageFromState && ricaStatusChecked) {
       console.log('[Dashboard] Package selected:', selectedPackageFromState);
       console.log('[Dashboard] RICA complete:', ricaComplete);
+      
+      // Mark as handled immediately to prevent re-running
+      packageSelectionHandledRef.current = true;
       
       if (ricaComplete) {
         // RICA already done - go straight to payment
@@ -273,8 +290,11 @@ function Dashboard() {
         console.log('[Dashboard] Opening RICA modal (RICA not complete)');
         setChoosePackageModalOpen(true);
       }
+      
+      // Clear the navigation state to prevent it from persisting on reload
+      window.history.replaceState({}, document.title);
     }
-  }, [selectedPackageFromState, ricaComplete]);
+  }, [selectedPackageFromState, ricaComplete, ricaStatusChecked]);
 
   // Fetch transactions
   useEffect(() => {
@@ -398,49 +418,78 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     const checkActivationStatuses = async () => {
-      if (simCards.length === 0) return;
+      if (simCards.length === 0) {
+        setActivationStatusLoading(false);
+        return;
+      }
       
       // Create a key from all MSISDNs to track if we've already checked
       const msisdnsKey = simCards.map(s => s.phoneNumber).filter(Boolean).sort().join(',');
       
       // Skip if we've already checked these MSISDNs
       if (activationCheckedForRef.current === msisdnsKey) {
+        setActivationStatusLoading(false);
         return;
       }
       
-      const statuses: Record<string, boolean> = {};
+      // Start loading
+      setActivationStatusLoading(true);
       
-      for (const sim of simCards) {
+      const canActivateStatuses: Record<string, boolean> = {};
+      const isActiveStatuses: Record<string, boolean> = {};
+      
+      // Check all SIMs in parallel for better performance
+      const checkPromises = simCards.map(async (sim) => {
         if (!sim.phoneNumber) {
-          statuses[sim.phoneNumber || sim.id] = false;
-          continue;
+          return {
+            phoneNumber: sim.phoneNumber || sim.id,
+            canActivate: false,
+            isActive: false
+          };
         }
         
         try {
           const response = await subscriptionService.checkSimActive(sim.phoneNumber);
-          // Show button if SIM IS active AND has pending orders OR pending dynamic services
-          statuses[sim.phoneNumber] = response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false);
           
           console.log(`[Activation] Full response for ${sim.phoneNumber}:`, response);
           console.log(`[Activation] Checked status for ${sim.phoneNumber}:`, {
             isActive: response.isActive,
             hasPendingOrders: response.hasPendingOrders,
             hasPendingDynamicServices: response.hasPendingDynamicServices,
-            canActivate: statuses[sim.phoneNumber],
+            canActivate: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
             message: response.message
           });
+          
+          return {
+            phoneNumber: sim.phoneNumber,
+            canActivate: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
+            isActive: response.isActive
+          };
         } catch (err) {
-          if (!cancelled) {
-            console.error(`[Activation] Error checking status for ${sim.phoneNumber}:`, err);
-            statuses[sim.phoneNumber] = false;
-          }
+          console.error(`[Activation] Error checking status for ${sim.phoneNumber}:`, err);
+          return {
+            phoneNumber: sim.phoneNumber,
+            canActivate: false,
+            isActive: false
+          };
         }
-      }
+      });
+      
+      // Wait for all checks to complete in parallel
+      const results = await Promise.all(checkPromises);
+      
+      // Build status objects from results
+      results.forEach(result => {
+        canActivateStatuses[result.phoneNumber] = result.canActivate;
+        isActiveStatuses[result.phoneNumber] = result.isActive;
+      });
       
       if (!cancelled) {
         // Mark as checked BEFORE updating state
         activationCheckedForRef.current = msisdnsKey;
-        setCanActivate(statuses);
+        setCanActivate(canActivateStatuses);
+        setSimIsActive(isActiveStatuses);
+        setActivationStatusLoading(false);
       }
     };
     
@@ -519,6 +568,10 @@ function Dashboard() {
         setCanActivate(prev => ({
           ...prev,
           [sim.phoneNumber]: statusResponse.isActive && (statusResponse.hasPendingOrders || statusResponse.hasPendingDynamicServices || false)
+        }));
+        setSimIsActive(prev => ({
+          ...prev,
+          [sim.phoneNumber]: statusResponse.isActive
         }));
         
         // TODO: Show success message to user (toast/notification)
@@ -661,6 +714,8 @@ function Dashboard() {
                   onActivate={handleActivate}
                   canActivate={canActivate[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id] || false}
                   isActivating={activatingSim === simCards[currentSimIndex]?.phoneNumber}
+                  isActive={simIsActive[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id]}
+                  activationStatusLoading={activationStatusLoading}
                 />
                 <PlanDetails sim={simCards[currentSimIndex]} />
               </>

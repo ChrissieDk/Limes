@@ -3,6 +3,7 @@ import { getIdToken } from 'firebase/auth'
 import { auth } from './firebase'
 
 const isDev = import.meta.env.DEV
+const apiUrl = import.meta.env.VITE_API_URL || 'https://limes-staging.up.railway.app'
 
 export const apiClient = axios.create({
   baseURL: isDev ? '/api' : 'https://limes-production.up.railway.app/api',
