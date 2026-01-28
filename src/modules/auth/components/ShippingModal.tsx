@@ -29,12 +29,14 @@ interface SelectedPackage {
   planChargeType?: 'once-off' | 'monthly'  // Indicates if it's a one-time or recurring charge
   iccid?: string
   isDynamicPlan?: boolean  // True for contract dynamic plans
+  isComboBundle?: boolean  // True for contract combo bundles (m2m_combo)
   planAllocation?: {  // Allocation in Rands for each service (contract dynamic plans)
     data: number
     voice: number
     sms: number
     whatsapp: number
   }
+  comboDetails?: any  // Full combo package details (benefits, pricing, etc.)
   features?: {
     mobileData?: string
     description?: string
@@ -254,8 +256,8 @@ export default function ShippingModal({
         initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
         
       } else {
-        // PREPAID FLOW: Payment first, then subscriber creation
-        console.log('[Payment] PREPAID FLOW: MSISDN will be allocated AFTER payment')
+        // PREPAID FLOW OR CONTRACT COMBO BUNDLES: Payment first, then subscriber creation
+        console.log('[Payment] PREPAID/COMBO FLOW: MSISDN will be allocated AFTER payment')
         
         if (!selectedPackage.productId) {
           setVerificationError('Product ID is missing')
@@ -263,11 +265,28 @@ export default function ShippingModal({
           return
         }
         
-        const payload = {
+        const payload: any = {
           productId: String(selectedPackage.productId),
           msisdn: null  // Payment-first, MSISDN allocated after payment
         }
+        
+        // COMBO BUNDLES ONLY: Add amount since MVNX catalog has price: 0
+        console.log('[Payment] Checking combo bundle:', {
+          isComboBundle: selectedPackage.isComboBundle,
+          priceInCents: selectedPackage.priceInCents,
+          price: selectedPackage.price,
+          packageType: selectedPackage.packageType
+        })
+        
+        if (selectedPackage.isComboBundle && selectedPackage.priceInCents) {
+          payload.amount = selectedPackage.priceInCents
+          console.log('[Payment] 🎯 COMBO BUNDLE: Including amount override:', selectedPackage.priceInCents, 'cents')
+        } else if (selectedPackage.isComboBundle && !selectedPackage.priceInCents) {
+          console.warn('[Payment] ⚠️ COMBO BUNDLE detected but priceInCents is missing!')
+        }
+        
         console.log('[Payment] Initialize payload (payment-first):', payload)
+        console.log('[Payment] Full selected package:', selectedPackage)
         
         initResponse = await paymentService.initializeTransaction(payload)
       }

@@ -5,6 +5,7 @@ import PlanBuilder from '../components/PlanBuilder'
 import { catalogService } from '../../catalog/services/catalogService'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
+import { enrichComboPackages, type EnrichedComboPackage } from '../../catalog/utils/packageEnricher'
 
 type PackageType = 'contract' | 'prepaid' | null
 type SimStatus = 'has-sim' | 'needs-sim' | null
@@ -47,7 +48,7 @@ export default function DashboardPackages() {
   
   // NEW: Contract flow type - dynamic (build your own) or combo (bundles)
   const [contractFlowType, setContractFlowType] = useState<'dynamic' | 'combo' | null>(null)
-  const [comboBundles, setComboBundles] = useState<CatalogProduct[]>([])
+  const [comboBundles, setComboBundles] = useState<EnrichedComboPackage[]>([])
   
   // Track the actual SIM package product ID (the parent product from SA/SOA categories)
   const [simPackageProductId, setSimPackageProductId] = useState<string | null>(null)
@@ -91,29 +92,15 @@ export default function DashboardPackages() {
         if (contractFlowType === 'dynamic') {
           // Build Your Own flow - Show plan builder
           setShowPlanBuilder(true)
-          console.log('======================================')
-          console.log('[PRODUCT ID SET] CONTRACT - Build Your Own flow')
-          console.log(`[PRODUCT ID SET] SIM Status: ${simStatus}`)
-          console.log(`[PRODUCT ID SET] SIM Package Product ID: ${simPkgId}`)
-          console.log('======================================')
+
         } else if (contractFlowType === 'combo') {
           // Combo Bundles flow - Fetch m2m_combo products
           fetchComboBundles()
-          console.log('======================================')
-          console.log('[PRODUCT ID SET] CONTRACT - Combo Bundles flow')
-          console.log(`[PRODUCT ID SET] SIM Status: ${simStatus}`)
-          console.log(`[PRODUCT ID SET] SIM Package Product ID: ${simPkgId}`)
-          console.log('======================================')
         }
       } else if (packageType === 'prepaid') {
         simPkgId = simStatus === 'has-sim' ? PRODUCT_IDS.PREPAID_SA : PRODUCT_IDS.PREPAID_SOA
         // For PREPAID: Fetch bundle categories
         fetchBundleCategoriesForPrepaid()
-        console.log('======================================')
-        console.log('[PRODUCT ID SET] PREPAID flow')
-        console.log(`[PRODUCT ID SET] SIM Status: ${simStatus}`)
-        console.log(`[PRODUCT ID SET] SIM Package Product ID: ${simPkgId}`)
-        console.log('======================================')
       }
       setSimPackageProductId(simPkgId)
     }
@@ -175,9 +162,13 @@ export default function DashboardPackages() {
         limit: 100 
       })
       
-      setComboBundles(response.data)
+      // Enrich packages with actual benefits and pricing
+      const enrichedBundles = enrichComboPackages(response.data)
+      setComboBundles(enrichedBundles)
+      
       console.log('[Catalog] Fetched m2m_combo bundles:', response)
-      console.log(`[Catalog] Total bundles: ${response.data.length}`)
+      console.log('[Catalog] Enriched bundles:', enrichedBundles)
+      console.log(`[Catalog] Total bundles: ${enrichedBundles.length}`)
     } catch (err) {
       setError('Failed to load combo bundles. Please try again later.')
       console.error('Error fetching combo bundles:', err)
@@ -489,26 +480,29 @@ export default function DashboardPackages() {
   }
 
   // NEW: Handle combo bundle selection
-  const handleComboBundleSelect = (product: CatalogProduct) => {
+  const handleComboBundleSelect = (product: EnrichedComboPackage) => {
     console.log('[DashboardPackages] Navigating to dashboard for combo bundle:', product)
     console.log('[Package] SIM package product ID:', simPackageProductId)
     console.log('[Package] Package type: contract')
     console.log('[Package] SIM status:', simStatus)
+    console.log('[Package] Actual price (Rands):', product.actualPrice)
+    console.log('[Package] Actual price (Cents):', product.actualPriceCents)
     
     // Navigate to dashboard with contract combo bundle details
     navigate('/dashboard', {
       state: {
         selectedPackage: {
-          productId: product.id,
+          productId: product.id, // Keep original product ID for backend
           simPackageProductId: simPackageProductId,
           name: product.name,
-          price: product.price, // Display price in Rands
-          priceInCents: product.price * 100, // For Paystack payment (convert to cents)
+          price: product.actualPrice, // Use actual price in Rands
+          priceInCents: product.actualPriceCents, // Use actual price in cents for Paystack
           packageType: 'contract',
           simStatus: simStatus,
           planChargeType: 'monthly', // Combo bundles are monthly subscriptions
           iccid: simStatus === 'has-sim' ? iccid : undefined,
           isComboBundle: true, // Flag to identify combo bundle vs dynamic plan
+          comboDetails: product.comboDetails, // Include full combo details
           features: {
             mobileData: product.description
           }
@@ -993,16 +987,27 @@ export default function DashboardPackages() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                               </svg>
                             </div>
-                            <h3 className="text-neutral-900 font-extrabold text-2xl mb-4">{bundle.name}</h3>
+                            <h3 className="text-neutral-900 font-extrabold text-2xl mb-2">{bundle.name}</h3>
                             
-                            {bundle.description && (
+                            {/* Short summary */}
+                            {bundle.comboDetails && (
+                              <p className="text-neutral-900/70 text-sm mb-4 font-medium">
+                                {bundle.comboDetails.shortSummary}
+                              </p>
+                            )}
+                            
+                            {/* Benefits list */}
+                            {bundle.comboDetails && bundle.comboDetails.benefits.length > 0 && (
                               <div className="mb-6 space-y-2">
-                                {parseFeatures(bundle.description).map((feature, i) => (
+                                {bundle.comboDetails.benefits.map((benefit, i) => (
                                   <div key={i} className="flex items-start gap-2 text-neutral-900/80">
                                     <svg className="w-5 h-5 text-neutral-900 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="text-sm">{feature}</span>
+                                    <span className="text-sm">
+                                      <strong>{benefit.label}:</strong> {benefit.formattedValue}
+                                      {benefit.validity && <span className="text-neutral-900/60"> ({benefit.validity})</span>}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
@@ -1011,7 +1016,7 @@ export default function DashboardPackages() {
                             <div className="mt-auto pt-4 border-t border-neutral-900/10">
                               <div className="flex items-baseline justify-between mb-3">
                                 <span className="text-neutral-900 font-extrabold text-3xl">
-                                  R{bundle.price.toFixed(2)}
+                                  R{bundle.actualPrice.toFixed(2)}
                                 </span>
                                 <span className="text-neutral-900/70 text-sm font-semibold">per month</span>
                               </div>

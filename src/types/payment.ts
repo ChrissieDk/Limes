@@ -146,9 +146,11 @@ export interface PaystackSubscription {
 
 // Transaction initialization request/response (SECURE - Backend controls amount)
 // Backend fetches price from MVNX, frontend only provides productId and msisdn
+// For combo bundles, amount can be provided since MVNX catalog has price: 0
 export interface InitializeTransactionRequest {
   productId: string        // REQUIRED - Product ID to purchase (backend gets price from MVNX)
   msisdn: string | null    // OPTIONAL - Can be null for payment-first flow (MSISDN allocated after payment)
+  amount?: number          // OPTIONAL - Price override in cents (ONLY for combo bundles with catalog price: 0)
 }
 
 export interface InitializeTransactionResponse {
