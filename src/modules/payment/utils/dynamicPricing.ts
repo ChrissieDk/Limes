@@ -23,8 +23,9 @@ function getRatePerRand(serviceType: ServiceType, packageType: PackageType): num
 
   // For AIRTIME: price is the cost per Rand of airtime
   // e.g., R0.90 cost means R1 payment buys 1/0.90 = R1.11 airtime (customer wins!)
+  // Return in cents (multiply by 100)
   if (serviceType === 'AIRTIME') {
-    return 1 / pricePerUnit // Invert to give customer MORE airtime
+    return (1 / pricePerUnit) * 100 // Invert to give customer MORE airtime, convert to cents
   }
 
   // For DATA and WHATSAPP: price is per MB, we need to convert to bytes per Rand
@@ -33,7 +34,13 @@ function getRatePerRand(serviceType: ServiceType, packageType: PackageType): num
     return mbPerRand * 1048576 // Convert MB to bytes
   }
 
-  // For VOICE, SMS, MMS: price is per unit, so we need units per Rand
+  // For VOICE: price is per minute, convert to seconds per Rand
+  if (serviceType === 'VOICE') {
+    const minutesPerRand = 1 / pricePerUnit
+    return minutesPerRand * 60 // Convert minutes to seconds
+  }
+
+  // For SMS, MMS: price is per unit, so we need units per Rand
   return 1 / pricePerUnit
 }
 
@@ -42,7 +49,7 @@ function getRatePerRand(serviceType: ServiceType, packageType: PackageType): num
  * @param serviceType - Type of service (VOICE, DATA, SMS, WHATSAPP, MMS, AIRTIME)
  * @param rands - Amount in Rands
  * @param packageType - Package type (contract or prepaid)
- * @returns Service value in appropriate units (minutes, bytes, messages, rands for airtime), or null if not available
+ * @returns Service value in appropriate units (seconds for VOICE, bytes for DATA/WHATSAPP, messages for SMS/MMS, cents for AIRTIME), or null if not available
  */
 export function convertRandsToServiceValue(
   serviceType: ServiceType, 
@@ -80,9 +87,10 @@ export function getServiceDisplayValue(
 
   const rawValue = rands * ratePerRand
 
-  // Special handling for AIRTIME (rands to rands conversion)
+  // Special handling for AIRTIME (cents to rands display conversion)
   if (serviceType === 'AIRTIME') {
-    return `R${rawValue.toFixed(2)} airtime`
+    const rands = rawValue / 100 // Convert cents to rands for display
+    return `R${rands.toFixed(2)} airtime`
   }
 
   // Special formatting for DATA and WHATSAPP (convert bytes to MB/GB)
@@ -97,9 +105,14 @@ export function getServiceDisplayValue(
     return `${Math.floor(mb)} MB`
   }
 
-  // For VOICE, SMS, MMS, return the count with unit
+  // For VOICE, convert seconds to minutes for display
+  if (serviceType === 'VOICE') {
+    const minutes = rawValue / 60 // Convert seconds to minutes for display
+    return `${Math.floor(minutes)} min`
+  }
+
+  // For SMS, MMS, return the count with unit
   const displayUnits: Record<string, string> = {
-    VOICE: 'min',
     SMS: 'SMS',
     MMS: 'MMS',
   }
@@ -130,8 +143,8 @@ export function getDefaultExpiryDate(): string {
  */
 export function validateServiceValue(serviceType: ServiceType, value: number): boolean {
   const limits: Record<ServiceType, { min: number; max: number; unit: string }> = {
-    AIRTIME: { min: 1, max: 100000, unit: 'cents' },  // R1 to R1000
-    VOICE: { min: 0.0001, max: 20000, unit: 'minutes' },
+    AIRTIME: { min: 1, max: 100000, unit: 'cents' },  // R0.01 to R1000
+    VOICE: { min: 0.0001, max: 1200000, unit: 'seconds' },  // Up to 20,000 minutes
     SMS: { min: 0.0001, max: 2000, unit: 'messages' },
     DATA: { min: 0.0001, max: 214748364800, unit: 'bytes' },
     WHATSAPP: { min: 0.0001, max: 214748364800, unit: 'bytes' },

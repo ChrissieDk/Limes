@@ -56,7 +56,7 @@ interface RatingTableStructure {
 export const contractRatingTable: RatingTableStructure = {
   voice: {
     local: {
-      price: 0.89,
+      price: 0.93,
       currency: "ZAR",
       includesVAT: true,
       serviceCode: "RATE-TARIFF-VOICE"
@@ -71,7 +71,7 @@ export const contractRatingTable: RatingTableStructure = {
 
   data: {
     local: {
-      price: 0.29,
+      price: 0.044, // R0.0489 per MB
       currency: "ZAR",
       includesVAT: true,
       serviceCode: "RATE-TARIFF-DATA"
@@ -80,7 +80,7 @@ export const contractRatingTable: RatingTableStructure = {
 
   sms: {
     local: {
-      price: 0.40,
+      price: 0.23,
       currency: "ZAR",
       includesVAT: true,
       serviceCode: "RATE-TARIFF-SMS"
@@ -110,7 +110,7 @@ export const contractRatingTable: RatingTableStructure = {
 
   whatsapp: {
     local: {
-      price: null, // Not available yet - set a price to enable
+      price: 0.046, // Not available yet - set a price to enable
       currency: "ZAR",
       includesVAT: true,
       serviceCode: "RATE-TARIFF-WHATSAPP"
