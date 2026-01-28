@@ -2,46 +2,103 @@
  * Dynamic Pricing Utilities
  * 
  * Handles pricing calculations for both contract and prepaid packages.
- * All pricing uses the rating tables from config/ratingTable.ts
+ * Uses tiered pricing where applicable (DATA, VOICE, SMS, WHATSAPP).
+ * In tiered pricing, once you reach a tier, ALL usage is priced at that tier's rate.
  */
 
-import { getRateForService, type ServiceType as RatingServiceType, type PackageType } from '../config/ratingTable'
+import { 
+  getPricingBrackets,
+  type ServiceType as RatingServiceType, 
+  type PackageType,
+  type PricingBracket 
+} from '../config/ratingTable'
 
 export type ServiceType = 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP' | 'MMS'
 
 /**
- * Get pricing rate per Rand for a service
- * Uses the rating table which has per-unit prices (e.g., R0.89/min)
- * Converts to rate per Rand (e.g., 1/0.89 minutes per Rand)
+ * Find the appropriate pricing tier for a given number of units
+ * @param totalUnits - Total units to find tier for
+ * @param tiers - Pricing tiers
+ * @returns The tier that applies, or null if not found
  */
-function getRatePerRand(serviceType: ServiceType, packageType: PackageType): number | null {
-  const pricePerUnit = getRateForService(serviceType as RatingServiceType, packageType, 'local')
+function findTier(totalUnits: number, tiers: PricingBracket[]): PricingBracket | null {
+  for (const tier of tiers) {
+    const tierEnd = tier.toUnits ?? Infinity
+    if (totalUnits >= tier.fromUnits && totalUnits < tierEnd) {
+      return tier
+    }
+  }
+  // If we're beyond all tiers, use the last tier
+  return tiers[tiers.length - 1] || null
+}
+
+/**
+ * Calculate cost using tiered pricing
+ * In tiered pricing, ALL units are priced at the tier's rate
+ * @param totalUnits - Total units to calculate cost for
+ * @param tiers - Pricing tiers to use
+ * @returns Total cost in Rands
+ */
+export function calculateTieredCost(totalUnits: number, tiers: PricingBracket[]): number {
+  const tier = findTier(totalUnits, tiers)
+  if (!tier) return 0
   
-  if (pricePerUnit === null) {
-    return null
-  }
+  return totalUnits * tier.pricePerUnit
+}
 
-  // For AIRTIME: price is the cost per Rand of airtime
-  // e.g., R0.90 cost means R1 payment buys 1/0.90 = R1.11 airtime (customer wins!)
-  // Return in cents (multiply by 100)
-  if (serviceType === 'AIRTIME') {
-    return (1 / pricePerUnit) * 100 // Invert to give customer MORE airtime, convert to cents
+/**
+ * Calculate units from Rands using tiered pricing
+ * This is the inverse of calculateTieredCost
+ * @param rands - Amount in Rands to spend
+ * @param tiers - Pricing tiers to use
+ * @returns Total units you can buy
+ */
+function calculateUnitsFromTiers(rands: number, tiers: PricingBracket[]): number {
+  // Try each tier from most expensive to cheapest to find the best fit
+  for (let i = tiers.length - 1; i >= 0; i--) {
+    const tier = tiers[i]
+    const unitsAtThisTier = rands / tier.pricePerUnit
+    
+    // Check if this amount of units falls within this tier
+    const tierEnd = tier.toUnits ?? Infinity
+    if (unitsAtThisTier >= tier.fromUnits && unitsAtThisTier < tierEnd) {
+      return unitsAtThisTier
+    }
   }
+  
+  // If no tier matches, use the first tier
+  return rands / tiers[0].pricePerUnit
+}
 
-  // For DATA and WHATSAPP: price is per MB, we need to convert to bytes per Rand
+/**
+ * Get pricing rate per Rand for a service (all services now use tiered pricing)
+ * Calculates what 1 Rand can buy for the given service type
+ */
+function getRatePerRand(serviceType: ServiceType): number | null {
+  // Get tiered pricing for the service
+  const tiers = getPricingBrackets(serviceType as RatingServiceType)
+  
+  if (!tiers || tiers.length === 0) {
+    return null // Service not available
+  }
+  
+  // Use tiered pricing to calculate what 1 Rand buys
+  const unitsFor1Rand = calculateUnitsFromTiers(1, tiers)
+  
+  // Convert to appropriate output units
   if (serviceType === 'DATA' || serviceType === 'WHATSAPP') {
-    const mbPerRand = 1 / pricePerUnit
-    return mbPerRand * 1048576 // Convert MB to bytes
+    // Tiers are in MB, convert to bytes
+    return unitsFor1Rand * 1048576
+  } else if (serviceType === 'VOICE') {
+    // Tiers are in minutes, convert to seconds
+    return unitsFor1Rand * 60
+  } else if (serviceType === 'AIRTIME') {
+    // Tiers are in Rands, convert to cents
+    return unitsFor1Rand * 100
+  } else {
+    // SMS - keep as-is (count)
+    return unitsFor1Rand
   }
-
-  // For VOICE: price is per minute, convert to seconds per Rand
-  if (serviceType === 'VOICE') {
-    const minutesPerRand = 1 / pricePerUnit
-    return minutesPerRand * 60 // Convert minutes to seconds
-  }
-
-  // For SMS, MMS: price is per unit, so we need units per Rand
-  return 1 / pricePerUnit
 }
 
 /**
@@ -54,10 +111,10 @@ function getRatePerRand(serviceType: ServiceType, packageType: PackageType): num
 export function convertRandsToServiceValue(
   serviceType: ServiceType, 
   rands: number, 
-  packageType: PackageType = 'prepaid'
+  _packageType: PackageType = 'prepaid'
 ): number | null {
-  // Use rating table for both contract and prepaid
-  const ratePerRand = getRatePerRand(serviceType, packageType)
+  // Use tiered pricing for all services
+  const ratePerRand = getRatePerRand(serviceType)
   if (ratePerRand === null) {
     // Service not available for this package type
     return null
@@ -76,50 +133,35 @@ export function convertRandsToServiceValue(
 export function getServiceDisplayValue(
   serviceType: ServiceType, 
   rands: number, 
-  packageType: PackageType = 'prepaid'
+  _packageType: PackageType = 'prepaid'
 ): string | null {
-  // Use rating table for both contract and prepaid
-  const ratePerRand = getRatePerRand(serviceType, packageType)
-  if (ratePerRand === null) {
-    // Service not available for this package type
-    return null
+  // All services now use tiered pricing
+  const tiers = getPricingBrackets(serviceType as RatingServiceType)
+  
+  if (!tiers || tiers.length === 0) {
+    return null // Service not available
   }
-
-  const rawValue = rands * ratePerRand
-
-  // Special handling for AIRTIME (cents to rands display conversion)
-  if (serviceType === 'AIRTIME') {
-    const rands = rawValue / 100 // Convert cents to rands for display
-    return `R${rands.toFixed(2)} airtime`
-  }
-
-  // Special formatting for DATA and WHATSAPP (convert bytes to MB/GB)
+  
+  const units = calculateUnitsFromTiers(rands, tiers)
+  
+  // Format based on service type
   if (serviceType === 'DATA' || serviceType === 'WHATSAPP') {
-    const bytes = rawValue
-    const mb = bytes / 1048576
+    // Units are in MB, convert to GB if appropriate
+    const mb = units
     const gb = mb / 1024
 
     if (gb >= 1) {
       return `${gb.toFixed(2)} GB`
     }
     return `${Math.floor(mb)} MB`
-  }
-
-  // For VOICE, convert seconds to minutes for display
-  if (serviceType === 'VOICE') {
-    const minutes = rawValue / 60 // Convert seconds to minutes for display
-    return `${Math.floor(minutes)} min`
-  }
-
-  // For SMS, MMS, return the count with unit
-  const displayUnits: Record<string, string> = {
-    SMS: 'SMS',
-    MMS: 'MMS',
-  }
-
-  const unit = displayUnits[serviceType]
-  if (unit) {
-    return `${Math.floor(rawValue)} ${unit}`
+  } else if (serviceType === 'VOICE') {
+    // Units are in minutes
+    return `${Math.floor(units)} min`
+  } else if (serviceType === 'SMS') {
+    return `${Math.floor(units)} SMS`
+  } else if (serviceType === 'AIRTIME') {
+    // Units are in Rands
+    return `R${units.toFixed(2)} airtime`
   }
 
   return null
@@ -167,6 +209,6 @@ export function validateServiceValue(serviceType: ServiceType, value: number): b
  * @param packageType - Package type (contract or prepaid)
  * @returns true if the service is available
  */
-export function isServiceAvailable(serviceType: ServiceType, packageType: PackageType): boolean {
-  return getRatePerRand(serviceType, packageType) !== null
+export function isServiceAvailable(serviceType: ServiceType, _packageType: PackageType): boolean {
+  return getRatePerRand(serviceType) !== null
 }
