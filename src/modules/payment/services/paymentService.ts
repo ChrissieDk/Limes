@@ -4,6 +4,8 @@ import type {
   InitializeTransactionResponse,
   InitializeDynamicServicesPaymentRequest,
   InitializeDynamicServicesPaymentResponse,
+  InitializeComboPaymentRequest,
+  InitializeComboPaymentResponse,
   VerifyPaymentRequest,
   VerifyPaymentResponse,
   SavedCard,
@@ -40,6 +42,16 @@ export const paymentService = {
    */
   async initializeDynamicServicesPayment(payload: InitializeDynamicServicesPaymentRequest): Promise<InitializeDynamicServicesPaymentResponse> {
     const response = await apiClient.post('/payment/dynamic-services/initialize', payload)
+    return response.data
+  },
+
+  /**
+   * Initialize combo bundle payment (Step 1 for m2m_combo packages)
+   * Used for combo bundles where MVNX catalog shows price: 0 but frontend knows actual price
+   * Amount is sent in RANDS (backend converts to cents)
+   */
+  async initializeComboPayment(payload: InitializeComboPaymentRequest): Promise<InitializeComboPaymentResponse> {
+    const response = await apiClient.post('/payment/paystack/initialize-combo', payload)
     return response.data
   },
 

@@ -188,6 +188,25 @@ export interface InitializeDynamicServicesPaymentResponse {
   error?: string
 }
 
+// Combo Bundle Payment Initialization (for m2m_combo packages)
+// Used when MVNX catalog shows price: 0 but frontend knows actual price
+export interface InitializeComboPaymentRequest {
+  productId: string        // Combo bundle product ID (e.g., "COMBO_BUNDLE_001")
+  amount: number           // Price in RANDS (NOT cents) - backend will convert to cents
+  msisdn?: string | null   // Optional - can be null for payment-first flow
+}
+
+export interface InitializeComboPaymentResponse {
+  success: boolean
+  message: string
+  data?: {
+    authorization_url: string
+    access_code: string
+    reference: string
+  }
+  error?: string
+}
+
 // Dynamic Services Recurring Subscription (for contract monthly plans)
 export interface CreateDynamicServicesRecurringRequest {
   msisdn: string

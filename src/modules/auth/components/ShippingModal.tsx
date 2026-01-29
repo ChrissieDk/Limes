@@ -255,9 +255,9 @@ export default function ShippingModal({
         
         initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
         
-      } else {
-        // PREPAID FLOW OR CONTRACT COMBO BUNDLES: Payment first, then subscriber creation
-        console.log('[Payment] PREPAID/COMBO FLOW: MSISDN will be allocated AFTER payment')
+      } else if (selectedPackage.isComboBundle) {
+        // COMBO BUNDLE FLOW: Use dedicated combo initialize endpoint
+        console.log('[Payment] COMBO BUNDLE FLOW: Using combo-specific initialize endpoint')
         
         if (!selectedPackage.productId) {
           setVerificationError('Product ID is missing')
@@ -265,28 +265,38 @@ export default function ShippingModal({
           return
         }
         
-        const payload: any = {
+        if (!selectedPackage.price) {
+          setVerificationError('Price is missing for combo bundle')
+          console.error('[Payment] ❌ Price is missing from combo bundle')
+          return
+        }
+        
+        const comboPayload = {
+          productId: String(selectedPackage.productId),
+          amount: selectedPackage.price,  // In RANDS (backend will convert to cents)
+          msisdn: null  // Payment-first, MSISDN allocated after payment
+        }
+        
+        console.log('[Payment] 🎯 COMBO BUNDLE: Initialize payload (amount in RANDS):', comboPayload)
+        
+        initResponse = await paymentService.initializeComboPayment(comboPayload)
+        
+      } else {
+        // PREPAID FLOW: Regular packages (payment first, then subscriber creation)
+        console.log('[Payment] PREPAID FLOW: MSISDN will be allocated AFTER payment')
+        
+        if (!selectedPackage.productId) {
+          setVerificationError('Product ID is missing')
+          console.error('[Payment] ❌ Product ID is missing from selectedPackage')
+          return
+        }
+        
+        const payload = {
           productId: String(selectedPackage.productId),
           msisdn: null  // Payment-first, MSISDN allocated after payment
         }
         
-        // COMBO BUNDLES ONLY: Add amount since MVNX catalog has price: 0
-        console.log('[Payment] Checking combo bundle:', {
-          isComboBundle: selectedPackage.isComboBundle,
-          priceInCents: selectedPackage.priceInCents,
-          price: selectedPackage.price,
-          packageType: selectedPackage.packageType
-        })
-        
-        if (selectedPackage.isComboBundle && selectedPackage.priceInCents) {
-          payload.amount = selectedPackage.priceInCents
-          console.log('[Payment] 🎯 COMBO BUNDLE: Including amount override:', selectedPackage.priceInCents, 'cents')
-        } else if (selectedPackage.isComboBundle && !selectedPackage.priceInCents) {
-          console.warn('[Payment] ⚠️ COMBO BUNDLE detected but priceInCents is missing!')
-        }
-        
         console.log('[Payment] Initialize payload (payment-first):', payload)
-        console.log('[Payment] Full selected package:', selectedPackage)
         
         initResponse = await paymentService.initializeTransaction(payload)
       }
