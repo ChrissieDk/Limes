@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Calendar, AlertCircle, CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
 import { userService } from '../../auth/services/userService'
+import { toCents } from '../utils/dynamicPricing'
 import type { SubscriptionDetails, SavedCard } from '../../../types/payment'
 
 interface SubscriptionManagementProps {
@@ -129,6 +130,45 @@ export default function SubscriptionManagement({
       }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to create subscription')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  /**
+   * Create combo bundle recurring subscription
+   * NEW: For combo bundle subscriptions
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleComboSubscription = async (productId: string, amount: number) => {
+    if (!selectedCardId || !userMsisdn) {
+      setError('Please select a card and ensure MSISDN is available')
+      return
+    }
+
+    setIsCreating(true)
+    setError(null)
+
+    try {
+      const response = await paymentService.subscribeToComboBundle({
+        productId,
+        msisdn: userMsisdn,
+        paymentMethodId: selectedCardId,
+        amount: toCents(amount)  // Convert rands to cents
+      })
+
+      if (response.success && response.subscription) {
+        setSubscription(response.subscription as any)
+        setSuccessMessage('Combo bundle subscription created successfully!')
+        setTimeout(() => setSuccessMessage(null), 3000)
+        if (onSubscriptionCreated) {
+          onSubscriptionCreated(response.subscription as any)
+        }
+      } else {
+        setError(response.message || 'Failed to create combo subscription')
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to create combo subscription')
     } finally {
       setIsCreating(false)
     }

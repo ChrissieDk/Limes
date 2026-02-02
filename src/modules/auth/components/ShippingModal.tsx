@@ -3,7 +3,8 @@ import { Plus, MapPin, Package, AlertCircle, CheckCircle2, Loader2 } from 'lucid
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
-import { convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
+import { convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../../payment/utils/dynamicPricing'
+import type { DynamicServicePaymentItem } from '../../../types/payment'
 
 // Load Paystack Inline JS
 declare const PaystackPop: any
@@ -131,7 +132,6 @@ export default function ShippingModal({
   // Set default address when prop changes
   useEffect(() => {
     if (defaultAddress) {
-      console.log('ShippingModal: Setting default address:', defaultAddress)
       setAddresses([defaultAddress])
       setSelectedAddressIndex(0)
     }
@@ -161,33 +161,23 @@ export default function ShippingModal({
     setVerificationError(null)
 
     try {
-      console.log('[Payment] Initializing transaction on backend...')
-      console.log('[Payment] Selected package:', selectedPackage)
-      console.log('[Payment] Product ID:', selectedPackage.productId)
-      console.log('[Payment] Plan charge type:', selectedPackage.planChargeType)
-      console.log('[Payment] Package type:', selectedPackage.packageType)
-      console.log('[Payment] Is dynamic plan:', selectedPackage.isDynamicPlan)
 
       let initResponse: { success: boolean; data?: { access_code: string; reference: string }; error?: string }
 
       // CONTRACT DYNAMIC PLANS: Create subscriber FIRST, then initialize with MSISDN + services
       if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
-        console.log('[Payment] CONTRACT FLOW: Creating subscriber first, then initializing dynamic services payment')
         
         if (!ricaData) {
           setVerificationError('RICA data is required for contract plans')
-          console.error('[Payment] ❌ RICA data is missing')
           return
         }
 
         if (!selectedPackage.simPackageProductId) {
           setVerificationError('SIM package product ID is required')
-          console.error('[Payment] ❌ SIM package product ID is missing')
           return
         }
 
         // STEP 1: Create subscriber to get MSISDN
-        console.log('[Payment] Step 1: Creating subscriber to allocate MSISDN...')
         const subscriberPayload = {
           productId: selectedPackage.simPackageProductId,
           eSim: false,
@@ -198,20 +188,17 @@ export default function ShippingModal({
             oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
           }] : []
         }
-        console.log('[Payment] Subscriber payload:', subscriberPayload)
         
         const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
         const allocatedMsisdn = subscriberResponse.msisdn
-        console.log('[Payment] ✓ Subscriber created, MSISDN:', allocatedMsisdn)
 
         // Store MSISDN for later use in verification
         setAllocatedMsisdn(allocatedMsisdn)
 
         // STEP 2: Initialize dynamic services payment with MSISDN
-        console.log('[Payment] Step 2: Initializing dynamic services payment...')
         
         // Convert plan allocation (in Rands) to services array
-        const services = []
+        const services: DynamicServicePaymentItem[] = []
         const expiryDate = getDefaultExpiryDate()
         
         if (selectedPackage.planAllocation.data > 0) {
@@ -251,13 +238,11 @@ export default function ShippingModal({
           msisdn: allocatedMsisdn,
           services
         }
-        console.log('[Payment] Dynamic services payload:', dynamicPayload)
         
         initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
         
       } else if (selectedPackage.isComboBundle) {
         // COMBO BUNDLE FLOW: Use dedicated combo initialize endpoint
-        console.log('[Payment] COMBO BUNDLE FLOW: Using combo-specific initialize endpoint')
         
         if (!selectedPackage.productId) {
           setVerificationError('Product ID is missing')
@@ -273,18 +258,13 @@ export default function ShippingModal({
         
         const comboPayload = {
           productId: String(selectedPackage.productId),
-          amount: selectedPackage.price,  // In RANDS (backend will convert to cents)
+          amount: toCents(selectedPackage.price),  // Convert to CENTS (e.g., R150 → 15000)
           msisdn: null  // Payment-first, MSISDN allocated after payment
         }
-        
-        console.log('[Payment] 🎯 COMBO BUNDLE: Initialize payload (amount in RANDS):', comboPayload)
-        
         initResponse = await paymentService.initializeComboPayment(comboPayload)
         
       } else {
         // PREPAID FLOW: Regular packages (payment first, then subscriber creation)
-        console.log('[Payment] PREPAID FLOW: MSISDN will be allocated AFTER payment')
-        
         if (!selectedPackage.productId) {
           setVerificationError('Product ID is missing')
           console.error('[Payment] ❌ Product ID is missing from selectedPackage')
@@ -295,9 +275,6 @@ export default function ShippingModal({
           productId: String(selectedPackage.productId),
           msisdn: null  // Payment-first, MSISDN allocated after payment
         }
-        
-        console.log('[Payment] Initialize payload (payment-first):', payload)
-        
         initResponse = await paymentService.initializeTransaction(payload)
       }
 
@@ -305,18 +282,13 @@ export default function ShippingModal({
         setVerificationError(initResponse.error || 'Failed to initialize payment')
         return
       }
-
-      console.log('[Payment] Transaction initialized, access_code:', initResponse.data.access_code)
-
       // Use Paystack Popup with access_code
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: (transaction: any) => {
-          console.log('[Payment] Payment successful, verifying with backend...')
           handlePaymentVerification(transaction.reference || initResponse.data?.reference || '')
         },
         onCancel: () => {
-          console.log('[Payment] Payment cancelled by user')
           setVerificationError(null)
         }
       })
@@ -342,7 +314,6 @@ export default function ShippingModal({
       const isSubscription = selectedPackage?.planChargeType === 'monthly'
       
       // STEP 1: Verify payment (no longer creates order automatically)
-      console.log('[Payment] Step 1: Verifying payment...')
       const verifyResponse = await paymentService.verifyPayment({
         reference: reference,
         saveCard: isSubscription
@@ -351,18 +322,15 @@ export default function ShippingModal({
       if (!verifyResponse.success) {
         throw new Error(verifyResponse.error || 'Payment verification failed')
       }
-      console.log('[Payment] ✓ Payment verified')
       
       // STEP 2: Create subscriber (get MSISDN) - SKIP if already created in contract flow
       let newMsisdn: string
       
       if (allocatedMsisdn) {
         // Contract flow: Subscriber was already created before payment
-        console.log('[Payment] Step 2: Using pre-allocated MSISDN from contract flow:', allocatedMsisdn)
         newMsisdn = allocatedMsisdn
       } else {
         // Prepaid flow: Create subscriber after payment
-        console.log('[Payment] Step 2: Creating subscriber...')
         if (!ricaData) {
           throw new Error('RICA data is required for subscriber creation')
         }
@@ -414,7 +382,6 @@ export default function ShippingModal({
         
         if (!simStatus.isActive) {
           // SIM not active - store pending dynamic services
-          console.log('[Payment] Step 3: Storing pending dynamic services...')
           
           const pendingServices = []
           if (planAllocation.data > 0) {
@@ -467,12 +434,9 @@ export default function ShippingModal({
           for (const service of pendingServices) {
             await subscriptionService.storePendingDynamicService(newMsisdn, service)
           }
-          console.log('[Payment] ✓ Pending dynamic services stored:', pendingServices.length)
-          console.log('[Payment] Services will be created and linked when SIM activates')
           
         } else {
           // SIM is active - create services immediately
-          console.log('[Payment] Step 3: Creating dynamic services...')
           const services = []
           
           if (planAllocation.data > 0) {
@@ -518,34 +482,26 @@ export default function ShippingModal({
             .filter(r => r.success && r.id)
             .map(r => r.id!)
           
-          console.log('[Payment] ✓ Dynamic services created:', serviceIds.length)
-          
           // STEP 4: Link transaction to services
-          console.log('[Payment] Step 4: Linking transaction to services...')
           await paymentService.linkTransactionToServices({
             transactionReference: reference,
             serviceIds: serviceIds
           })
-          console.log('[Payment] ✓ Transaction linked to services')
         }
         
       } else {
         // Regular order flow
         if (!simStatus.isActive) {
           // SIM not active - store pending order
-          console.log('[Payment] Step 3: Storing pending order...')
           await subscriptionService.storePendingOrder({
             msisdn: newMsisdn,
             productId: selectedPackage!.productId,
             productAmount: selectedPackage!.price,
             paymentReference: reference
           })
-          console.log('[Payment] ✓ Pending order stored')
-          console.log('[Payment] Order will be created and linked when SIM activates')
           
         } else {
           // SIM is active - create order immediately
-          console.log('[Payment] Step 3: Creating order...')
           const orderResponse = await subscriptionService.createOrder({
             products: [{ id: selectedPackage!.productId, amount: selectedPackage!.price }],
             msisdn: newMsisdn
@@ -553,15 +509,11 @@ export default function ShippingModal({
           
           if (orderResponse.orderId) {
             // Order created immediately - link transaction
-            console.log('[Payment] ✓ Order created:', orderResponse.orderId)
-            
             // STEP 4: Link transaction to order
-            console.log('[Payment] Step 4: Linking transaction to order...')
             await paymentService.linkTransactionToOrder({
               transactionReference: reference,
               orderId: orderResponse.orderId
             })
-            console.log('[Payment] ✓ Transaction linked to order')
           } else {
             throw new Error('Order creation failed - no orderId in response')
           }
@@ -570,17 +522,15 @@ export default function ShippingModal({
       
       // STEP 5: Create recurring subscription if monthly
       if (isSubscription && verifyResponse.cardSaved) {
-        console.log('[Payment] Step 5: Creating recurring dynamic services subscription...')
         const savedCards = await paymentService.getSavedCards()
         if (savedCards && savedCards.length > 0) {
           
           // Build services array from plan allocation
-          const services = []
+          const services: DynamicServicePaymentItem[] = []
           const expiryDate = getDefaultExpiryDate()
           
           if (selectedPackage!.planAllocation) {
             // CONTRACT OR PREPAID WITH ALLOCATION: Use plan allocation
-            console.log('[Payment] Building services from plan allocation')
             
             if (selectedPackage!.planAllocation.data > 0) {
               const dataValue = convertRandsToServiceValue('DATA', selectedPackage!.planAllocation.data, selectedPackage!.packageType || 'prepaid')
@@ -628,7 +578,6 @@ export default function ShippingModal({
             }
           } else {
             // PREPAID WITHOUT ALLOCATION: Backend should derive services from productId
-            console.log('[Payment] No plan allocation - backend will derive services from productId')
             // Create a placeholder service that backend will expand based on productId
             const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
             services.push({
@@ -639,16 +588,27 @@ export default function ShippingModal({
             })
           }
 
-          if (services.length === 0) {
-            throw new Error('No services defined for recurring subscription')
-          }
+          // Check if this is a combo bundle - use different endpoint
+          if (selectedPackage!.isComboBundle) {
+            const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
+            
+            await paymentService.subscribeToComboBundle({
+              productId: selectedPackage!.productId,
+              msisdn: newMsisdn,
+              paymentMethodId: savedCards[0].id,
+              amount: priceInCents  // Already in cents
+            })
+          } else {
+            if (services.length === 0) {
+              throw new Error('No services defined for recurring subscription')
+            }
 
-          await paymentService.createDynamicServicesRecurring({
-            msisdn: newMsisdn,
-            paymentMethodId: savedCards[0].id,
-            services
-          })
-          console.log('[Payment] ✓ Dynamic services recurring subscription created')
+            await paymentService.createDynamicServicesRecurring({
+              msisdn: newMsisdn,
+              paymentMethodId: savedCards[0].id,
+              services
+            })
+          }
         }
       }
       

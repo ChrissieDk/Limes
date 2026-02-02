@@ -20,6 +20,9 @@ import type {
   LinkTransactionToOrderResponse,
   LinkTransactionToServicesRequest,
   LinkTransactionToServicesResponse,
+  GetSubscriptionsResponse,
+  ComboSubscriptionRequest,
+  ComboSubscriptionResponse,
 } from '../../../types/payment'
 
 export const paymentService = {
@@ -48,7 +51,7 @@ export const paymentService = {
   /**
    * Initialize combo bundle payment (Step 1 for m2m_combo packages)
    * Used for combo bundles where MVNX catalog shows price: 0 but frontend knows actual price
-   * Amount is sent in RANDS (backend converts to cents)
+   * Amount is sent in CENTS (e.g., 15000 = R150.00)
    */
   async initializeComboPayment(payload: InitializeComboPaymentRequest): Promise<InitializeComboPaymentResponse> {
     const response = await apiClient.post('/payment/paystack/initialize-combo', payload)
@@ -129,6 +132,24 @@ export const paymentService = {
    */
   async cancelSubscription(payload: CancelSubscriptionRequest): Promise<CancelSubscriptionResponse> {
     const response = await apiClient.post('/payment/paystack/cancel-subscription', payload)
+    return response.data
+  },
+
+  /**
+   * Get all subscriptions for authenticated user
+   * NEW: Replaces parsing subscriptions from GetUser
+   */
+  async getAllSubscriptions(): Promise<GetSubscriptionsResponse> {
+    const response = await apiClient.get('/payment/paystack/subscriptions')
+    return response.data
+  },
+
+  /**
+   * Subscribe to combo bundle (recurring)
+   * NEW: For recurring combo bundle subscriptions
+   */
+  async subscribeToComboBundle(payload: ComboSubscriptionRequest): Promise<ComboSubscriptionResponse> {
+    const response = await apiClient.post('/payment/combo-bundle/recurring', payload)
     return response.data
   },
 

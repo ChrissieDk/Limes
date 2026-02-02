@@ -167,7 +167,7 @@ export interface InitializeTransactionResponse {
 // Dynamic Services Payment Initialization (for contract plans)
 export interface DynamicServicePaymentItem {
   value: number           // The value/amount of the service (e.g., 1073741824 for bytes, 20 for minutes)
-  definitionCode: string  // Service type: "DATA", "VOICE", "SMS", "WHATSAPP", "AIRTIME_ADVANCE"
+  definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE' | 'PACKAGE'  // Service type (PACKAGE = backend expands based on productId)
   expiryDate: string      // ISO format date: "2026-07-30"
   priceInCents: number    // Price in cents (e.g., 5000 = R50)
 }
@@ -192,7 +192,7 @@ export interface InitializeDynamicServicesPaymentResponse {
 // Used when MVNX catalog shows price: 0 but frontend knows actual price
 export interface InitializeComboPaymentRequest {
   productId: string        // Combo bundle product ID (e.g., "COMBO_BUNDLE_001")
-  amount: number           // Price in RANDS (NOT cents) - backend will convert to cents
+  amount: number           // Price in CENTS (e.g., 15000 = R150.00)
   msisdn?: string | null   // Optional - can be null for payment-first flow
 }
 
@@ -348,6 +348,51 @@ export interface CancelSubscriptionRequest {
 export interface CancelSubscriptionResponse {
   success: boolean
   message: string
+}
+
+// Get All Subscriptions (NEW - GET /api/payment/paystack/subscriptions)
+export interface Subscription {
+  id: string
+  paystackSubscriptionCode: string
+  paystackPlanCode: string
+  status: 'active' | 'cancelled' | 'past_due'
+  nextPaymentDate: string
+  amountInRands: number
+  amountInCents: number
+  currency: string
+  createdAt: string
+  cancelledAt: string | null
+  productId: string
+  msisdn: string
+  hasDynamicServices: boolean
+  isActive: boolean
+}
+
+export interface GetSubscriptionsResponse {
+  count: number
+  subscriptions: Subscription[]
+}
+
+// Combo Bundle Recurring Subscription (NEW - POST /api/payment/combo-bundle/recurring)
+export interface ComboSubscriptionRequest {
+  productId: string
+  msisdn: string
+  paymentMethodId: string
+  amount: number  // In cents (e.g., 15000 = R150.00)
+}
+
+export interface ComboSubscriptionResponse {
+  success: boolean
+  message: string
+  subscription: {
+    id: string
+    paystackSubscriptionCode: string
+    paystackPlanCode: string
+    status: string
+    nextPaymentDate: string
+    amountInRands: number
+    currency: string
+  }
 }
 
 // Link Transaction to Order

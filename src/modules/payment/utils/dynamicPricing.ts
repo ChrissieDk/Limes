@@ -212,3 +212,23 @@ export function validateServiceValue(serviceType: ServiceType, value: number): b
 export function isServiceAvailable(serviceType: ServiceType, _packageType: PackageType): boolean {
   return getRatePerRand(serviceType) !== null
 }
+
+/**
+ * Convert Rands to Cents
+ * Used for API calls that require amounts in cents
+ * @param rands - Amount in rands (e.g., 150.00)
+ * @returns Amount in cents (e.g., 15000)
+ */
+export function toCents(rands: number): number {
+  return Math.round(rands * 100)
+}
+
+/**
+ * Convert Cents to Rands
+ * Used for displaying amounts from API responses
+ * @param cents - Amount in cents (e.g., 15000)
+ * @returns Amount in rands (e.g., 150.00)
+ */
+export function toRands(cents: number): number {
+  return cents / 100
+}

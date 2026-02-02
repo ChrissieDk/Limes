@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CreditCard, Trash2, Loader2, AlertCircle, CheckCircle2, Star } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
+import { toCents } from '../utils/dynamicPricing'
 import type { SavedCard } from '../../../types/payment'
 
 interface SavedCardsProps {
@@ -112,7 +113,7 @@ export default function SavedCards({
     try {
       const response = await paymentService.chargeSavedCard({
         paymentMethodId: cardId,
-        amount: chargeAmount,
+        amount: toCents(chargeAmount),  // Convert rands to cents for API
       })
 
       if (response.success) {
