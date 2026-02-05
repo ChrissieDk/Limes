@@ -59,12 +59,12 @@ export default function FileUpload({ label, onFileSelect, accept = 'image/*,appl
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={handleClick}
-        className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+        className={`relative border-2 border-dashed rounded-2xl px-6 py-12 text-center cursor-pointer transition-all ${
           isDragging
-            ? 'border-lime-400 bg-lime-50'
+            ? 'border-neutral-400 bg-neutral-50'
             : uploadedFileName
-            ? 'border-lime-400 bg-lime-50'
-            : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'
+            ? 'border-[#ABFF63] bg-[#EEFFD9]'
+            : 'border-neutral-300 bg-white hover:border-neutral-400'
         }`}
       >
         <input
@@ -75,23 +75,28 @@ export default function FileUpload({ label, onFileSelect, accept = 'image/*,appl
           className="hidden"
         />
         {uploadedFileName ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="size-12 rounded-full bg-lime-400 text-neutral-900 flex items-center justify-center text-2xl">
-              ✓
-            </div>
-            <div className="font-semibold text-neutral-900">File uploaded</div>
-            <div className="text-sm text-neutral-600 break-all px-4">{uploadedFileName}</div>
-            <div className="text-xs text-neutral-500 mt-1">Click or drag to replace</div>
+          <div className="flex flex-col items-center">
+            <img
+              src={`${import.meta.env.BASE_URL}images/doc_success.png`}
+              alt=""
+              aria-hidden="true"
+              className="h-12 w-12 select-none"
+            />
+            <div className="mt-4 font-semibold text-neutral-900 text-2xl">File uploaded</div>
+            <div className="mt-1 text-base text-neutral-500 break-all px-6">{uploadedFileName}</div>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2">
-            <div className="size-12 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center text-2xl">
-              📄
-            </div>
-            <div className="font-semibold text-neutral-900">
+          <div className="flex flex-col items-center">
+            <img
+              src={`${import.meta.env.BASE_URL}images/document.png`}
+              alt=""
+              aria-hidden="true"
+              className="h-12 w-12 select-none"
+            />
+            <div className="mt-4 font-semibold text-neutral-900 text-2xl">
               {isDragging ? 'Drop file here' : 'Click to upload or drag and drop'}
             </div>
-            <div className="text-sm text-neutral-500">PDF, JPG, PNG (Max 10MB)</div>
+            <div className="mt-2 text-base text-neutral-400">PDF, JPG, PNG (Max 10MB)</div>
           </div>
         )}
       </div>

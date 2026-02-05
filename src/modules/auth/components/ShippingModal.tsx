@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, MapPin, Package, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
@@ -660,20 +660,19 @@ export default function ShippingModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-2xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <div className="grid place-items-center size-8 rounded-lg bg-neutral-900 text-white">
-              <Package className="w-4 h-4" />
+      <div className="relative w-full max-w-2xl mx-0 sm:mx-4 rounded-[28px] bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-[28px]">
+          <div>
+            <div className="text-[20px] sm:text-[22px] font-semibold leading-[1.1]">
+              Confirm SIM delivery
             </div>
-            <div>
-              <div className="font-extrabold text-lg">Confirm SIM Delivery</div>
-              <div className="text-sm text-neutral-500">Review your package and shipping details</div>
+            <div className="text-sm text-neutral-500 mt-0.5">
+              Review your package and shipping details
             </div>
           </div>
           <button 
             aria-label="Close" 
-            className="size-10 grid place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 text-2xl" 
+            className="size-10 grid place-items-center rounded-xl text-neutral-500 hover:bg-neutral-100 text-2xl" 
             onClick={onClose}
           >
             ×
@@ -686,32 +685,37 @@ export default function ShippingModal({
             {/* Selected Package Section */}
             {selectedPackage && (
               <div className="space-y-3">
-                <h3 className="text-neutral-900 font-bold text-sm uppercase tracking-wide">Selected Package</h3>
-                <div className="rounded-xl border-2 border-neutral-900 bg-lime-50 p-4">
+                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                  Selected package
+                </h3>
+                <div className="rounded-[22px] border border-[#ABFF63] bg-[#EEFFD9] p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-lg bg-lime-400 grid place-items-center">
-                        <img 
-                          src={`${import.meta.env.BASE_URL}images/plan_logo.png`} 
-                          alt="Package" 
-                          className="w-6 h-6" 
-                        />
-                      </div>
+                      <img
+                        src={`${import.meta.env.BASE_URL}images/lime-icon.png`}
+                        alt=""
+                        aria-hidden="true"
+                        className="hidden sm:block h-8 w-8 select-none"
+                      />
                       <div>
-                        <div className="font-bold text-lg text-neutral-900">{selectedPackage.name}</div>
-                        <div className="text-xs text-neutral-600">Product ID: {selectedPackage.productId}</div>
+                        <div className="font-semibold text-[28px] leading-[1.05] tracking-tight text-neutral-900">
+                          {selectedPackage.name}
+                        </div>
+                        <div className="text-sm text-neutral-600">Product ID: {selectedPackage.productId}</div>
                         {selectedPackage.simPackageProductId && (
-                          <div className="text-xs text-neutral-600">SIM Package: {selectedPackage.simPackageProductId}</div>
+                          <div className="text-sm text-neutral-600">SIM Package: {selectedPackage.simPackageProductId}</div>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-neutral-900">R{selectedPackage.price}</div>
-                      <div className="text-xs text-neutral-600">
-                        {selectedPackage.planChargeType === 'once-off' ? 'once-off payment' : 'first month (then auto-renews)'}
+                      <div className="text-[28px] font-semibold leading-[1.05] text-neutral-900">
+                        R{selectedPackage.price}
+                      </div>
+                      <div className="text-sm text-neutral-600">
+                        {selectedPackage.planChargeType === 'once-off' ? 'Once-off payment' : 'First month (then auto-renews)'}
                       </div>
                       {selectedPackage.packageType && (
-                        <div className="text-xs text-lime-700 font-semibold mt-1">
+                        <div className="text-sm text-lime-700 font-semibold mt-1">
                           {selectedPackage.packageType === 'contract' ? 'Contract' : 'Prepaid'}
                         </div>
                       )}
@@ -720,57 +724,57 @@ export default function ShippingModal({
                   
                   {/* Package Features - Dynamic Plan Allocation */}
                   {selectedPackage.isDynamicPlan && selectedPackage.planAllocation ? (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3 mt-4">
                       {selectedPackage.planAllocation.data > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">Data</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.data}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">Mobile data</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.data}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.voice > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">Voice</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.voice}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">Airtime</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.voice}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.sms > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">SMS</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.sms}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">SMS</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.sms}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.whatsapp > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">WhatsApp</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.whatsapp}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">WhatsApp</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.whatsapp}</div>
                         </div>
                       )}
                     </div>
                   ) : (
                   /* Package Features - Regular Bundle */
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                     {selectedPackage.features?.mobileData && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Mobile Data</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.mobileData}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Mobile data</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.mobileData}</div>
                       </div>
                     )}
                     {selectedPackage.features?.messaging && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Messaging</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.messaging}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Messaging</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.messaging}</div>
                       </div>
                     )}
                     {selectedPackage.features?.phone && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Phone</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.phone}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Phone</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.phone}</div>
                       </div>
                     )}
                     {selectedPackage.features?.airtime && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Airtime</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.airtime}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Airtime</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.airtime}</div>
                       </div>
                     )}
                   </div>
@@ -782,11 +786,13 @@ export default function ShippingModal({
             {/* Shipping Address Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-neutral-900 font-bold text-sm uppercase tracking-wide">Shipping Address</h3>
+                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                  Shipping address
+                </h3>
                 {!showAddAddress && (
                   <button
                     onClick={() => setShowAddAddress(true)}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-lime-600 hover:text-lime-700"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-lime-700 hover:text-lime-800"
                   >
                     <Plus className="w-4 h-4" />
                     Add New Address
@@ -801,23 +807,22 @@ export default function ShippingModal({
                     <div
                       key={idx}
                       onClick={() => setSelectedAddressIndex(idx)}
-                      className={`rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`rounded-[22px] border cursor-pointer transition-all ${
                         selectedAddressIndex === idx
-                          ? 'border-neutral-900 bg-lime-50'
+                          ? 'border-[#ABFF63] bg-[#EEFFD9]'
                           : 'border-neutral-200 bg-white hover:border-neutral-300'
                       } p-4`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <div className={`size-8 rounded-lg grid place-items-center ${
-                            selectedAddressIndex === idx ? 'bg-neutral-900' : 'bg-neutral-100'
-                          }`}>
-                            <MapPin className={`w-4 h-4 ${
-                              selectedAddressIndex === idx ? 'text-white' : 'text-neutral-600'
-                            }`} />
-                          </div>
+                          <img
+                            src={`${import.meta.env.BASE_URL}images/location.png`}
+                            alt=""
+                            aria-hidden="true"
+                            className="hidden sm:block h-10 w-10 select-none"
+                          />
                           <div className="flex-1">
-                            <div className="font-medium text-neutral-900 mb-1">
+                            <div className="font-semibold text-neutral-900 text-[28px] leading-[1.05] mb-0.5">
                               {idx === 0 ? 'Default Address' : `Address ${idx + 1}`}
                             </div>
                             <div className="text-sm text-neutral-600 leading-relaxed">
@@ -825,19 +830,14 @@ export default function ShippingModal({
                             </div>
                           </div>
                         </div>
-                        <span
-                          className={`size-5 rounded-full border-2 transition-all ${
-                            selectedAddressIndex === idx
-                              ? 'bg-neutral-900 border-neutral-900'
-                              : 'bg-white border-neutral-300'
-                          }`}
-                        >
-                          {selectedAddressIndex === idx && (
-                            <svg className="w-full h-full text-white" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </span>
+                        {selectedAddressIndex === idx && (
+                          <img
+                            src={`${import.meta.env.BASE_URL}images/doc_success.png`}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-10 w-10 select-none"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -907,7 +907,12 @@ export default function ShippingModal({
 
               {!showAddAddress && addresses.length === 0 && (
                 <div className="text-center py-8 text-neutral-500">
-                  <MapPin className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                  <img
+                    src={`${import.meta.env.BASE_URL}images/location.png`}
+                    alt=""
+                    aria-hidden="true"
+                    className="hidden sm:block h-12 w-12 mx-auto mb-3 opacity-40 select-none"
+                  />
                   <p className="text-sm">No addresses available. Please add one.</p>
                 </div>
               )}
@@ -916,7 +921,9 @@ export default function ShippingModal({
             {/* Customer Details for Payment */}
             {!showAddAddress && addresses.length > 0 && selectedPackage && (
               <div className="space-y-3">
-                <h3 className="text-neutral-900 font-bold text-sm uppercase tracking-wide">Payment Details</h3>
+                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                  Payment details
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <TextField
                     label="Email"
@@ -936,6 +943,7 @@ export default function ShippingModal({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="27123456789"
+                    className="md:col-span-2"
                   />
                 </div>
                 <div className="space-y-2">
@@ -983,7 +991,7 @@ export default function ShippingModal({
             {/* Summary & Pay Button */}
             {!showAddAddress && addresses.length > 0 && selectedPackage && (
               <div className="space-y-4 pt-2">
-                <div className="rounded-xl bg-neutral-100 p-4 space-y-2">
+                <div className="rounded-[18px] bg-neutral-100 p-5 space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-neutral-600">Package</span>
                     <span className="font-semibold text-neutral-900">R{selectedPackage.price}</span>
@@ -993,8 +1001,8 @@ export default function ShippingModal({
                     <span className="font-semibold text-lime-600">FREE</span>
                   </div>
                   <div className="border-t border-neutral-300 pt-2 flex items-center justify-between">
-                    <span className="font-bold text-neutral-900">Total</span>
-                    <span className="font-bold text-2xl text-neutral-900">R{selectedPackage.price}</span>
+                    <span className="font-semibold text-neutral-900 text-base">Total</span>
+                    <span className="font-semibold text-2xl text-lime-700">R{selectedPackage.price}</span>
                   </div>
                 </div>
 
@@ -1012,9 +1020,9 @@ export default function ShippingModal({
                   ) : (
                     <button
                       onClick={handleInitializePayment}
-                      className="w-full bg-lime-400 text-neutral-900 py-3.5 px-4 rounded-xl font-bold hover:bg-lime-300 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-lg"
+                      className="w-full bg-[#ABFF63] text-neutral-900 py-3.5 px-4 rounded-[18px] font-semibold hover:brightness-95 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-sm"
                     >
-                      Pay Now
+                      Pay now
                     </button>
                   )
                 ) : (
