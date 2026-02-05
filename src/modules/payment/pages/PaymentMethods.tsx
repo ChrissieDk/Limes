@@ -1,6 +1,7 @@
 import { CreditCard, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import DashboardNavbar from '../../auth/components/DashboardNavbar'
+import Footer from '../../auth/components/Footer'
 import SavedCards from '../components/SavedCards'
 
 export default function PaymentMethodsPage() {
@@ -67,6 +68,7 @@ export default function PaymentMethodsPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

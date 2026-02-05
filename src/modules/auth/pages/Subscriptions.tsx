@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardNavbar from '../components/DashboardNavbar';
+import Footer from '../components/Footer';
 import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
 import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
@@ -496,6 +497,7 @@ function Subscriptions() {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }
