@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardNavbar from '../components/DashboardNavbar';
+import Footer from '../components/Footer';
 import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
 import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
@@ -14,7 +15,6 @@ import {
   Loader2,
   AlertCircle,
   ChevronLeft,
-  Package,
   Phone
 } from 'lucide-react';
 
@@ -164,28 +164,18 @@ function Subscriptions() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-neutral-900 text-white">
       <DashboardNavbar />
       
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center text-neutral-400 hover:text-white mb-4 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 mr-1" />
-            Back to Dashboard
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-neutral-800 rounded-xl border border-neutral-700">
-              <Package className="w-6 h-6 text-lime-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">My Subscriptions</h1>
-              <p className="text-neutral-400">Manage your active recurring plans</p>
-            </div>
-          </div>
+        <div className="mb-10">
+          <h1 className="text-center font-grotesque font-semibold text-white text-5xl sm:text-6xl md:text-7xl leading-[1.02] tracking-tight">
+            My subscriptions
+          </h1>
+          <p className="mt-3 text-center text-neutral-400 text-sm">
+            Manage your active recurring plans
+          </p>
         </div>
 
         {/* Loading State */}
@@ -225,37 +215,59 @@ function Subscriptions() {
 
         {/* No Recurring Subscriptions */}
         {!loading && !error && !isRecurringPlan && (
-          <div className="space-y-6">
-            <div className="bg-neutral-900 rounded-lg p-12 text-center border border-neutral-800">
-              <Package className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Active Recurring Subscriptions</h3>
-              <p className="text-neutral-400 mb-6">
+          <div className="space-y-8">
+            <div className="max-w-4xl mx-auto">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center gap-2 rounded-xl bg-white/10 ring-1 ring-white/10 text-white px-5 h-11 text-sm font-semibold hover:bg-white/15 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back to Dashboard
+              </button>
+            </div>
+
+            <div className="max-w-4xl mx-auto rounded-[28px] bg-white/5 ring-1 ring-white/10 p-10 sm:p-12 text-center">
+              <div className="flex items-center justify-center mb-4">
+                <img
+                  src={`${import.meta.env.BASE_URL}images/star.png`}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-10 w-10 select-none"
+                />
+              </div>
+              <h3 className="text-white font-grotesque font-semibold text-2xl sm:text-3xl leading-[1.15] mb-2">
+                No active recurring subscriptions
+              </h3>
+              <p className="text-neutral-400 text-sm sm:text-base mb-8">
                 {user?.productId 
                   ? 'You have a prepaid or once-off plan. Only monthly recurring plans appear here.'
                   : 'You don\'t have any active subscriptions yet.'}
               </p>
               <button
                 onClick={() => navigate('/dashboard/packages')}
-                className="bg-lime-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-lime-500 transition-colors"
+                className="w-full inline-flex items-center justify-center rounded-2xl bg-[#ABFF63] text-neutral-900 h-12 text-sm font-semibold hover:brightness-95 transition"
               >
-                Browse Monthly Plans
+                Browse monthly plans
               </button>
             </div>
 
-            {/* Info about recurring plans */}
-            <div className="bg-blue-400/10 border border-blue-400/30 rounded-lg p-6">
-              <div className="flex items-start">
-                <AlertCircle className="w-5 h-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <h3 className="text-blue-400 font-semibold mb-2">ℹ️ About Your Subscriptions</h3>
-                  <p className="text-neutral-300 text-sm mb-2">
-                    Your subscription data is synced from your account and will be available across all your devices.
-                  </p>
-                  <p className="text-neutral-400 text-sm">
-                    To view or purchase new plans, visit the <button onClick={() => navigate('/dashboard/packages')} className="text-lime-400 hover:underline">Packages page</button>.
-                  </p>
-                </div>
-              </div>
+            <div className="max-w-4xl mx-auto rounded-[28px] bg-transparent ring-1 ring-white/10 p-8">
+              <h3 className="text-white font-grotesque font-semibold text-xl mb-2">
+                About your subscriptions
+              </h3>
+              <p className="text-neutral-400 text-sm">
+                Your subscription data is synced from your account and will be available across all your devices.
+              </p>
+              <p className="text-neutral-400 text-sm mt-3">
+                To view or purchase new plans,{' '}
+                <button
+                  onClick={() => navigate('/dashboard/packages')}
+                  className="text-[#ABFF63] hover:underline"
+                >
+                  view our packages
+                </button>
+                .
+              </p>
             </div>
           </div>
         )}
@@ -263,8 +275,17 @@ function Subscriptions() {
         {/* Active Recurring Subscription */}
         {!loading && !error && isRecurringPlan && (
           <div className="space-y-6">
+            <div className="max-w-6xl mx-auto">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center gap-2 rounded-xl bg-white/10 ring-1 ring-white/10 text-white px-5 h-11 text-sm font-semibold hover:bg-white/15 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back to Dashboard
+              </button>
+            </div>
             {/* Subscription Card */}
-            <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800">
+            <div className="max-w-6xl mx-auto rounded-[28px] bg-transparent ring-1 ring-white/10 p-8">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
@@ -300,7 +321,7 @@ function Subscriptions() {
                   <button
                     onClick={() => setShowCancelModal(true)}
                     disabled={cancelling}
-                    className="bg-neutral-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    className="bg-white/10 ring-1 ring-white/10 text-white px-4 h-11 rounded-xl text-sm font-semibold hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
                     Cancel Subscription
@@ -383,7 +404,7 @@ function Subscriptions() {
             </div>
 
             {/* Info Box */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+            <div className="max-w-6xl mx-auto rounded-[28px] bg-white/5 ring-1 ring-white/10 p-8">
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
@@ -496,6 +517,7 @@ function Subscriptions() {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }

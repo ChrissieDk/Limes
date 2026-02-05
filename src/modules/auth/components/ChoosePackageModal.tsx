@@ -282,14 +282,11 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-3xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <div className="grid place-items-center size-8 rounded-lg bg-neutral-900 text-white">▣</div>
-            <div>
-              <div className="font-extrabold text-lg">Choose a package</div>
-              <div className="text-sm text-neutral-500">Provide details to create your account</div>
-            </div>
+      <div className="relative w-full max-w-xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-2xl">
+          <div>
+            <div className="font-normal text-xl">Choose a package</div>
+            <div className="text-sm text-neutral-500">Provide details to create your account</div>
           </div>
           <button aria-label="Close" className="size-10 grid place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 text-2xl" onClick={onClose}>×</button>
         </div>
@@ -297,10 +294,17 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         <div className="flex-1 overflow-y-auto">
           <div className="px-5 pt-4 pb-5">
           {/* Progress */}
-          <div className="flex items-center gap-2 mb-5">
-            {[1,2,3,4,5,6].map((s) => (
-              <div key={s} className={`h-1.5 flex-1 rounded-full ${step >= s ? 'bg-neutral-900' : 'bg-neutral-200'}`} />
-            ))}
+          <div className="flex items-center justify-center gap-5 mb-6">
+            {[1, 2, 3, 4, 5, 6].map((s) => {
+              const completed = step >= s
+              return (
+                <div
+                  key={s}
+                  aria-hidden="true"
+                  className={`size-3.5 rounded-full ${completed ? 'bg-[#ABFF63]' : 'bg-neutral-300'}`}
+                />
+              )
+            })}
           </div>
 
           {/* Error message */}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CreditCard, Trash2, Loader2, AlertCircle, CheckCircle2, Star } from 'lucide-react'
+import { CreditCard, Trash2, Loader2, AlertCircle, CheckCircle2, Star, FileText } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
 import { toCents } from '../utils/dynamicPricing'
 import type { SavedCard } from '../../../types/payment'
@@ -161,14 +161,12 @@ export default function SavedCards({
 
       {/* Cards List */}
       {cards.length === 0 ? (
-        <div className="text-center py-12 px-6 bg-neutral-800 border border-neutral-700 rounded-xl">
-          <div className="p-4 bg-neutral-700/30 rounded-full w-fit mx-auto mb-4">
-            <CreditCard className="w-12 h-12 text-neutral-500" />
-          </div>
-          <p className="text-neutral-300 font-medium text-lg mb-2">No saved cards</p>
-          <p className="text-sm text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-white/20 bg-transparent px-6 py-14 text-center">
+          <FileText className="w-7 h-7 text-white/80 mx-auto mb-4" />
+          <div className="text-white font-semibold">No saved cards</div>
+          <div className="mt-1 text-sm text-neutral-500">
             Save a card during your next payment for faster checkout
-          </p>
+          </div>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -177,8 +175,8 @@ export default function SavedCards({
               key={card.id}
               className={`group relative overflow-hidden p-5 rounded-xl transition-all duration-300 ${
                 card.isDefault
-                  ? 'bg-neutral-800 border-2 border-lime-400/50 shadow-lg'
-                  : 'bg-neutral-800 border border-neutral-700 hover:border-neutral-600'
+                  ? 'bg-white/5 ring-2 ring-[#ABFF63]/40 shadow-[0_18px_55px_rgba(0,0,0,0.25)]'
+                  : 'bg-white/5 ring-1 ring-white/10 hover:bg-white/10'
               }`}
             >
               {/* Subtle background gradient effect */}
@@ -187,8 +185,8 @@ export default function SavedCards({
               <div className="relative flex items-center justify-between">
                 {/* Card Info */}
                 <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${card.isDefault ? 'bg-lime-400/20' : 'bg-neutral-700/50'} transition-colors`}>
-                    <CreditCard className={`w-6 h-6 ${card.isDefault ? 'text-lime-400' : 'text-neutral-400'}`} />
+                  <div className={`p-3 rounded-xl ${card.isDefault ? 'bg-[#ABFF63]/15' : 'bg-white/5'} transition-colors ring-1 ring-white/10`}>
+                    <CreditCard className={`w-6 h-6 ${card.isDefault ? 'text-[#ABFF63]' : 'text-neutral-300'}`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -196,7 +194,7 @@ export default function SavedCards({
                         {card.cardType.toUpperCase()} •••• {card.last4}
                       </span>
                       {card.isDefault && (
-                        <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-lime-400 text-neutral-900 rounded-full">
+                        <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-[#ABFF63] text-neutral-900 rounded-full">
                           <Star className="w-3 h-3 fill-current" />
                           Default
                         </span>
@@ -217,7 +215,7 @@ export default function SavedCards({
                     <button
                       onClick={() => handleSetDefaultCard(card.id)}
                       disabled={settingDefaultId === card.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-white/10 ring-1 ring-white/10 text-white rounded-xl hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold"
                       title="Set as default payment method"
                     >
                       {settingDefaultId === card.id ? (
@@ -239,7 +237,7 @@ export default function SavedCards({
                     <button
                       onClick={() => handleChargeCard(card.id)}
                       disabled={chargingCardId === card.id}
-                      className="px-4 py-2 bg-lime-400 text-neutral-900 rounded-lg hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold"
+                      className="px-4 py-2 bg-[#ABFF63] text-neutral-900 rounded-xl hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold"
                     >
                       {chargingCardId === card.id ? (
                         <span className="flex items-center gap-2">
@@ -256,7 +254,7 @@ export default function SavedCards({
                   <button
                     onClick={() => handleDeleteCard(card.id)}
                     disabled={deletingCardId === card.id || card.isDefault}
-                    className="p-2.5 text-red-400 hover:bg-red-900/30 hover:text-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="p-2.5 text-red-400 hover:bg-red-900/30 hover:text-red-300 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     title={card.isDefault ? "Cannot delete default card - set another card as default first" : "Delete card"}
                   >
                     {deletingCardId === card.id ? (

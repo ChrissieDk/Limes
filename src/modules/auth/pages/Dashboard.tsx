@@ -18,6 +18,7 @@ import { CurrentPlan } from '../components/dashboard/CurrentPlanCard.tsx';
 import { BundleCard } from '../components/dashboard/BundleCard.tsx';
 import { TransactionHistory, TransactionsModal } from '../components/dashboard/TransactionsComponents.tsx';
 import { SimCardSkeleton, PlanDetailsSkeleton, BundleCardSkeleton } from '../components/dashboard/SkeletonLoaders.tsx';
+import Footer from '../components/Footer';
 
 // Bundles are now fetched from catalog API (see useEffect below)
 
@@ -835,6 +836,7 @@ function Dashboard() {
         onClose={() => setTransactionsModalOpen(false)}
         transactions={transactions}
       />
+      <Footer />
     </div>
   );
 }

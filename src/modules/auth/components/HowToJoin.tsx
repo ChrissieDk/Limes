@@ -1,0 +1,88 @@
+import { Link } from 'react-router-dom'
+
+export default function HowToJoin() {
+  return (
+    <section id="join" className="mx-auto max-w-6xl px-6 pb-16 scroll-mt-24">
+      <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
+        <span className="w-2.5 h-2.5 rounded-full bg-yellow-300 mr-3 translate-y-[1px]" />
+        <span>How you can join Limes</span>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2 md:gap-x-3 md:gap-y-3">
+        {/* Left card */}
+        <div className="rounded-[28px] bg-yellow-300 text-neutral-900 p-5 md:p-6">
+          <img
+            src={`${import.meta.env.BASE_URL}images/limes_sim.png`}
+            alt=""
+            className="h-8 w-8"
+          />
+
+          <h3 className="mt-2.5 font-grotesque font-bold text-[26px] md:text-[28px] leading-[1.05] tracking-tight">
+            Get a new Limes SIM
+          </h3>
+          <p className="mt-2.5 text-[15px] md:text-base text-neutral-900/80 font-manrope max-w-[52ch]">
+            Start fresh with a Limes number on prepaid or contract. Choose a plan that suits you and get
+            connected.
+          </p>
+
+          <div className="mt-4">
+            <Link
+              to="/signin"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 hover:opacity-80 transition-opacity"
+            >
+              <span>Get a Limes SIM</span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Right card */}
+        <div className="rounded-[28px] bg-pink-300 text-neutral-900 p-5 md:p-6">
+          <img
+            src={`${import.meta.env.BASE_URL}images/star.png`}
+            alt=""
+            className="h-8 w-8"
+          />
+
+          <h3 className="mt-2.5 font-grotesque font-bold text-[26px] md:text-[28px] leading-[1.05] tracking-tight">
+            Keep your number, switch networks
+          </h3>
+          <p className="mt-2.5 text-[15px] md:text-base text-neutral-900/80 font-manrope max-w-[62ch]">
+            Bring your existing number to Limes and enjoy better value on the same number you already
+            use.
+          </p>
+          <p className="mt-2.5 text-xs md:text-sm text-neutral-900/70 font-manrope max-w-[72ch]">
+            Porting can take up to 48 hours. During this time, you may experience limited or no
+            connectivity.
+          </p>
+
+          <div className="mt-4">
+            <Link
+              to="/signin"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 hover:opacity-80 transition-opacity"
+            >
+              <span>Switch my number to Limes</span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <Link
+          to="/signin"
+          className="inline-flex items-center justify-center rounded-xl bg-[#ABFF63] text-neutral-900 font-semibold text-sm px-5 h-10 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] border-2 border-black/70 hover:bg-[#ABFF63]/90 transition-colors"
+        >
+          View packages
+        </Link>
+        <Link
+          to="/contact"
+          className="inline-flex items-center justify-center rounded-xl bg-neutral-800 text-white font-semibold text-sm px-5 h-10 border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] hover:bg-neutral-700 transition-colors"
+        >
+          Contact us
+        </Link>
+      </div>
+    </section>
+  )
+}
+
