@@ -2,13 +2,6 @@ import { Link } from 'react-router-dom'
 import Button from './Button'
 
 export default function Hero() {
-  const scrollToWhy = () => {
-    const whySection = document.getElementById('why')
-    if (whySection) {
-      whySection.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-
   return (
     <section
       id="hero"
