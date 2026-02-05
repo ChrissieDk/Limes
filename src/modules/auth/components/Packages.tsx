@@ -1,140 +1,133 @@
-import { useEffect, useMemo, useRef } from 'react'
-import type { MouseEvent as ReactMouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import type { CatalogProduct } from '../../../types'
-import Button from './Button'
 
 export default function Packages() {
-  const products = useMemo<CatalogProduct[]>(
-    () => [
-      {
-        id: 'pkg-mobile-starter',
-        sku: 'MOB-START',
-        name: 'Starter Mobile',
-        description: 'Prepaid SIM with 2GB data, 50 minutes, 100 SMS. Perfect for light usage.',
-        price: 99,
-        brand: 'Limes Mobile',
-        displayOrder: 1,
-        isAdHoc: false,
-      },
-      {
-        id: 'pkg-mobile-value',
-        sku: 'MOB-VALUE',
-        name: 'Value 10GB',
-        description: '10GB data, 200 minutes, 500 SMS. Best monthly value.',
-        price: 299,
-        brand: 'Limes Mobile',
-        displayOrder: 2,
-        isAdHoc: false,
-      },
-      {
-        id: 'pkg-mobile-unlimited',
-        sku: 'MOB-UNLIM',
-        name: 'Unlimited Max',
-        description: 'Unlimited calls to SA networks + 30GB data FUP + Unlimited SMS.',
-        price: 599,
-        brand: 'Limes Mobile',
-        displayOrder: 3,
-        isAdHoc: false,
-      },
-    ],
-    []
-  )
+  const bulletSrc = `${import.meta.env.BASE_URL}images/plan_line.png`
 
-  const glowRef = useRef<HTMLDivElement | null>(null)
-  const rafRef = useRef<number | null>(null)
-  const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
-  const targetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
-
-  const animateGlow = () => {
-    const { x, y } = posRef.current
-    const { x: tx, y: ty } = targetRef.current
-    const nx = x + (tx - x) * 0.18
-    const ny = y + (ty - y) * 0.18
-    posRef.current = { x: nx, y: ny }
-    if (glowRef.current) {
-      glowRef.current.style.setProperty('--gx', `${nx}px`)
-      glowRef.current.style.setProperty('--gy', `${ny}px`)
-    }
-    rafRef.current = requestAnimationFrame(animateGlow)
+  type Card = {
+    key: string
+    title: string
+    bgClass: string
+    textClass: string
+    bullets: string[]
+    colSpanClass: string
+    minHeightClass: string
   }
 
-  const handleBGMouseMove = (e: ReactMouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    targetRef.current = { x, y }
-    if (glowRef.current) glowRef.current.style.opacity = '1'
-    if (rafRef.current == null) rafRef.current = requestAnimationFrame(animateGlow)
-  }
-
-  const handleBGMouseLeave = () => {
-    if (glowRef.current) glowRef.current.style.opacity = '0'
-    if (rafRef.current != null) {
-      cancelAnimationFrame(rafRef.current)
-      rafRef.current = null
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
-    }
-  }, [])
-
-  const featured = useMemo(() => {
-    return [...products]
-      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.price - b.price)
-      .slice(0, 3)
-  }, [products])
+  const cards: Card[] = [
+    {
+      key: 'limes99',
+      title: 'Limes99',
+      bgClass: 'bg-yellow-300',
+      textClass: 'text-neutral-900',
+      bullets: ['R99 airtime + R31 FREE', 'Unlimited WhatsApp text'],
+      colSpanClass: 'lg:col-span-3',
+      minHeightClass: 'lg:min-h-[180px]',
+    },
+    {
+      key: 'limes29',
+      title: 'Limes29',
+      bgClass: 'bg-[#5BA0FF]',
+      textClass: 'text-neutral-900',
+      bullets: ['R29 airtime + R6 FREE'],
+      colSpanClass: 'lg:col-span-3',
+      minHeightClass: 'lg:min-h-[180px]',
+    },
+    {
+      key: 'limes69',
+      title: 'Limes69',
+      bgClass: 'bg-[#CDA7FC]',
+      textClass: 'text-neutral-900',
+      bullets: ['R69 airtime + R21 FREE', 'Unlimited WhatsApp text'],
+      colSpanClass: 'lg:col-span-2',
+      minHeightClass: 'lg:min-h-[150px]',
+    },
+    {
+      key: 'limes169',
+      title: 'Limes169',
+      bgClass: 'bg-pink-300',
+      textClass: 'text-neutral-900',
+      bullets: ['R169 airtime + R31 FREE', 'Unlimited WhatsApp text'],
+      colSpanClass: 'lg:col-span-2',
+      minHeightClass: 'lg:min-h-[150px]',
+    },
+    {
+      key: 'limes199',
+      title: 'Limes199',
+      bgClass: 'bg-lime-300',
+      textClass: 'text-neutral-900',
+      bullets: ['R199 airtime + R31 FREE', 'Unlimited WhatsApp text'],
+      colSpanClass: 'lg:col-span-2',
+      minHeightClass: 'lg:min-h-[150px]',
+    },
+    {
+      key: 'limes-unlimited',
+      title: 'Limes Unlimited',
+      bgClass: 'bg-white',
+      textClass: 'text-neutral-900',
+      bullets: ['Unlimited voice minutes + 10GB data', '10GB data', 'Unlimited WhatsApp text'],
+      colSpanClass: 'lg:col-span-3',
+      minHeightClass: 'lg:min-h-[170px]',
+    },
+    {
+      key: 'limes-one',
+      title: 'LimesOne',
+      bgClass: 'bg-white',
+      textClass: 'text-neutral-900',
+      bullets: ['1GB data', '1GB WhatsApp data', 'R100 Airtime'],
+      colSpanClass: 'lg:col-span-3',
+      minHeightClass: 'lg:min-h-[170px]',
+    },
+  ]
 
   return (
     <section id="packages" className="relative bg-neutral-900">
-      <div className="mx-auto max-w-6xl px-6 pt-10">
-        <div className="flex items-center justify-center text-sm text-neutral-400">
-          <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Our Packages
+      <div className="mx-auto max-w-6xl px-6 pt-14 pb-24">
+        <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
+          <span className="w-2.5 h-2.5 rounded-full bg-pink-300 mr-3 translate-y-[1px]" /> Our Packages
         </div>
-        <h2 className="mt-3 text-center font-grotesque font-extrabold text-white text-[36px] sm:text-[48px] md:text-[56px] leading-[1.05]">
-          Flexible, rewarding, and hassle-free
+
+        <h2 className="mt-4 text-center font-grotesque font-bold text-white text-[34px] sm:text-[44px] md:text-[56px] leading-[1.05]">
+          Flexible plans that suit how you
+          <br />
+          connect
         </h2>
-        <p className="mt-3 text-center text-neutral-400">Find all 3 Limes. Get 15% off.</p>
-      </div>
+        <p className="mt-4 text-center text-neutral-400 text-base md:text-lg">
+          Choose prepaid or contract options with better value built in.
+        </p>
 
-      {/* Full-width background block containing the cards */}
-      <div className="mt-10 relative" onMouseMove={handleBGMouseMove} onMouseLeave={handleBGMouseLeave}>
-        {/* Grid backdrop: subtle light grid over same bg color, full width */}
-        <div className="absolute inset-0 bg-neutral-900" />
-        <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(to_right,rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:100px_100px]" />
-        {/* Hover glow snapped to grid cells */}
-        <div
-          ref={glowRef}
-          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200"
-          style={{ background: 'radial-gradient(220px circle at var(--gx, -9999px) var(--gy, -9999px), rgba(255,255,255,0.08), transparent 60%)' }}
-        />
-
-        <div className="relative mx-auto max-w-6xl px-6 lg:px-10 py-10">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {featured.map((p, idx) => (
+        <div className="mt-10 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-2 lg:gap-2">
+            {cards.map((card) => (
               <div
-                key={p.id}
-                className={`rounded-2xl p-6 lg:p-6 shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] ${idx === 0 ? 'bg-[#5BA0FF]' : idx === 1 ? 'bg-[#B8FF5B]' : 'bg-[#D8B0FF]'} min-h-[320px]`}
+                key={card.key}
+                className={[
+                  'rounded-[26px] border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] p-5 flex flex-col',
+                  card.bgClass,
+                  card.textClass,
+                  card.colSpanClass,
+                  card.minHeightClass,
+                ].join(' ')}
               >
-                <div className="flex items-center gap-2 text-neutral-900">
-                  <span className="size-7 rounded-lg bg-white grid place-items-center">✦</span>
+                <div className="font-grotesque font-bold text-[28px] leading-[1.0] tracking-tight">
+                  {card.title}
                 </div>
-                <h3 className="mt-4 text-neutral-900 font-extrabold text-2xl">{p.name}</h3>
-                <ul className="mt-5 space-y-3 text-neutral-900">
-                  <li className="flex items-start gap-2"><span className="mt-1 size-4 rounded-full bg-white grid place-items-center">💠</span><span>{p.description}</span></li>
-                  <li className="flex items-start gap-2"><span className="mt-1 size-4 rounded-full bg-white grid place-items-center">💠</span><span>Brand: {p.brand}</span></li>
-                  <li className="flex items-start gap-2"><span className="mt-1 size-4 rounded-full bg-white grid place-items-center">💠</span><span>Display order: {p.displayOrder}</span></li>
+
+                <ul className="mt-2.5 space-y-2 text-[14px] leading-snug font-manrope">
+                  {card.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-2">
+                      <img src={bulletSrc} alt="" className="h-4 w-5 mt-[2px] object-contain" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
                 </ul>
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="text-neutral-900 font-extrabold text-xl">{p.price > 0 ? `R${p.price}` : 'Custom'}</div>
-                  <div className="w-36">
-                    <Link to="/contact">
-                      <Button variant="secondary">Contact Us</Button>
-                    </Link>
-                  </div>
+
+                <div className="mt-auto pt-4">
+                  <Link
+                    to="/signin"
+                    className="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
+                  >
+                    Buy now
+                  </Link>
                 </div>
               </div>
             ))}

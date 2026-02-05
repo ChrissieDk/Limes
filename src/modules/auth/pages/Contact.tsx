@@ -1,5 +1,6 @@
 import Navbar from '../components/Navbar'
 import Button from '../components/Button'
+import Footer from '../components/Footer'
 
 export default function Contact() {
   return (
@@ -57,37 +58,7 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mx-auto max-w-6xl px-6 pb-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-          <div>
-            <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-9" />
-            <p className="mt-4 text-sm text-neutral-400">Stay connected. Earn cash back. Own your money.</p>
-          </div>
-          <div>
-            <div className="text-sm text-neutral-400 font-semibold mb-2">Quick Links</div>
-            <ul className="text-sm text-neutral-300 space-y-1">
-              <li><a href={`${import.meta.env.BASE_URL}#hero`} className="hover:underline">Home</a></li>
-              <li><a href={`${import.meta.env.BASE_URL}#why`} className="hover:underline">Why Choose Limes</a></li>
-              <li><a href={`${import.meta.env.BASE_URL}#packages`} className="hover:underline">Packages</a></li>
-              <li><a href={`${import.meta.env.BASE_URL}#partners`} className="hover:underline">Why Partner With Us</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="text-sm text-neutral-400 font-semibold mb-2">Stay Connected</div>
-            <div className="flex items-center gap-3 text-neutral-400">
-              <span className="size-6 rounded bg-neutral-800 grid place-items-center">in</span>
-              <span className="size-6 rounded bg-neutral-800 grid place-items-center">f</span>
-              <span className="size-6 rounded bg-neutral-800 grid place-items-center">ig</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 h-px w-full bg-neutral-800" />
-        <div className="mt-4 text-neutral-500 text-xs flex items-center justify-between">
-          <span>Copyright © 2025 Limes. All rights reserved.</span>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
