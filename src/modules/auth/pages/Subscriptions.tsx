@@ -50,35 +50,34 @@ function Subscriptions() {
       const userData = await userService.getCurrentUser();
       console.log('[Subscriptions] User data:', userData);
       
-      // Get active subscription from user's msisdns
-      const activeMsisdn = userData.msisdns?.find((m) => m.hasActiveSubscription);
+      // Use new getAllSubscriptions endpoint
+      const { subscriptions } = await paymentService.getAllSubscriptions();
+      console.log('[Subscriptions] All subscriptions:', subscriptions);
       
-      if (activeMsisdn) {
-        console.log('[Subscriptions] Active MSISDN found:', activeMsisdn);
+      // Find the first active subscription
+      const activeSubscription = subscriptions.find((sub) => sub.isActive && sub.status === 'active');
+      
+      if (activeSubscription) {
+        console.log('[Subscriptions] Active subscription found:', activeSubscription);
         
-        // Map the MSISDN data to User format
+        // Map subscription data to User format
         const tempUserData: User = {
           ...userData,
-          msisdn: activeMsisdn.msisdn,
-          productId: activeMsisdn.productId
+          msisdn: activeSubscription.msisdn,
+          productId: activeSubscription.productId
         };
         
-        // Use amountInCents from API response (convert cents to rands)
-        const planPrice = activeMsisdn.amountInCents / 100;
-        console.log('[Subscriptions] Plan price from API:', planPrice, 'Rand (from', activeMsisdn.amountInCents, 'cents)');
-        
-        // Create a subscription details object from the MSISDN data
-        // Note: We're using the data from your API, not from localStorage or Paystack
+        // Use the new Subscription type with additional fields
         const mappedSubscription: SubscriptionDetails = {
-          id: activeMsisdn.productId, // Use productId as ID
-          paystackSubscriptionCode: activeMsisdn.productId,
-          paystackPlanCode: activeMsisdn.productId,
-          status: activeMsisdn.subscriptionStatus,
-          nextPaymentDate: activeMsisdn.nextPaymentDate,
-          amountInRands: planPrice,
-          currency: 'ZAR',
-          createdAt: new Date().toISOString(), // Not available in current API
-          cancelledAt: activeMsisdn.isAutoRenewing ? null : new Date().toISOString()
+          id: activeSubscription.id,
+          paystackSubscriptionCode: activeSubscription.paystackSubscriptionCode,
+          paystackPlanCode: activeSubscription.paystackPlanCode,
+          status: activeSubscription.status,
+          nextPaymentDate: activeSubscription.nextPaymentDate,
+          amountInRands: activeSubscription.amountInRands,
+          currency: activeSubscription.currency,
+          createdAt: activeSubscription.createdAt,
+          cancelledAt: activeSubscription.cancelledAt
         };
         
         setSubscription(mappedSubscription);

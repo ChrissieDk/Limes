@@ -146,9 +146,11 @@ export interface PaystackSubscription {
 
 // Transaction initialization request/response (SECURE - Backend controls amount)
 // Backend fetches price from MVNX, frontend only provides productId and msisdn
+// For combo bundles, amount can be provided since MVNX catalog has price: 0
 export interface InitializeTransactionRequest {
   productId: string        // REQUIRED - Product ID to purchase (backend gets price from MVNX)
   msisdn: string | null    // OPTIONAL - Can be null for payment-first flow (MSISDN allocated after payment)
+  amount?: number          // OPTIONAL - Price override in cents (ONLY for combo bundles with catalog price: 0)
 }
 
 export interface InitializeTransactionResponse {
@@ -165,7 +167,7 @@ export interface InitializeTransactionResponse {
 // Dynamic Services Payment Initialization (for contract plans)
 export interface DynamicServicePaymentItem {
   value: number           // The value/amount of the service (e.g., 1073741824 for bytes, 20 for minutes)
-  definitionCode: string  // Service type: "DATA", "VOICE", "SMS", "WHATSAPP", "AIRTIME_ADVANCE"
+  definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE' | 'PACKAGE'  // Service type (PACKAGE = backend expands based on productId)
   expiryDate: string      // ISO format date: "2026-07-30"
   priceInCents: number    // Price in cents (e.g., 5000 = R50)
 }
@@ -176,6 +178,25 @@ export interface InitializeDynamicServicesPaymentRequest {
 }
 
 export interface InitializeDynamicServicesPaymentResponse {
+  success: boolean
+  message: string
+  data?: {
+    authorization_url: string
+    access_code: string
+    reference: string
+  }
+  error?: string
+}
+
+// Combo Bundle Payment Initialization (for m2m_combo packages)
+// Used when MVNX catalog shows price: 0 but frontend knows actual price
+export interface InitializeComboPaymentRequest {
+  productId: string        // Combo bundle product ID (e.g., "COMBO_BUNDLE_001")
+  amount: number           // Price in CENTS (e.g., 15000 = R150.00)
+  msisdn?: string | null   // Optional - can be null for payment-first flow
+}
+
+export interface InitializeComboPaymentResponse {
   success: boolean
   message: string
   data?: {
@@ -327,6 +348,51 @@ export interface CancelSubscriptionRequest {
 export interface CancelSubscriptionResponse {
   success: boolean
   message: string
+}
+
+// Get All Subscriptions (NEW - GET /api/payment/paystack/subscriptions)
+export interface Subscription {
+  id: string
+  paystackSubscriptionCode: string
+  paystackPlanCode: string
+  status: 'active' | 'cancelled' | 'past_due'
+  nextPaymentDate: string
+  amountInRands: number
+  amountInCents: number
+  currency: string
+  createdAt: string
+  cancelledAt: string | null
+  productId: string
+  msisdn: string
+  hasDynamicServices: boolean
+  isActive: boolean
+}
+
+export interface GetSubscriptionsResponse {
+  count: number
+  subscriptions: Subscription[]
+}
+
+// Combo Bundle Recurring Subscription (NEW - POST /api/payment/combo-bundle/recurring)
+export interface ComboSubscriptionRequest {
+  productId: string
+  msisdn: string
+  paymentMethodId: string
+  amount: number  // In cents (e.g., 15000 = R150.00)
+}
+
+export interface ComboSubscriptionResponse {
+  success: boolean
+  message: string
+  subscription: {
+    id: string
+    paystackSubscriptionCode: string
+    paystackPlanCode: string
+    status: string
+    nextPaymentDate: string
+    amountInRands: number
+    currency: string
+  }
 }
 
 // Link Transaction to Order

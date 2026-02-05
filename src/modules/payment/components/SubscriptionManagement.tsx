@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Calendar, AlertCircle, CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
 import { userService } from '../../auth/services/userService'
+// import { toCents } from '../utils/dynamicPricing' // Ready for combo bundle subscription feature
 import type { SubscriptionDetails, SavedCard } from '../../../types/payment'
 
 interface SubscriptionManagementProps {
@@ -133,6 +134,23 @@ export default function SubscriptionManagement({
       setIsCreating(false)
     }
   }
+
+  /**
+   * Create combo bundle recurring subscription
+   * NEW: For combo bundle subscriptions
+   * 
+   * READY FOR FUTURE USE: Uncomment when adding combo bundle subscription UI
+   * 
+   * Example usage:
+   * const handleComboSubscription = async (productId: string, amount: number) => {
+   *   const response = await paymentService.subscribeToComboBundle({
+   *     productId,
+   *     msisdn: userMsisdn,
+   *     paymentMethodId: selectedCardId,
+   *     amount: toCents(amount)
+   *   })
+   * }
+   */
 
   const handleCancelSubscription = async () => {
     if (!subscription) return

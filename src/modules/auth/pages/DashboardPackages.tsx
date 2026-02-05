@@ -5,6 +5,7 @@ import PlanBuilder from '../components/PlanBuilder'
 import { catalogService } from '../../catalog/services/catalogService'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
+import { enrichComboPackages, type EnrichedComboPackage } from '../../catalog/utils/packageEnricher'
 
 type PackageType = 'contract' | 'prepaid' | null
 type SimStatus = 'has-sim' | 'needs-sim' | null
@@ -45,6 +46,10 @@ export default function DashboardPackages() {
     whatsapp: number
   } | null>(null)
   
+  // NEW: Contract flow type - dynamic (build your own) or combo (bundles)
+  const [contractFlowType, setContractFlowType] = useState<'dynamic' | 'combo' | null>(null)
+  const [comboBundles, setComboBundles] = useState<EnrichedComboPackage[]>([])
+  
   // Track the actual SIM package product ID (the parent product from SA/SOA categories)
   const [simPackageProductId, setSimPackageProductId] = useState<string | null>(null)
   
@@ -83,26 +88,23 @@ export default function DashboardPackages() {
       let simPkgId = null
       if (packageType === 'contract') {
         simPkgId = simStatus === 'has-sim' ? PRODUCT_IDS.CONTRACT_SA : PRODUCT_IDS.CONTRACT_SOA
-        // For CONTRACT: Show plan builder
-        setShowPlanBuilder(true)
-        console.log('======================================')
-        console.log('[PRODUCT ID SET] CONTRACT flow')
-        console.log(`[PRODUCT ID SET] SIM Status: ${simStatus}`)
-        console.log(`[PRODUCT ID SET] SIM Package Product ID: ${simPkgId}`)
-        console.log('======================================')
+        // For CONTRACT: Check which flow type was selected
+        if (contractFlowType === 'dynamic') {
+          // Build Your Own flow - Show plan builder
+          setShowPlanBuilder(true)
+
+        } else if (contractFlowType === 'combo') {
+          // Combo Bundles flow - Fetch m2m_combo products
+          fetchComboBundles()
+        }
       } else if (packageType === 'prepaid') {
         simPkgId = simStatus === 'has-sim' ? PRODUCT_IDS.PREPAID_SA : PRODUCT_IDS.PREPAID_SOA
         // For PREPAID: Fetch bundle categories
         fetchBundleCategoriesForPrepaid()
-        console.log('======================================')
-        console.log('[PRODUCT ID SET] PREPAID flow')
-        console.log(`[PRODUCT ID SET] SIM Status: ${simStatus}`)
-        console.log(`[PRODUCT ID SET] SIM Package Product ID: ${simPkgId}`)
-        console.log('======================================')
       }
       setSimPackageProductId(simPkgId)
     }
-  }, [simStatus, iccidConfirmed, packageType])
+  }, [simStatus, iccidConfirmed, packageType, contractFlowType])
 
   // Fetch bundle categories for PREPAID only
   const fetchBundleCategoriesForPrepaid = async () => {
@@ -147,6 +149,33 @@ export default function DashboardPackages() {
         setLoading(false)
       }
     }
+
+  // NEW: Fetch combo bundles for CONTRACT combo flow
+  const fetchComboBundles = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      console.log('[Catalog] Fetching m2m_combo bundles...')
+      const response = await catalogService.searchCategoryProducts('m2m_combo', { 
+        page: 1, 
+        limit: 100 
+      })
+      
+      // Enrich packages with actual benefits and pricing
+      const enrichedBundles = enrichComboPackages(response.data)
+      setComboBundles(enrichedBundles)
+      
+      console.log('[Catalog] Fetched m2m_combo bundles:', response)
+      console.log('[Catalog] Enriched bundles:', enrichedBundles)
+      console.log(`[Catalog] Total bundles: ${enrichedBundles.length}`)
+    } catch (err) {
+      setError('Failed to load combo bundles. Please try again later.')
+      console.error('Error fetching combo bundles:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Fetch products from selected bundle category (PREPAID only)
   useEffect(() => {
@@ -225,6 +254,9 @@ export default function DashboardPackages() {
     setSelectedBundleCategory(null)
     setSimPackageProductId(null)
     setShowPlanBuilder(false)
+    // Reset new contract flow states
+    setContractFlowType(null)
+    setComboBundles([])
   }
 
   const handleSimStatusSelect = (status: SimStatus) => {
@@ -419,6 +451,64 @@ export default function DashboardPackages() {
     setIccid('')
     setIccidConfirmed(false)
     setError(null)
+    // Reset new contract flow states
+    setContractFlowType(null)
+    setComboBundles([])
+  }
+
+  // NEW: Handle contract flow type selection (Build Your Own vs Bundles)
+  const handleContractFlowTypeSelect = (flowType: 'dynamic' | 'combo') => {
+    setContractFlowType(flowType)
+    console.log(`[Contract Flow] Selected: ${flowType === 'dynamic' ? 'Build Your Own' : 'Combo Bundles'}`)
+  }
+
+  // NEW: Handle back from contract flow choice screen
+  const handleBackFromContractFlowChoice = () => {
+    setContractFlowType(null)
+    setComboBundles([])
+    setPackageType(null)
+  }
+
+  // NEW: Handle back from combo bundles display
+  const handleBackFromComboBundles = () => {
+    if (simStatus === 'has-sim') {
+      setIccidConfirmed(false)
+    } else {
+      setSimStatus(null)
+    }
+    setComboBundles([])
+  }
+
+  // NEW: Handle combo bundle selection
+  const handleComboBundleSelect = (product: EnrichedComboPackage) => {
+    console.log('[DashboardPackages] Navigating to dashboard for combo bundle:', product)
+    console.log('[Package] SIM package product ID:', simPackageProductId)
+    console.log('[Package] Package type: contract')
+    console.log('[Package] SIM status:', simStatus)
+    console.log('[Package] Actual price (Rands):', product.actualPrice)
+    console.log('[Package] Actual price (Cents):', product.actualPriceCents)
+    
+    // Navigate to dashboard with contract combo bundle details
+    navigate('/dashboard', {
+      state: {
+        selectedPackage: {
+          productId: product.id, // Keep original product ID for backend
+          simPackageProductId: simPackageProductId,
+          name: product.name,
+          price: product.actualPrice, // Use actual price in Rands
+          priceInCents: product.actualPriceCents, // Use actual price in cents for Paystack
+          packageType: 'contract',
+          simStatus: simStatus,
+          planChargeType: 'monthly', // Combo bundles are monthly subscriptions
+          iccid: simStatus === 'has-sim' ? iccid : undefined,
+          isComboBundle: true, // Flag to identify combo bundle vs dynamic plan
+          comboDetails: product.comboDetails, // Include full combo details
+          features: {
+            mobileData: product.description
+          }
+        }
+      }
+    })
   }
 
   const handleBuyNow = (product: CatalogProduct) => {
@@ -463,23 +553,35 @@ export default function DashboardPackages() {
             <h2 className="mt-3 text-center font-grotesque font-extrabold text-white text-[28px] sm:text-[40px] md:text-[48px] leading-[1.05]">
               {!packageType 
                 ? 'Choose your package type' 
+                : packageType === 'contract' && !contractFlowType
+                ? 'Choose your plan type'
                 : packageType === 'prepaid' && !simStatus 
                 ? 'Do you have a SIM?' 
+                : (packageType === 'contract' && contractFlowType && !simStatus)
+                ? 'Do you have a SIM?'
                 : simStatus === 'has-sim' && !iccidConfirmed
                 ? 'Enter your ICCID'
-                : simStatus && !selectedBundleCategory
+                : simStatus && !selectedBundleCategory && packageType === 'prepaid'
                 ? 'Choose your bundle type'
+                : comboBundles.length > 0
+                ? 'Choose your combo bundle'
                 : 'Your packages'}
             </h2>
             <p className="mt-2 text-center text-neutral-400">
               {!packageType 
                 ? 'Select between contract or prepaid options' 
+                : packageType === 'contract' && !contractFlowType
+                ? 'Build your own plan or choose a combo bundle'
                 : packageType === 'prepaid' && !simStatus 
                 ? 'Let us know if you already have a SIM card' 
+                : (packageType === 'contract' && contractFlowType && !simStatus)
+                ? 'Let us know if you already have a SIM card'
                 : simStatus === 'has-sim' && !iccidConfirmed
                 ? 'Found on the back of your SIM card'
-                : simStatus && !selectedBundleCategory
+                : simStatus && !selectedBundleCategory && packageType === 'prepaid'
                 ? 'Select the type of bundle you need'
+                : comboBundles.length > 0
+                ? `${comboBundles.length} combo bundles available`
                 : `Showing ${selectedBundleCategory || packageType} packages`}
             </p>
           </div>
@@ -525,8 +627,51 @@ export default function DashboardPackages() {
                 </div>
               )}
 
+              {/* NEW Step 1.5: Contract Flow Type Selection (CONTRACT ONLY) */}
+              {packageType === 'contract' && !contractFlowType && (
+                <div className="max-w-4xl mx-auto">
+                  <button
+                    onClick={handleBackFromContractFlowChoice}
+                    className="mb-6 px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back
+                  </button>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <button
+                      onClick={() => handleContractFlowTypeSelect('dynamic')}
+                      className="group rounded-2xl p-8 bg-[#56CCF2] hover:bg-[#46BCE2] shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all min-h-[280px] flex flex-col items-center justify-center text-center"
+                    >
+                      <div className="size-16 rounded-full bg-white/20 grid place-items-center mb-4">
+                        <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                      </div>
+                      <h3 className="text-neutral-900 font-extrabold text-3xl mb-3">Build Your Own</h3>
+                      <p className="text-neutral-900/80 text-lg">Customize your perfect plan</p>
+                    </button>
+
+                    <button
+                      onClick={() => handleContractFlowTypeSelect('combo')}
+                      className="group rounded-2xl p-8 bg-[#A8E063] hover:bg-[#98D053] shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all min-h-[280px] flex flex-col items-center justify-center text-center"
+                    >
+                      <div className="size-16 rounded-full bg-white/20 grid place-items-center mb-4">
+                        <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
+                      <h3 className="text-neutral-900 font-extrabold text-3xl mb-3">Combo Bundles</h3>
+                      <p className="text-neutral-900/80 text-lg">Pre-made bundle packages</p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Step 2: SIM Status (for both contract and prepaid) */}
-              {packageType && !simStatus && !selectedBundleCategory && (
+              {((packageType === 'prepaid' && !simStatus) || (packageType === 'contract' && contractFlowType && !simStatus)) && !selectedBundleCategory && (
                 <div className="max-w-4xl mx-auto">
                   <button
                     onClick={handleReset}
@@ -775,12 +920,119 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 3: Plan Builder (CONTRACT ONLY) */}
+              {/* Step 3: Plan Builder (CONTRACT ONLY - Dynamic Flow) */}
               {packageType === 'contract' && showPlanBuilder && !planAllocation && (
                 <PlanBuilder
                   onContinue={handlePlanContinue}
                   onBack={handleBackFromPlanBuilder}
                 />
+              )}
+
+              {/* NEW Step 3: Combo Bundles Display (CONTRACT ONLY - Combo Flow) */}
+              {packageType === 'contract' && contractFlowType === 'combo' && comboBundles.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-4 mb-6">
+                    <button
+                      onClick={handleBackFromComboBundles}
+                      className="px-6 py-3 rounded-xl bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="px-6 py-3 rounded-xl bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
+                    >
+                      Start over
+                    </button>
+                  </div>
+
+                  {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                      {[1, 2, 3, 4, 5, 6].map(i => <PackageCardSkeleton key={i} />)}
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-12">
+                      <p className="text-red-400 text-lg mb-4">{error}</p>
+                      <button
+                        onClick={handleBackFromComboBundles}
+                        className="px-6 py-3 bg-lime-400 text-neutral-900 rounded-xl font-semibold hover:bg-lime-300 transition-colors"
+                      >
+                        Go Back
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                      {comboBundles.map((bundle, idx) => {
+                        // Cycle through colors for variety
+                        const colors = [
+                          { bg: 'bg-[#7B9FF5]', icon: 'bg-blue-500/20' },
+                          { bg: 'bg-[#A8E063]', icon: 'bg-lime-500/20' },
+                          { bg: 'bg-[#D8B0FF]', icon: 'bg-purple-500/20' },
+                          { bg: 'bg-[#FF9B5B]', icon: 'bg-orange-500/20' },
+                          { bg: 'bg-[#56CCF2]', icon: 'bg-cyan-500/20' },
+                          { bg: 'bg-[#FF6B9D]', icon: 'bg-pink-500/20' },
+                        ]
+                        const colorScheme = colors[idx % colors.length]
+                        
+                        return (
+                          <div
+                            key={bundle.id}
+                            className={`rounded-2xl p-6 ${colorScheme.bg} shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all group relative overflow-hidden`}
+                          >
+                            <div className={`size-12 rounded-full ${colorScheme.icon} grid place-items-center mb-4`}>
+                              <svg className="w-6 h-6 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                            </div>
+                            <h3 className="text-neutral-900 font-extrabold text-2xl mb-2">{bundle.name}</h3>
+                            
+                            {/* Short summary */}
+                            {bundle.comboDetails && (
+                              <p className="text-neutral-900/70 text-sm mb-4 font-medium">
+                                {bundle.comboDetails.shortSummary}
+                              </p>
+                            )}
+                            
+                            {/* Benefits list */}
+                            {bundle.comboDetails && bundle.comboDetails.benefits.length > 0 && (
+                              <div className="mb-6 space-y-2">
+                                {bundle.comboDetails.benefits.map((benefit, i) => (
+                                  <div key={i} className="flex items-start gap-2 text-neutral-900/80">
+                                    <svg className="w-5 h-5 text-neutral-900 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-sm">
+                                      <strong>{benefit.label}:</strong> {benefit.formattedValue}
+                                      {benefit.validity && <span className="text-neutral-900/60"> ({benefit.validity})</span>}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="mt-auto pt-4 border-t border-neutral-900/10">
+                              <div className="flex items-baseline justify-between mb-3">
+                                <span className="text-neutral-900 font-extrabold text-3xl">
+                                  R{bundle.actualPrice.toFixed(2)}
+                                </span>
+                                <span className="text-neutral-900/70 text-sm font-semibold">per month</span>
+                              </div>
+                              <button
+                                onClick={() => handleComboBundleSelect(bundle)}
+                                className="w-full bg-neutral-900 text-white py-3 rounded-xl font-bold hover:bg-neutral-800 transition-colors shadow-md"
+                              >
+                                Select Bundle
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
 
             </div>
