@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardNavbar from '../components/DashboardNavbar'
 import Footer from '../components/Footer'
@@ -57,29 +57,7 @@ export default function DashboardPackages() {
   const [iccid, setIccid] = useState<string>('')
   const [iccidConfirmed, setIccidConfirmed] = useState(false)
 
-  const glowRef = useRef<HTMLDivElement | null>(null)
-  const rafRef = useRef<number | null>(null)
-  const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
-  const targetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
-
-  const animateGlow = () => {
-    const { x, y } = posRef.current
-    const { x: tx, y: ty } = targetRef.current
-    const nx = x + (tx - x) * 0.18
-    const ny = y + (ty - y) * 0.18
-    posRef.current = { x: nx, y: ny }
-    if (glowRef.current) {
-      glowRef.current.style.setProperty('--gx', `${nx}px`)
-      glowRef.current.style.setProperty('--gy', `${ny}px`)
-    }
-    rafRef.current = requestAnimationFrame(animateGlow)
-  }
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
-    }
-  }, [])
+  // (UI only) Removed hover glow backdrop effect
 
   // Handle post-SIM-status flow: Plan builder for CONTRACT, Bundle categories for PREPAID
   useEffect(() => {
@@ -212,23 +190,6 @@ export default function DashboardPackages() {
   }, [selectedBundleCategory, packageType])
 
   // Show all packages for the selected bundle category (UI decision)
-
-  const handleBGMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    targetRef.current = { x, y }
-    if (glowRef.current) glowRef.current.style.opacity = '1'
-    if (rafRef.current == null) rafRef.current = requestAnimationFrame(animateGlow)
-  }
-
-  const handleBGMouseLeave = () => {
-    if (glowRef.current) glowRef.current.style.opacity = '0'
-    if (rafRef.current != null) {
-      cancelAnimationFrame(rafRef.current)
-      rafRef.current = null
-    }
-  }
 
   const getPlanChargeType = (productId: string): 'once-off' | 'monthly' => {
     const monthlyPlanIds = ['40021', '40022']
@@ -526,7 +487,7 @@ export default function DashboardPackages() {
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
-      <main className="p-6 max-w-7xl mx-auto">
+      <main className="p-6 max-w-6xl mx-auto">
         <section className="relative bg-neutral-900">
           <div className="mx-auto max-w-6xl px-2 sm:px-6 pt-2 sm:pt-6">
             <div className="flex items-center justify-center text-sm text-neutral-400">
@@ -568,16 +529,8 @@ export default function DashboardPackages() {
             </p>
           </div>
 
-          <div className="mt-6 relative" onMouseMove={handleBGMouseMove} onMouseLeave={handleBGMouseLeave}>
-            <div className="absolute inset-0 bg-neutral-900" />
-            <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(to_right,rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:100px_100px]" />
-            <div
-              ref={glowRef}
-              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200"
-              style={{ background: 'radial-gradient(220px circle at var(--gx, -9999px) var(--gy, -9999px), rgba(255,255,255,0.08), transparent 60%)' }}
-            />
-
-            <div className="relative mx-auto max-w-6xl px-2 sm:px-6 lg:px-10 py-6 sm:py-10">
+          <div className="mt-6">
+            <div className="mx-auto max-w-5xl px-2 sm:px-6 lg:px-8 py-6 sm:py-10">
               {/* Step 1: Choose Package Type */}
               {!packageType && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 max-w-4xl mx-auto">
