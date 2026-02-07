@@ -254,6 +254,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             }
             
             setPaymentSuccess(true)
+            // Notify Dashboard to refresh data after successful payment
+            window.dispatchEvent(new CustomEvent('limes:payment-success'))
             setTimeout(() => {
               setPaymentSuccess(false)
               setSelectedCategory(null)
@@ -396,6 +398,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             console.log('[TopUp] ✓ Transaction linked to services')
             
             setPaymentSuccess(true)
+            // Notify Dashboard to refresh data after successful payment
+            window.dispatchEvent(new CustomEvent('limes:payment-success'))
             setTimeout(() => {
               setPaymentSuccess(false)
               setPrice(50) // Reset to default

@@ -613,6 +613,8 @@ export default function ShippingModal({
       }
       
       setPaymentSuccess(true)
+      // Notify Dashboard to refresh data after successful payment
+      window.dispatchEvent(new CustomEvent('limes:payment-success'))
       setTimeout(() => {
         if (onPay) onPay()
         onClose()
