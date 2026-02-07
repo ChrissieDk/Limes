@@ -1,4 +1,4 @@
-import { MoreHorizontal, Star } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import type { SimCard as SimCardModel } from './dashboardTypes.ts';
 
 interface SimCardProps {
