@@ -49,6 +49,67 @@ function Dashboard() {
   const balancesFetchedForRef = useRef<string>(''); // Track MSISDN we've fetched balances for
   const activationCheckedForRef = useRef<string>(''); // Track MSISDNs we've checked activation for
   const packageSelectionHandledRef = useRef<boolean>(false); // Track if we've handled package selection
+  const activationPollInFlightRef = useRef<boolean>(false); // Prevent overlapping activation polls
+
+  // Refresh dashboard data after successful payment
+  // This function resets all data-fetching refs to trigger fresh API calls
+  const refreshDashboardData = () => {
+    console.log('[Dashboard] Payment successful - refreshing all data...')
+    
+    // Reset refs to allow data to be re-fetched
+    balancesFetchedForRef.current = ''
+    activationCheckedForRef.current = ''
+    
+    // Force re-fetch by updating state (triggers dependent useEffects)
+    // We do this by fetching user data again, which will update simCards and trigger cascading refreshes
+    const fetchUserData = async () => {
+      try {
+        const user = await userService.getCurrentUser()
+        console.log('[Dashboard] Refreshed user data after payment:', user)
+        
+        // Update SIM cards with potentially new MSISDNs
+        if (user.msisdns && user.msisdns.length > 0) {
+          const updatedSimCards = user.msisdns.map((msisdnData, index: number) => ({
+            id: String(index + 1),
+            name: `Sim ${index + 1}`,
+            phoneNumber: msisdnData.msisdn,
+            isActive: msisdnData.hasActiveSubscription,
+            hasVoiceTopUp: false,
+            plan: {
+              mobileData: '0GB',
+              airtime: 'R0',
+              messaging: '0SMS',
+              phone: '0 Min'
+            }
+          }))
+          setSimCards(updatedSimCards)
+        }
+        
+        // Re-fetch transactions
+        const txResponse = await paymentService.getTransactionHistory(1, 10)
+        console.log('[Dashboard] Refreshed transactions after payment:', txResponse)
+        setTransactions(txResponse)
+      } catch (err) {
+        console.error('[Dashboard] Error refreshing data after payment:', err)
+      }
+    }
+    
+    fetchUserData()
+  }
+
+  // Listen for payment success events to trigger refresh
+  useEffect(() => {
+    const handlePaymentSuccess = () => {
+      console.log('[Dashboard] Received payment success event')
+      refreshDashboardData()
+    }
+    
+    window.addEventListener('limes:payment-success', handlePaymentSuccess)
+    
+    return () => {
+      window.removeEventListener('limes:payment-success', handlePaymentSuccess)
+    }
+  }, []) // Empty deps - listener setup only once
 
   // Get selected package from navigation state or use mock as fallback
   const selectedPackageFromState = (location.state as any)?.selectedPackage;
@@ -356,6 +417,53 @@ function Dashboard() {
     };
   }, [simCards]);
 
+  // Lightweight activation status refresh for the currently viewed SIM.
+  // This avoids users needing to refresh the page to see:
+  // - SIM active/inactive state changes
+  // - the "Activate" button appearing when pending items are ready
+  //
+  // Rate-limited: one request every 45s, only for the current SIM, and skipped when tab is hidden.
+  useEffect(() => {
+    const msisdn = simCards[currentSimIndex]?.phoneNumber
+    if (!msisdn) return
+
+    let cancelled = false
+
+    const tick = async () => {
+      if (cancelled) return
+      if (document.hidden) return
+      if (activationPollInFlightRef.current) return
+
+      activationPollInFlightRef.current = true
+      try {
+        const response = await subscriptionService.checkSimActive(msisdn)
+        if (cancelled) return
+
+        setCanActivate(prev => ({
+          ...prev,
+          [msisdn]: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
+        }))
+        setSimIsActive(prev => ({
+          ...prev,
+          [msisdn]: response.isActive,
+        }))
+      } catch (err) {
+        // Silent in background; initial activation checker already logs errors
+      } finally {
+        activationPollInFlightRef.current = false
+      }
+    }
+
+    // Run once immediately, then poll gently
+    tick()
+    const id = window.setInterval(tick, 45_000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [simCards, currentSimIndex]);
+
   // TEMP: Log catalog endpoints to verify connectivity
   useEffect(() => {
     let cancelled = false;
@@ -430,6 +538,11 @@ function Dashboard() {
           ...prev,
           [sim.phoneNumber]: statusResponse.isActive
         }));
+
+        // Refresh balances after a successful activation so the UI updates without a manual reload.
+        // This works by resetting the balance fetch guard ref and triggering the existing balance effect.
+        balancesFetchedForRef.current = ''
+        setSimCards(prev => [...prev])
         
         // TODO: Show success message to user (toast/notification)
         // TODO: Refresh transactions if needed
@@ -514,11 +627,11 @@ function Dashboard() {
       )}
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Top Section - My Sims and Transaction History (equal height within gray block) */}
-        <section className="bg-neutral-800 border border-neutral-700 rounded-2xl p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <section>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 items-stretch">
           {/* Left: My Sims */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="bg-neutral-800 rounded-xl p-3 md:p-6 h-full border border-neutral-700 flex flex-col">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-white font-semibold text-2xl">My SIM</h2>
               <div className="flex items-center gap-1">
                 <button
@@ -541,42 +654,44 @@ function Dashboard() {
               </div>
             </div>
 
-            {balancesLoading ? (
-              <>
-                <SimCardSkeleton />
-                <PlanDetailsSkeleton />
-              </>
-            ) : (
-              <>
-                {/* Loading message for SIM activation */}
-                {activatingSim === simCards[currentSimIndex]?.phoneNumber && (
-                  <div className="mb-4 p-4 rounded-xl bg-blue-900/50 border border-blue-500/50">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <div className="inline-block size-5 border-2 border-blue-200 border-t-blue-400 rounded-full animate-spin" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-white mb-1">Activating your SIM...</div>
-                        <div className="text-sm text-blue-200">
-                          This may take up to 30 seconds. Please don't close this window.
+            <div className="flex-1 flex flex-col gap-3">
+              {balancesLoading ? (
+                <>
+                  <SimCardSkeleton />
+                  <PlanDetailsSkeleton />
+                </>
+              ) : (
+                <>
+                  {/* Loading message for SIM activation */}
+                  {activatingSim === simCards[currentSimIndex]?.phoneNumber && (
+                    <div className="p-4 rounded-xl bg-blue-900/50 border border-blue-500/50">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <div className="inline-block size-5 border-2 border-blue-200 border-t-blue-400 rounded-full animate-spin" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-white mb-1">Activating your SIM...</div>
+                          <div className="text-sm text-blue-200">
+                            This may take up to 30 seconds. Please don't close this window.
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                
-                <SimCard 
-                  sim={simCards[currentSimIndex]} 
-                  onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
-                  onActivate={handleActivate}
-                  canActivate={canActivate[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id] || false}
-                  isActivating={activatingSim === simCards[currentSimIndex]?.phoneNumber}
-                  isActive={simIsActive[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id]}
-                  activationStatusLoading={activationStatusLoading}
-                />
-                <PlanDetails sim={simCards[currentSimIndex]} />
-              </>
-            )}
+                  )}
+                  
+                  <SimCard 
+                    sim={simCards[currentSimIndex]} 
+                    onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
+                    onActivate={handleActivate}
+                    canActivate={canActivate[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id] || false}
+                    isActivating={activatingSim === simCards[currentSimIndex]?.phoneNumber}
+                    isActive={simIsActive[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id]}
+                    activationStatusLoading={activationStatusLoading}
+                  />
+                  <PlanDetails sim={simCards[currentSimIndex]} />
+                </>
+              )}
+            </div>
           </div>
 
           {/* Right: Transaction History */}

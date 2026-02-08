@@ -596,36 +596,48 @@ export default function DashboardPackages() {
                     </svg>
                     Back
                   </button>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     <button
                       onClick={() => handleContractFlowTypeSelect('dynamic')}
-                      className="group rounded-2xl p-8 bg-[#56CCF2] hover:bg-[#46BCE2] shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all min-h-[280px] flex flex-col items-center justify-center text-center"
+                      className="group rounded-[28px] bg-[#F8A1D9] hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
                     >
-                      <div className="size-16 rounded-full bg-white/20 grid place-items-center mb-4">
-                        <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                        </svg>
+                      <div className="mb-4">
+                        <img
+                          src={`${import.meta.env.BASE_URL}images/house.png`}
+                          alt=""
+                          aria-hidden="true"
+                          className="h-11 w-11 select-none"
+                        />
                       </div>
-                      <h3 className="text-neutral-900 font-bold text-[28px] md:text-[30px] leading-[1.05] mb-2">
-                        Build Your Own
+                      <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
+                        Build your own
                       </h3>
-                      <p className="text-neutral-900/80 text-lg">Customize your perfect plan</p>
+                      <p className="mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
+                        <span>Customise your perfect plan</span>
+                        <span aria-hidden="true">→</span>
+                      </p>
                     </button>
 
                     <button
                       onClick={() => handleContractFlowTypeSelect('combo')}
-                      className="group rounded-2xl p-8 bg-[#A8E063] hover:bg-[#98D053] shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all min-h-[280px] flex flex-col items-center justify-center text-center"
+                      className="group rounded-[28px] bg-[#629CFC] hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
                     >
-                      <div className="size-16 rounded-full bg-white/20 grid place-items-center mb-4">
-                        <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
+                      <div className="mb-4">
+                        <img
+                          src={`${import.meta.env.BASE_URL}images/zblock.png`}
+                          alt=""
+                          aria-hidden="true"
+                          className="h-11 w-11 select-none"
+                        />
                       </div>
-                      <h3 className="text-neutral-900 font-bold text-[28px] md:text-[30px] leading-[1.05] mb-2">
-                        Combo Bundles
+                      <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
+                        Combo bundles
                       </h3>
-                      <p className="text-neutral-900/80 text-lg">Pre-made bundle packages</p>
+                      <p className="mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
+                        <span>Choose from our bundles</span>
+                        <span aria-hidden="true">→</span>
+                      </p>
                     </button>
                   </div>
                 </div>
@@ -833,13 +845,13 @@ export default function DashboardPackages() {
                   </div>
                   ) : products.length > 0 ? (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                         {products.map((pkg, idx) => {
                           // Cycle through colors for the 3-column layout
                           const colors = [
                             { bg: 'bg-[#CDA7FC]' }, // left column
-                            { bg: 'bg-[#ABFF63]' }, // middle column
-                            { bg: 'bg-pink-300' },  // right column
+                            { bg: 'bg-[#ABFF64]' }, // middle column
+                            { bg: 'bg-[#F8A1D9]' }, // right column
                           ]
                           const colorScheme = colors[idx % colors.length]
                           
@@ -848,19 +860,19 @@ export default function DashboardPackages() {
                               key={pkg.id}
                               className={`rounded-[28px] p-8 ${colorScheme.bg} shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all group relative overflow-hidden min-h-[230px] flex flex-col`}
                             >
-                              <div className="text-neutral-900 font-bold text-[30px] leading-[1.05] tracking-tight">
+                              <div className="text-neutral-900 font-bold text-[32px] md:text-[34px] leading-[1.05] tracking-tight">
                                 {pkg.name}
                               </div>
-                              <div className="mt-4 h-px w-full bg-neutral-900/30" />
+                              <div className="mt-4 h-[2px] w-full bg-neutral-900/30" />
 
-                              <div className="mt-6 text-neutral-900 font-bold text-[40px] leading-none tracking-tight">
+                              <div className="mt-6 text-neutral-900 font-bold text-[44px] md:text-[48px] leading-none tracking-tight">
                                 R{pkg.price.toFixed(2)}
                               </div>
 
-                              <div className="mt-auto pt-6">
+                              <div className="mt-6">
                                 <button
                                   onClick={() => handleBuyNow(pkg)}
-                                  className="inline-flex items-center justify-center h-10 px-5 rounded-xl bg-white text-neutral-900 text-sm font-semibold border border-black/50 hover:bg-neutral-50 transition-colors"
+                                  className="inline-flex items-center justify-center h-10 px-6 rounded-[12px] bg-white text-neutral-900 text-sm font-semibold border border-neutral-900/50 hover:bg-neutral-50 transition-colors"
                                 >
                                   Buy now
                                 </button>
@@ -926,68 +938,126 @@ export default function DashboardPackages() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                       {comboBundles.map((bundle, idx) => {
-                        // Cycle through colors for variety
+                        // Match the 3-column visual pattern from the flow
                         const colors = [
-                          { bg: 'bg-[#7B9FF5]', icon: 'bg-blue-500/20' },
-                          { bg: 'bg-[#A8E063]', icon: 'bg-lime-500/20' },
-                          { bg: 'bg-[#D8B0FF]', icon: 'bg-purple-500/20' },
-                          { bg: 'bg-[#FF9B5B]', icon: 'bg-orange-500/20' },
-                          { bg: 'bg-[#56CCF2]', icon: 'bg-cyan-500/20' },
-                          { bg: 'bg-[#FF6B9D]', icon: 'bg-pink-500/20' },
+                          { bg: 'bg-[#CDA7FC]' }, // left column
+                          { bg: 'bg-[#ABFF64]' }, // middle column
+                          { bg: 'bg-[#F8A1D9]' }, // right column
                         ]
                         const colorScheme = colors[idx % colors.length]
-                        
+
+                        const benefits = bundle.comboDetails?.benefits ?? []
+                        const includedRows: Array<{ key: string; label: string; value: string; meta?: string }> = []
+
+                        // Show key value-prop details in a consistent order.
+                        // We intentionally keep this compact but comprehensive enough for comparison.
+                        const pick = (type: typeof benefits[number]['type']) => benefits.find(b => b.type === type)
+
+                        const standardData = pick('data')
+                        const promoData = pick('promo_data')
+                        const zeroRatedData = pick('zero_rated_data')
+                        const whatsapp = pick('whatsapp')
+                        const voice = pick('voice')
+                        const sms = pick('sms')
+                        const airtime = pick('gpa_credit')
+
+                        if (standardData) {
+                          includedRows.push({
+                            key: 'data',
+                            label: 'Data',
+                            value: standardData.formattedValue,
+                            meta: standardData.validity,
+                          })
+                        }
+                        if (promoData) {
+                          includedRows.push({
+                            key: 'promo_data',
+                            label: 'Bonus data',
+                            value: promoData.formattedValue,
+                            meta: promoData.validity,
+                          })
+                        }
+                        if (zeroRatedData) {
+                          includedRows.push({
+                            key: 'zero_rated_data',
+                            label: 'Zero-rated',
+                            value: zeroRatedData.formattedValue,
+                            meta: zeroRatedData.validity,
+                          })
+                        }
+                        if (whatsapp) {
+                          includedRows.push({
+                            key: 'whatsapp',
+                            label: 'WhatsApp',
+                            value: whatsapp.formattedValue,
+                            meta: whatsapp.validity,
+                          })
+                        }
+                        if (voice) {
+                          includedRows.push({
+                            key: 'voice',
+                            label: 'Voice',
+                            value: voice.formattedValue,
+                            meta: voice.validity,
+                          })
+                        }
+                        if (sms) {
+                          includedRows.push({
+                            key: 'sms',
+                            label: 'SMS',
+                            value: sms.formattedValue,
+                            meta: sms.validity,
+                          })
+                        }
+                        if (airtime) {
+                          includedRows.push({
+                            key: 'gpa_credit',
+                            label: 'Airtime',
+                            value: airtime.formattedValue,
+                            meta: airtime.validity,
+                          })
+                        }
+
                         return (
                           <div
                             key={bundle.id}
-                            className={`rounded-2xl p-6 ${colorScheme.bg} shadow-[8px_8px_0_0_rgba(0,0,0,0.7)] hover:shadow-[12px_12px_0_0_rgba(0,0,0,0.7)] transition-all group relative overflow-hidden`}
+                            className={`rounded-[28px] p-8 ${colorScheme.bg} shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all group relative overflow-hidden min-h-[230px] flex flex-col`}
                           >
-                            <div className={`size-12 rounded-full ${colorScheme.icon} grid place-items-center mb-4`}>
-                              <svg className="w-6 h-6 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                              </svg>
-                            </div>
-                            <h3 className="text-neutral-900 font-bold text-[22px] leading-[1.1] mb-2">
+                            <div className="text-neutral-900 font-bold text-[24px] md:text-[26px] leading-[1.1] tracking-tight">
                               {bundle.name}
-                            </h3>
-                            
-                            {/* Short summary */}
-                            {bundle.comboDetails && (
-                              <p className="text-neutral-900/70 text-sm mb-4 font-medium">
-                                {bundle.comboDetails.shortSummary}
-                              </p>
-                            )}
-                            
-                            {/* Benefits list */}
-                            {bundle.comboDetails && bundle.comboDetails.benefits.length > 0 && (
-                              <div className="mb-6 space-y-2">
-                                {bundle.comboDetails.benefits.map((benefit, i) => (
-                                  <div key={i} className="flex items-start gap-2 text-neutral-900/80">
-                                    <svg className="w-5 h-5 text-neutral-900 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    <span className="text-sm">
-                                      <strong>{benefit.label}:</strong> {benefit.formattedValue}
-                                      {benefit.validity && <span className="text-neutral-900/60"> ({benefit.validity})</span>}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            </div>
+                            <div className="mt-4 h-[2px] w-full bg-neutral-900/30" />
 
-                            <div className="mt-auto pt-4 border-t border-neutral-900/10">
-                              <div className="flex items-baseline justify-between mb-3">
-                                <span className="text-neutral-900 font-bold text-[28px]">
-                                  R{bundle.actualPrice.toFixed(2)}
-                                </span>
-                                <span className="text-neutral-900/70 text-sm font-semibold">per month</span>
+                            <div className="mt-5 flex-1">
+                              {includedRows.length > 0 ? (
+                                <div className="space-y-1.5">
+                                  {includedRows.map(row => (
+                                    <div key={row.key} className="flex items-baseline justify-between gap-4">
+                                      <span className="text-neutral-900/80 text-sm font-semibold whitespace-nowrap">
+                                        {row.label}
+                                        {row.meta ? <span className="text-neutral-900/60 font-semibold"> ({row.meta})</span> : null}
+                                      </span>
+                                      <span className="text-neutral-900 text-sm font-bold whitespace-nowrap">{row.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : bundle.comboDetails?.shortSummary ? (
+                                <p className="text-neutral-900/80 text-sm font-semibold">{bundle.comboDetails.shortSummary}</p>
+                              ) : null}
+                            </div>
+
+                            <div className="mt-auto pt-6">
+                              <div className="text-neutral-900 font-bold text-[34px] md:text-[38px] leading-none tracking-tight">
+                                R{bundle.actualPrice.toFixed(2)}
                               </div>
-                              <button
-                                onClick={() => handleComboBundleSelect(bundle)}
-                                className="w-full bg-neutral-900 text-white py-3 rounded-xl font-bold hover:bg-neutral-800 transition-colors shadow-md"
-                              >
-                                Select Bundle
-                              </button>
+                              <div className="mt-5">
+                                <button
+                                  onClick={() => handleComboBundleSelect(bundle)}
+                                  className="inline-flex items-center justify-center h-10 px-6 rounded-[12px] bg-white text-neutral-900 text-sm font-semibold border border-neutral-900/50 hover:bg-neutral-50 transition-colors"
+                                >
+                                  Buy now
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )
