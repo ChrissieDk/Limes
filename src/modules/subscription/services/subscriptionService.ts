@@ -58,6 +58,9 @@ export const subscriptionService = {
 
   // Create dynamic services for a subscriber (with extended timeout)
   async createDynamicServices(msisdn: string, payload: CreateDynamicServicesRequest): Promise<CreateDynamicServicesResponse> {
+    if (import.meta.env.DEV) {
+      console.log('[Subscription] createDynamicServices request:', { msisdn, payload })
+    }
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic`, payload, {
       timeout: 120000, // 2 minutes timeout for dynamic service creation
     })

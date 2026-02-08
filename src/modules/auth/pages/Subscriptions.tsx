@@ -5,7 +5,6 @@ import Footer from '../components/Footer';
 import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
 import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
-import type { User } from '../../../types';
 import type { SubscriptionDetails } from '../../../types/payment';
 import { 
   Calendar, 
@@ -26,24 +25,30 @@ const PLAN_CODE_TO_NAME: Record<string, string> = {
   'PLN_anjvoror46vxqvaw': 'Test Monthly Plan',
 };
 
-// Monthly/recurring plan IDs
-const RECURRING_PLAN_IDS = ['40021', '40022'];
+interface SubscriptionWithDetails extends SubscriptionDetails {
+  msisdn: string;
+  productId: string;
+  hasDynamicServices: boolean;
+}
 
 function Subscriptions() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(null);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState<string | null>(null); // Track which subscription is being cancelled
+  const [showCancelModal, setShowCancelModal] = useState<string | null>(null); // Track which subscription to cancel
   const [cancelSuccess, setCancelSuccess] = useState(false);
+  
+  // MSISDN filter
+  const [selectedMsisdn, setSelectedMsisdn] = useState<string>('all');
+  const [availableMsisdns, setAvailableMsisdns] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchUserAndSubscription();
+    fetchUserAndSubscriptions();
   }, []);
 
-  const fetchUserAndSubscription = async () => {
+  const fetchUserAndSubscriptions = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -51,46 +56,33 @@ function Subscriptions() {
       console.log('[Subscriptions] User data:', userData);
       
       // Use new getAllSubscriptions endpoint
-      const { subscriptions } = await paymentService.getAllSubscriptions();
-      console.log('[Subscriptions] All subscriptions:', subscriptions);
+      const { subscriptions: allSubs } = await paymentService.getAllSubscriptions();
+      console.log('[Subscriptions] All subscriptions:', allSubs);
       
-      // Find the first active subscription
-      const activeSubscription = subscriptions.find((sub) => sub.isActive && sub.status === 'active');
+      // Filter active subscriptions and map to full details
+      const activeSubs = allSubs
+        .filter((sub) => sub.isActive && sub.status === 'active')
+        .map((sub) => ({
+          id: sub.id,
+          paystackSubscriptionCode: sub.paystackSubscriptionCode,
+          paystackPlanCode: sub.paystackPlanCode,
+          status: sub.status,
+          nextPaymentDate: sub.nextPaymentDate,
+          amountInRands: sub.amountInRands,
+          currency: sub.currency,
+          createdAt: sub.createdAt,
+          cancelledAt: sub.cancelledAt,
+          msisdn: sub.msisdn,
+          productId: sub.productId,
+          hasDynamicServices: sub.hasDynamicServices
+        }));
       
-      if (activeSubscription) {
-        console.log('[Subscriptions] Active subscription found:', activeSubscription);
-        
-        // Map subscription data to User format
-        const tempUserData: User = {
-          ...userData,
-          msisdn: activeSubscription.msisdn,
-          productId: activeSubscription.productId
-        };
-        
-        // Use the new Subscription type with additional fields
-        const mappedSubscription: SubscriptionDetails = {
-          id: activeSubscription.id,
-          paystackSubscriptionCode: activeSubscription.paystackSubscriptionCode,
-          paystackPlanCode: activeSubscription.paystackPlanCode,
-          status: activeSubscription.status,
-          nextPaymentDate: activeSubscription.nextPaymentDate,
-          amountInRands: activeSubscription.amountInRands,
-          currency: activeSubscription.currency,
-          createdAt: activeSubscription.createdAt,
-          cancelledAt: activeSubscription.cancelledAt
-        };
-        
-        setSubscription(mappedSubscription);
-        setUser(tempUserData);
-      } else {
-        // No active subscription found
-        console.log('[Subscriptions] No active subscription found');
-        setUser({
-          ...userData,
-          msisdn: userData.msisdns?.[0]?.msisdn || '',
-          productId: undefined
-        });
-      }
+      // Extract unique MSISDNs for filter
+      const uniqueMsisdns = Array.from(new Set(activeSubs.map(sub => sub.msisdn)));
+      setAvailableMsisdns(uniqueMsisdns);
+      
+      console.log('[Subscriptions] Active subscriptions:', activeSubs);
+      setSubscriptions(activeSubs);
     } catch (err: any) {
       console.error('[Subscriptions] Error:', err);
       setError(err.response?.data?.message || 'Failed to load subscription data');
@@ -99,20 +91,20 @@ function Subscriptions() {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!subscription || !user?.msisdn || !user?.productId) {
+  const handleCancelSubscription = async (subscription: SubscriptionWithDetails) => {
+    if (!subscription || !subscription.msisdn || !subscription.productId) {
       setError('Missing subscription information. Please try again.');
       return;
     }
 
-    setCancelling(true);
+    setCancelling(subscription.id);
     setError(null);
     
     try {
       const response = await paymentService.cancelSubscription({ 
         subscriptionCode: subscription.paystackSubscriptionCode,
-        msisdn: user.msisdn,
-        productId: user.productId
+        msisdn: subscription.msisdn,
+        productId: subscription.productId
       });
       console.log('[Subscriptions] Cancelled:', response);
       
@@ -120,8 +112,8 @@ function Subscriptions() {
         setCancelSuccess(true);
         // Refresh data after a short delay
         setTimeout(async () => {
-          await fetchUserAndSubscription();
-          setShowCancelModal(false);
+          await fetchUserAndSubscriptions();
+          setShowCancelModal(null);
           setCancelSuccess(false);
         }, 2000);
       } else {
@@ -134,11 +126,14 @@ function Subscriptions() {
         : err.response?.data?.message || 'Failed to cancel subscription';
       setError(errorMessage);
     } finally {
-      setCancelling(false);
+      setCancelling(null);
     }
   };
 
-  const isRecurringPlan = user?.productId && RECURRING_PLAN_IDS.includes(user.productId);
+  // Filter subscriptions by selected MSISDN
+  const filteredSubscriptions = selectedMsisdn === 'all' 
+    ? subscriptions 
+    : subscriptions.filter(sub => sub.msisdn === selectedMsisdn);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -161,6 +156,22 @@ function Subscriptions() {
       default:
         return 'text-neutral-400 bg-neutral-400/10';
     }
+  };
+
+  const getPlanName = (subscription: SubscriptionWithDetails) => {
+    // Check if it's a known plan code
+    if (PLAN_CODE_TO_NAME[subscription.paystackPlanCode]) {
+      return PLAN_CODE_TO_NAME[subscription.paystackPlanCode];
+    }
+    if (PLAN_CODE_TO_NAME[subscription.productId]) {
+      return PLAN_CODE_TO_NAME[subscription.productId];
+    }
+    // Dynamic services
+    if (subscription.hasDynamicServices || subscription.productId === 'DYNAMIC_SERVICES') {
+      return 'Build Your Own Plan';
+    }
+    // Fallback to product ID
+    return `Plan ${subscription.productId}`;
   };
 
   return (
@@ -213,8 +224,8 @@ function Subscriptions() {
           </div>
         )}
 
-        {/* No Recurring Subscriptions */}
-        {!loading && !error && !isRecurringPlan && (
+        {/* No Subscriptions */}
+        {!loading && !error && subscriptions.length === 0 && (
           <div className="space-y-8">
             <div className="max-w-4xl mx-auto">
               <button
@@ -236,18 +247,16 @@ function Subscriptions() {
                 />
               </div>
               <h3 className="text-white font-grotesque font-semibold text-2xl sm:text-3xl leading-[1.15] mb-2">
-                No active recurring subscriptions
+                No active subscriptions
               </h3>
               <p className="text-neutral-400 text-sm sm:text-base mb-8">
-                {user?.productId 
-                  ? 'You have a prepaid or once-off plan. Only monthly recurring plans appear here.'
-                  : 'You don\'t have any active subscriptions yet.'}
+                You don't have any active recurring subscriptions yet.
               </p>
               <button
                 onClick={() => navigate('/dashboard/packages')}
                 className="w-full inline-flex items-center justify-center rounded-2xl bg-[#ABFF63] text-neutral-900 h-12 text-sm font-semibold hover:brightness-95 transition"
               >
-                Browse monthly plans
+                Browse plans
               </button>
             </div>
 
@@ -272,10 +281,10 @@ function Subscriptions() {
           </div>
         )}
 
-        {/* Active Recurring Subscription */}
-        {!loading && !error && isRecurringPlan && (
+        {/* Active Subscriptions */}
+        {!loading && !error && subscriptions.length > 0 && (
           <div className="space-y-6">
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
               <button
                 onClick={() => navigate('/dashboard')}
                 className="inline-flex items-center gap-2 rounded-xl bg-white/10 ring-1 ring-white/10 text-white px-5 h-11 text-sm font-semibold hover:bg-white/15 transition-colors"
@@ -283,124 +292,131 @@ function Subscriptions() {
                 <ChevronLeft className="w-4 h-4" />
                 Back to Dashboard
               </button>
+
+              {/* MSISDN Filter */}
+              {availableMsisdns.length > 1 && (
+                <div className="flex items-center gap-3">
+                  <label className="text-neutral-400 text-sm">Filter by number:</label>
+                  <select
+                    value={selectedMsisdn}
+                    onChange={(e) => setSelectedMsisdn(e.target.value)}
+                    className="bg-neutral-800 border border-neutral-700 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400"
+                  >
+                    <option value="all">All Numbers ({subscriptions.length})</option>
+                    {availableMsisdns.map((msisdn) => (
+                      <option key={msisdn} value={msisdn}>
+                        {msisdn} ({subscriptions.filter(s => s.msisdn === msisdn).length})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
-            {/* Subscription Card */}
-            <div className="max-w-6xl mx-auto rounded-[28px] bg-transparent ring-1 ring-white/10 p-8">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <h3 className="text-xl font-semibold text-white mr-3">
-                      {subscription && PLAN_CODE_TO_NAME[subscription.paystackPlanCode] 
-                        ? PLAN_CODE_TO_NAME[subscription.paystackPlanCode]
-                        : subscription?.paystackPlanCode || `Plan ${user.productId}`
-                      }
-                    </h3>
-                    {subscription ? (
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(subscription.status)}`}>
-                        {subscription.status}
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium text-lime-400 bg-lime-400/10">
-                        Active
-                      </span>
+
+            {/* Subscription Cards */}
+            <div className="space-y-6">
+              {filteredSubscriptions.map((sub) => (
+                <div key={sub.id} className="max-w-6xl mx-auto rounded-[28px] bg-transparent ring-1 ring-white/10 p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex-1">
+                      <div className="flex items-center mb-2">
+                        <h3 className="text-xl font-semibold text-white mr-3">
+                          {getPlanName(sub)}
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(sub.status)}`}>
+                          {sub.status}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-neutral-500 text-xs">
+                          Plan Code: {sub.paystackPlanCode}
+                        </p>
+                        <p className="text-neutral-400 text-sm">
+                          Subscription ID: {sub.paystackSubscriptionCode}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {sub.status.toLowerCase() === 'active' && !sub.cancelledAt && (
+                      <button
+                        onClick={() => setShowCancelModal(sub.id)}
+                        disabled={cancelling === sub.id}
+                        className="bg-white/10 ring-1 ring-white/10 text-white px-4 h-11 rounded-xl text-sm font-semibold hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Cancel
+                      </button>
                     )}
                   </div>
-                  {subscription && (
-                    <div className="space-y-1">
-                      <p className="text-neutral-500 text-xs">
-                        Plan Code: {subscription.paystackPlanCode}
-                      </p>
-                      <p className="text-neutral-400 text-sm">
-                        Subscription ID: {subscription.paystackSubscriptionCode}
-                      </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* MSISDN */}
+                    <div className="flex items-start">
+                      <div className="bg-purple-400/10 p-3 rounded-lg mr-4">
+                        <Phone className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-neutral-400 text-sm mb-1">Phone Number</p>
+                        <p className="text-white font-semibold text-lg">{sub.msisdn}</p>
+                      </div>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="flex items-start">
+                      <div className="bg-lime-400/10 p-3 rounded-lg mr-4">
+                        <DollarSign className="w-5 h-5 text-lime-400" />
+                      </div>
+                      <div>
+                        <p className="text-neutral-400 text-sm mb-1">Amount</p>
+                        <p className="text-white font-semibold text-lg">
+                          R{sub.amountInRands.toFixed(2)}/mo
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Auto-Renewal Status */}
+                    <div className="flex items-start">
+                      <div className="bg-blue-400/10 p-3 rounded-lg mr-4">
+                        <CheckCircle2 className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-neutral-400 text-sm mb-1">Auto-Renewal</p>
+                        <p className="text-white font-semibold">
+                          {sub.cancelledAt ? 'Disabled' : 'Enabled'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Next Payment */}
+                    <div className="flex items-start">
+                      <div className="bg-orange-400/10 p-3 rounded-lg mr-4">
+                        <Calendar className="w-5 h-5 text-orange-400" />
+                      </div>
+                      <div>
+                        <p className="text-neutral-400 text-sm mb-1">Next Payment</p>
+                        <p className="text-white font-semibold">
+                          {sub.cancelledAt 
+                            ? 'Cancelled' 
+                            : formatDate(sub.nextPaymentDate)
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {sub.cancelledAt && (
+                    <div className="mt-6 pt-6 border-t border-neutral-800">
+                      <div className="flex items-center text-yellow-400">
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        <p className="text-sm">
+                          This subscription was cancelled on {formatDate(sub.cancelledAt)}. 
+                          You will still have access until the end of your current billing period.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
-                
-                {subscription && subscription.status.toLowerCase() === 'active' && !subscription.cancelledAt && (
-                  <button
-                    onClick={() => setShowCancelModal(true)}
-                    disabled={cancelling}
-                    className="bg-white/10 ring-1 ring-white/10 text-white px-4 h-11 rounded-xl text-sm font-semibold hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Cancel Subscription
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* MSISDN */}
-                {user.msisdn && (
-                  <div className="flex items-start">
-                    <div className="bg-purple-400/10 p-3 rounded-lg mr-4">
-                      <Phone className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-neutral-400 text-sm mb-1">Phone Number</p>
-                      <p className="text-white font-semibold text-lg">{user.msisdn}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Amount */}
-                {subscription && (
-                  <div className="flex items-start">
-                    <div className="bg-lime-400/10 p-3 rounded-lg mr-4">
-                      <DollarSign className="w-5 h-5 text-lime-400" />
-                    </div>
-                    <div>
-                      <p className="text-neutral-400 text-sm mb-1">Amount</p>
-                      <p className="text-white font-semibold text-lg">
-                        R{subscription.amountInRands.toFixed(2)}/mo
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Auto-Renewal Status */}
-                <div className="flex items-start">
-                  <div className="bg-blue-400/10 p-3 rounded-lg mr-4">
-                    <CheckCircle2 className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-neutral-400 text-sm mb-1">Auto-Renewal</p>
-                    <p className="text-white font-semibold">
-                      {subscription?.cancelledAt ? 'Disabled' : 'Enabled'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Next Payment */}
-                {subscription && (
-                  <div className="flex items-start">
-                    <div className="bg-orange-400/10 p-3 rounded-lg mr-4">
-                      <Calendar className="w-5 h-5 text-orange-400" />
-                    </div>
-                    <div>
-                      <p className="text-neutral-400 text-sm mb-1">Next Payment</p>
-                      <p className="text-white font-semibold">
-                        {subscription.cancelledAt 
-                          ? 'Cancelled' 
-                          : formatDate(subscription.nextPaymentDate)
-                        }
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {subscription?.cancelledAt && (
-                <div className="mt-6 pt-6 border-t border-neutral-800">
-                  <div className="flex items-center text-yellow-400">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    <p className="text-sm">
-                      This subscription was cancelled on {formatDate(subscription.cancelledAt)}. 
-                      You will still have access until the end of your current billing period.
-                    </p>
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
 
             {/* Info Box */}
@@ -440,78 +456,90 @@ function Subscriptions() {
             ) : (
               // Confirmation State
               <>
-                <div className="mb-6">
-                  <div className="mb-4 mx-auto w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
-                    <AlertCircle className="w-8 h-8 text-yellow-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2 text-center">Cancel Subscription?</h3>
-                </div>
+                {(() => {
+                  const subToCancel = subscriptions.find(s => s.id === showCancelModal);
+                  if (!subToCancel) return null;
+                  
+                  return (
+                    <>
+                      <div className="mb-6">
+                        <div className="mb-4 mx-auto w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
+                          <AlertCircle className="w-8 h-8 text-yellow-400" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2 text-center">Cancel Subscription?</h3>
+                        <p className="text-neutral-400 text-sm text-center">
+                          {getPlanName(subToCancel)} • {subToCancel.msisdn}
+                        </p>
+                      </div>
 
-                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4 mb-6 space-y-3">
-                  <div className="flex items-start">
-                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="text-white font-semibold text-sm">Access Until Billing Date</p>
-                      <p className="text-neutral-400 text-sm">
-                        You'll continue to have access until {subscription && formatDate(subscription.nextPaymentDate)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="text-white font-semibold text-sm">No Future Charges</p>
-                      <p className="text-neutral-400 text-sm">
-                        You won't be charged after {subscription && formatDate(subscription.nextPaymentDate)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="text-white font-semibold text-sm">Resubscribe Anytime</p>
-                      <p className="text-neutral-400 text-sm">
-                        You can choose a new package from our plans page once this expires
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                      <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4 mb-6 space-y-3">
+                        <div className="flex items-start">
+                          <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                          <div>
+                            <p className="text-white font-semibold text-sm">Access Until Billing Date</p>
+                            <p className="text-neutral-400 text-sm">
+                              You'll continue to have access until {formatDate(subToCancel.nextPaymentDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                          <div>
+                            <p className="text-white font-semibold text-sm">No Future Charges</p>
+                            <p className="text-neutral-400 text-sm">
+                              You won't be charged after {formatDate(subToCancel.nextPaymentDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                          <div>
+                            <p className="text-white font-semibold text-sm">Resubscribe Anytime</p>
+                            <p className="text-neutral-400 text-sm">
+                              You can choose a new package from our plans page once this expires
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                {error && (
-                  <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
-                    <div className="flex items-start">
-                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-                      <p className="text-red-400 text-sm">{error}</p>
-                    </div>
-                  </div>
-                )}
+                      {error && (
+                        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
+                          <div className="flex items-start">
+                            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+                            <p className="text-red-400 text-sm">{error}</p>
+                          </div>
+                        </div>
+                      )}
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowCancelModal(false);
-                      setError(null);
-                    }}
-                    disabled={cancelling}
-                    className="flex-1 bg-neutral-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
-                  >
-                    Keep Subscription
-                  </button>
-                  <button
-                    onClick={handleCancelSubscription}
-                    disabled={cancelling}
-                    className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                  >
-                    {cancelling ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Cancelling...
-                      </>
-                    ) : (
-                      'Yes, Cancel'
-                    )}
-                  </button>
-                </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            setShowCancelModal(null);
+                            setError(null);
+                          }}
+                          disabled={cancelling === showCancelModal}
+                          className="flex-1 bg-neutral-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
+                        >
+                          Keep Subscription
+                        </button>
+                        <button
+                          onClick={() => handleCancelSubscription(subToCancel)}
+                          disabled={cancelling === showCancelModal}
+                          className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                          {cancelling === showCancelModal ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Cancelling...
+                            </>
+                          ) : (
+                            'Yes, Cancel'
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </>
             )}
           </div>

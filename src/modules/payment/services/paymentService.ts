@@ -44,6 +44,9 @@ export const paymentService = {
    * Used for contract plans where user selects service allocations
    */
   async initializeDynamicServicesPayment(payload: InitializeDynamicServicesPaymentRequest): Promise<InitializeDynamicServicesPaymentResponse> {
+    if (import.meta.env.DEV) {
+      console.log('[Payment] initializeDynamicServicesPayment payload:', payload)
+    }
     const response = await apiClient.post('/payment/dynamic-services/initialize', payload)
     return response.data
   },
@@ -115,6 +118,9 @@ export const paymentService = {
    * Requires a saved card
    */
   async createDynamicServicesRecurring(payload: CreateDynamicServicesRecurringRequest): Promise<CreateDynamicServicesRecurringResponse> {
+    if (import.meta.env.DEV) {
+      console.log('[Payment] createDynamicServicesRecurring payload:', payload)
+    }
     const response = await apiClient.post('/payment/dynamic-services/recurring', payload)
     return response.data
   },
