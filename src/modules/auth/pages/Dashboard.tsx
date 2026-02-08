@@ -49,6 +49,7 @@ function Dashboard() {
   const balancesFetchedForRef = useRef<string>(''); // Track MSISDN we've fetched balances for
   const activationCheckedForRef = useRef<string>(''); // Track MSISDNs we've checked activation for
   const packageSelectionHandledRef = useRef<boolean>(false); // Track if we've handled package selection
+  const activationPollInFlightRef = useRef<boolean>(false); // Prevent overlapping activation polls
 
   // Refresh dashboard data after successful payment
   // This function resets all data-fetching refs to trigger fresh API calls
@@ -416,6 +417,53 @@ function Dashboard() {
     };
   }, [simCards]);
 
+  // Lightweight activation status refresh for the currently viewed SIM.
+  // This avoids users needing to refresh the page to see:
+  // - SIM active/inactive state changes
+  // - the "Activate" button appearing when pending items are ready
+  //
+  // Rate-limited: one request every 45s, only for the current SIM, and skipped when tab is hidden.
+  useEffect(() => {
+    const msisdn = simCards[currentSimIndex]?.phoneNumber
+    if (!msisdn) return
+
+    let cancelled = false
+
+    const tick = async () => {
+      if (cancelled) return
+      if (document.hidden) return
+      if (activationPollInFlightRef.current) return
+
+      activationPollInFlightRef.current = true
+      try {
+        const response = await subscriptionService.checkSimActive(msisdn)
+        if (cancelled) return
+
+        setCanActivate(prev => ({
+          ...prev,
+          [msisdn]: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
+        }))
+        setSimIsActive(prev => ({
+          ...prev,
+          [msisdn]: response.isActive,
+        }))
+      } catch (err) {
+        // Silent in background; initial activation checker already logs errors
+      } finally {
+        activationPollInFlightRef.current = false
+      }
+    }
+
+    // Run once immediately, then poll gently
+    tick()
+    const id = window.setInterval(tick, 45_000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [simCards, currentSimIndex]);
+
   // TEMP: Log catalog endpoints to verify connectivity
   useEffect(() => {
     let cancelled = false;
@@ -490,6 +538,11 @@ function Dashboard() {
           ...prev,
           [sim.phoneNumber]: statusResponse.isActive
         }));
+
+        // Refresh balances after a successful activation so the UI updates without a manual reload.
+        // This works by resetting the balance fetch guard ref and triggering the existing balance effect.
+        balancesFetchedForRef.current = ''
+        setSimCards(prev => [...prev])
         
         // TODO: Show success message to user (toast/notification)
         // TODO: Refresh transactions if needed
