@@ -6,6 +6,7 @@ import AuthLayout from '../layouts/AuthLayout'
 import TextField from '../components/TextField'
 import Checkbox from '../components/Checkbox'
 import Button from '../components/Button'
+import Footer from '../components/Footer'
 import { useState } from 'react'
 import { firebaseAuthService } from '../services/firebaseAuthService'
 import { userService } from '../services/userService'
@@ -83,6 +84,9 @@ export default function SignUp() {
 
   return (
     <AuthLayout
+      variant="signup"
+      tone="dark"
+      footer={<Footer />}
       heading={
         <>
           Ready to get your
@@ -91,16 +95,21 @@ export default function SignUp() {
         </>
       }
       subheading={
-        <>Join the community where data pays you back, and your mobile plan actually makes sense.</>
+        <>Join the community where your mobile plan actually makes sense for you.</>
       }
       side={
-        <div className="h-full w-full rounded-3xl overflow-hidden border border-neutral-700/60">
-          <img src={`${import.meta.env.BASE_URL}images/signup.png`} alt="Sign up" className="h-full w-full object-cover" />
+        <div className="h-full w-full rounded-3xl overflow-hidden flex items-center justify-center p-3">
+          <img
+            src={`${import.meta.env.BASE_URL}images/sign_up_hero.svg`}
+            alt="Sign up"
+            className="h-full w-full object-contain"
+          />
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
         <TextField
+          variant="dark"
           label="Phone number"
           prefix={'+27'}
           placeholder="Enter your mobile number"
@@ -109,7 +118,8 @@ export default function SignUp() {
         />
 
         <TextField
-          label="Email Address"
+          variant="dark"
+          label="Email address"
           type="email"
           placeholder="Enter your email address"
           {...register('email')}
@@ -117,6 +127,7 @@ export default function SignUp() {
         />
 
         <TextField
+          variant="dark"
           label="Password"
           type="password"
           placeholder="Enter your password"
@@ -125,6 +136,7 @@ export default function SignUp() {
         />
 
         <TextField
+          variant="dark"
           label="Confirm Password"
           type="password"
           placeholder="Confirm your password"
@@ -141,15 +153,21 @@ export default function SignUp() {
           }
         />
 
-        <Button type="submit" disabled={submitting}>{submitting ? 'Creating Account...' : 'Join The Juice'}</Button>
+        <Button
+          type="submit"
+          disabled={submitting}
+          className="mt-2 h-10 rounded-lg border border-white/10 shadow-none"
+        >
+          {submitting ? 'Creating Account...' : 'Join Limes'}
+        </Button>
 
         {submitError && (
           <div className="text-sm text-red-400 text-center">{submitError}</div>
         )}
 
-        <div className="text-sm text-neutral-400 text-center">
-          Already an account?{' '}
-          <Link to="/signin" className="underline">
+        <div className="pt-2 text-sm text-neutral-500 text-center">
+          Already have an account?{' '}
+          <Link to="/signin" className="text-[#ABFF63] hover:text-[#ABFF63]/90 transition-colors">
             Login now
           </Link>
         </div>

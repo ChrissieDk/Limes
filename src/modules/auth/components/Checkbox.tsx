@@ -6,10 +6,10 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
 
 export default function Checkbox({ label, className, ...rest }: Props) {
   return (
-    <label className="flex items-start gap-3 text-sm text-neutral-300">
+    <label className="flex items-center gap-3 text-sm text-neutral-400 cursor-pointer">
       <input
         type="checkbox"
-        className="mt-1 size-4 rounded border-neutral-700 bg-neutral-800 text-lime-400 focus:ring-lime-400"
+        className="size-4 rounded border-neutral-600 bg-[#1F1E24] text-[#ABFF63] focus:ring-[#ABFF63] focus:ring-2 cursor-pointer"
         {...rest}
       />
       <span className="leading-5">{label}</span>
