@@ -1,4 +1,4 @@
-import { MoreHorizontal, Star } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import type { SimCard as SimCardModel } from './dashboardTypes.ts';
 
 interface SimCardProps {
@@ -13,64 +13,48 @@ interface SimCardProps {
 
 export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActivating = false, isActive, activationStatusLoading = false }: SimCardProps) {
   return (
-    <div className="bg-neutral-800 rounded-xl p-4 border border-neutral-700">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div>
-            <div className="flex items-center space-x-2 mb-1">
-              <h3 className="text-white font-semibold text-base">{sim.name}</h3>
-              {activationStatusLoading ? (
-                <span className="bg-neutral-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                  Checking...
-                </span>
-              ) : isActive === true ? (
-                <span className="bg-green-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-medium">
-                  Active
-                </span>
-              ) : isActive === false ? (
-                <span className="bg-orange-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-medium">
-                  Inactive
-                </span>
-              ) : null}
-            </div>
-            <p className="text-neutral-500 text-xs mb-1">Phone Number</p>
-            <div className="flex items-center space-x-2">
-              <span className="text-white text-sm">{sim.phoneNumber}</span>
-              {sim.hasVoiceTopUp && (
-                <span className="text-yellow-400 text-xs flex items-center">
-                  <Star className="w-3 h-3 mr-1" />
-                  Voice Top Up
-                </span>
-              )}
-            </div>
+    <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 p-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="text-white font-semibold text-lg">{sim.name}</h3>
+            {!activationStatusLoading && isActive !== undefined && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
+                isActive 
+                  ? 'bg-[#ABFF63]/20 text-[#ABFF63]' 
+                  : 'bg-neutral-600/50 text-neutral-400'
+              }`}>
+                {isActive ? 'Active' : 'Inactive'}
+              </span>
+            )}
           </div>
+          <p className="text-neutral-400 text-base tracking-wide mb-3 sm:mb-0">{sim.phoneNumber}</p>
         </div>
-        <button className="text-neutral-400 hover:text-white">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div className="flex space-x-2">
-        <button
-          onClick={() => onTopUp(sim)}
-          disabled={activationStatusLoading || isActive !== true}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-            activationStatusLoading || isActive !== true
-              ? 'bg-neutral-600 text-neutral-400 cursor-not-allowed'
-              : 'bg-lime-400 text-gray-900 hover:bg-lime-300'
-          }`}
-        >
-          {activationStatusLoading ? 'Checking Status...' : isActive === false ? 'Awaiting Activation' : 'Top Up +'}
-        </button>
-        {canActivate && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => onActivate(sim)}
-            disabled={isActivating}
-            className="px-4 py-2 border border-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => onTopUp(sim)}
+            disabled={activationStatusLoading || isActive !== true}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
+              activationStatusLoading || isActive !== true
+                ? 'bg-neutral-600 text-neutral-400 cursor-not-allowed'
+                : 'bg-[#ABFF63] text-neutral-900 hover:brightness-95'
+            }`}
           >
-            {isActivating ? 'Activating...' : 'Activate'}
+            {activationStatusLoading ? 'Checking Status...' : isActive === false ? 'Awaiting Activation' : 'Top up +'}
           </button>
-        )}
+          {canActivate && (
+            <button
+              onClick={() => onActivate(sim)}
+              disabled={isActivating}
+              className="px-4 py-2 ring-1 ring-white/10 text-white rounded-xl text-xs font-semibold hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isActivating ? 'Activating...' : 'Activate'}
+            </button>
+          )}
+          <button className="text-neutral-400 hover:text-white">
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -92,30 +76,30 @@ export function PlanDetails({ sim }: PlanDetailsProps) {
 
   // Fetch all balance types from API
   const mobileData = getBalanceValue('data', 'DATA') || sim.plan.mobileData;
-  // Try AIRTIME_ADVANCE first, fall back to GPA_CREDIT, then default
-  const airtime = getBalanceValue('gpa', 'AIRTIME_ADVANCE') || getBalanceValue('gpa', 'GPA_CREDIT') || sim.plan.airtime;
+  // Try GPA_CREDIT first, fall back to GPA_CREDIT, then default
+  const airtime = getBalanceValue('gpa', 'GPA_CREDIT') || getBalanceValue('gpa', 'GPA_CREDIT') || sim.plan.airtime;
   const voiceMinutes = getBalanceValue('voice', 'VOICE') || sim.plan.phone;
   const smsCount = getBalanceValue('sms', 'SMS') || sim.plan.messaging;
 
   return (
-    <div className="bg-white rounded-2xl p-5">
-      <h4 className="text-neutral-900 font-extrabold text-2xl mb-4">Sim Details</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-lime-400 rounded-2xl p-4">
-          <div className="text-neutral-900 text-sm font-medium mb-1">Mobile Data</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{mobileData}</div>
+    <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 p-4">
+      <h4 className="text-white font-semibold text-lg mb-3">Balance</h4>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-[#D8B0FF] rounded-[16px] p-3 flex flex-col gap-0.5">
+          <div className="text-neutral-900 text-xs font-medium">Airtime</div>
+          <div className="text-neutral-900 font-bold text-xl leading-none">{airtime}</div>
         </div>
-        <div className="bg-purple-400 rounded-2xl p-4">
-          <div className="text-neutral-900 text-sm font-medium mb-1">Airtime</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{airtime}</div>
+        <div className="bg-[#ABFF63] rounded-[16px] p-3 flex flex-col gap-0.5">
+          <div className="text-neutral-900 text-xs font-medium">Mobile data</div>
+          <div className="text-neutral-900 font-bold text-xl leading-none">{mobileData}</div>
         </div>
-        <div className="bg-blue-500 rounded-2xl p-4">
-          <div className="text-neutral-900 text-sm font-medium mb-1">Voice Minutes</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{voiceMinutes}</div>
+        <div className="bg-[#629BFC] rounded-[16px] p-3 flex flex-col gap-0.5">
+          <div className="text-neutral-900 text-xs font-medium">SMS</div>
+          <div className="text-neutral-900 font-bold text-xl leading-none">{smsCount}</div>
         </div>
-        <div className="bg-pink-400 rounded-2xl p-4">
-          <div className="text-neutral-900 text-sm font-medium mb-1">SMS</div>
-          <div className="text-neutral-900 font-semibold text-xl leading-none">{smsCount}</div>
+        <div className="bg-pink-300 rounded-[16px] p-3 flex flex-col gap-0.5">
+          <div className="text-neutral-900 text-xs font-medium">Voice minutes</div>
+          <div className="text-neutral-900 font-bold text-xl leading-none">{voiceMinutes}</div>
         </div>
       </div>
     </div>

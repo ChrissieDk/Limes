@@ -30,12 +30,12 @@ export default function DashboardNavbar() {
   return (
     <div className="sticky top-3 z-20">
       <div className="mx-auto max-w-7xl px-6">
-        <nav className="w-full rounded-xl bg-neutral-800 text-white border border-neutral-700">
-          <div className="flex items-center justify-between px-4 py-2.5">
+        <nav className="w-full rounded-xl bg-[#26252C] text-white border border-white/10">
+          <div className="flex items-center justify-between px-4 py-3">
             {/* Logo */}
             <div className="flex items-center">
               <Link to="/dashboard">
-                <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-8" />
+                <img src={`${import.meta.env.BASE_URL}images/limes_high_def_logo.svg`} alt="Limes" className="h-7" />
               </Link>
             </div>
 
@@ -64,7 +64,7 @@ export default function DashboardNavbar() {
               <div className="relative">
                 <button
                   onClick={() => setAccountMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm hover:bg-neutral-700 transition-colors"
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#26252C] px-2.5 py-1.5 text-sm hover:bg-white/5 transition-colors"
                 >
                   <img
                     src={`https://api.dicebear.com/7.x/thumbs/svg?seed=user`}
@@ -76,10 +76,10 @@ export default function DashboardNavbar() {
                 </button>
 
                 {accountMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg p-2 text-sm">
+                  <div className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-white/10 bg-[#26252C] shadow-lg p-2 text-sm">
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-700 transition-colors"
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
                     >
                       Logout
                     </button>
@@ -91,7 +91,7 @@ export default function DashboardNavbar() {
             {/* Mobile Burger Menu Button */}
             <button 
               aria-label="Menu" 
-              className="lg:hidden inline-flex items-center justify-center size-10 rounded-lg border border-neutral-700 hover:bg-neutral-700 transition" 
+              className="lg:hidden inline-flex items-center justify-center size-10 rounded-lg border border-white/10 hover:bg-white/5 transition" 
               onClick={() => setMobileMenuOpen((v) => !v)}
             >
               <div className="relative w-5 h-5">
@@ -113,7 +113,7 @@ export default function DashboardNavbar() {
                     className={
                       pathname === item.to
                         ? 'block bg-white text-neutral-900 rounded-lg px-3 py-2.5 text-sm font-medium'
-                        : 'block text-white/90 hover:bg-neutral-700 rounded-lg px-3 py-2.5 text-sm transition-colors'
+                        : 'block text-white/90 hover:bg-white/5 rounded-lg px-3 py-2.5 text-sm transition-colors'
                     }
                   >
                     {item.label}

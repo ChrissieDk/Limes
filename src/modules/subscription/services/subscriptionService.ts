@@ -58,6 +58,9 @@ export const subscriptionService = {
 
   // Create dynamic services for a subscriber (with extended timeout)
   async createDynamicServices(msisdn: string, payload: CreateDynamicServicesRequest): Promise<CreateDynamicServicesResponse> {
+    if (import.meta.env.DEV) {
+      console.log('[Subscription] createDynamicServices request:', { msisdn, payload })
+    }
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic`, payload, {
       timeout: 120000, // 2 minutes timeout for dynamic service creation
     })
@@ -79,7 +82,7 @@ export const subscriptionService = {
 
   // Store pending dynamic service (when SIM is not yet active)
   async storePendingDynamicService(msisdn: string, payload: {
-    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE'
+    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
     value: number
     priceInCents: number
     expiryDate: string

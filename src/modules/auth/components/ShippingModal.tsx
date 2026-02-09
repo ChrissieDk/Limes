@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Plus, MapPin, Package, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { Plus, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
-import { convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
+import { convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../../payment/utils/dynamicPricing'
+import type { DynamicServicePaymentItem } from '../../../types/payment'
+import { SHIPPING_COST_RANDS, SHIPPING_COST_CENTS } from '../../../constants/shipping'
 
 // Load Paystack Inline JS
 declare const PaystackPop: any
@@ -29,12 +31,14 @@ interface SelectedPackage {
   planChargeType?: 'once-off' | 'monthly'  // Indicates if it's a one-time or recurring charge
   iccid?: string
   isDynamicPlan?: boolean  // True for contract dynamic plans
+  isComboBundle?: boolean  // True for contract combo bundles (m2m_combo)
   planAllocation?: {  // Allocation in Rands for each service (contract dynamic plans)
     data: number
     voice: number
     sms: number
     whatsapp: number
   }
+  comboDetails?: any  // Full combo package details (benefits, pricing, etc.)
   features?: {
     mobileData?: string
     description?: string
@@ -73,6 +77,18 @@ interface ShippingModalProps {
   customerPhone?: string
   allocatedMsisdn?: string  // DEPRECATED: Will be removed - MSISDN now allocated after payment
   ricaData?: RicaData  // NEW: RICA data for post-payment subscriber creation
+}
+
+// Calculate shipping cost based on SIM status
+const getShippingCost = (selectedPackage: SelectedPackage | null): number => {
+  if (!selectedPackage) return 0
+  return selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_RANDS : 0
+}
+
+// Calculate total including shipping
+const getTotalWithShipping = (selectedPackage: SelectedPackage | null): number => {
+  if (!selectedPackage) return 0
+  return selectedPackage.price + getShippingCost(selectedPackage)
 }
 
 export default function ShippingModal({ 
@@ -129,7 +145,6 @@ export default function ShippingModal({
   // Set default address when prop changes
   useEffect(() => {
     if (defaultAddress) {
-      console.log('ShippingModal: Setting default address:', defaultAddress)
       setAddresses([defaultAddress])
       setSelectedAddressIndex(0)
     }
@@ -159,33 +174,23 @@ export default function ShippingModal({
     setVerificationError(null)
 
     try {
-      console.log('[Payment] Initializing transaction on backend...')
-      console.log('[Payment] Selected package:', selectedPackage)
-      console.log('[Payment] Product ID:', selectedPackage.productId)
-      console.log('[Payment] Plan charge type:', selectedPackage.planChargeType)
-      console.log('[Payment] Package type:', selectedPackage.packageType)
-      console.log('[Payment] Is dynamic plan:', selectedPackage.isDynamicPlan)
 
       let initResponse: { success: boolean; data?: { access_code: string; reference: string }; error?: string }
 
       // CONTRACT DYNAMIC PLANS: Create subscriber FIRST, then initialize with MSISDN + services
       if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
-        console.log('[Payment] CONTRACT FLOW: Creating subscriber first, then initializing dynamic services payment')
         
         if (!ricaData) {
           setVerificationError('RICA data is required for contract plans')
-          console.error('[Payment] ❌ RICA data is missing')
           return
         }
 
         if (!selectedPackage.simPackageProductId) {
           setVerificationError('SIM package product ID is required')
-          console.error('[Payment] ❌ SIM package product ID is missing')
           return
         }
 
         // STEP 1: Create subscriber to get MSISDN
-        console.log('[Payment] Step 1: Creating subscriber to allocate MSISDN...')
         const subscriberPayload = {
           productId: selectedPackage.simPackageProductId,
           eSim: false,
@@ -196,20 +201,17 @@ export default function ShippingModal({
             oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
           }] : []
         }
-        console.log('[Payment] Subscriber payload:', subscriberPayload)
         
         const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
         const allocatedMsisdn = subscriberResponse.msisdn
-        console.log('[Payment] ✓ Subscriber created, MSISDN:', allocatedMsisdn)
 
         // Store MSISDN for later use in verification
         setAllocatedMsisdn(allocatedMsisdn)
 
         // STEP 2: Initialize dynamic services payment with MSISDN
-        console.log('[Payment] Step 2: Initializing dynamic services payment...')
         
         // Convert plan allocation (in Rands) to services array
-        const services = []
+        const services: DynamicServicePaymentItem[] = []
         const expiryDate = getDefaultExpiryDate()
         
         if (selectedPackage.planAllocation.data > 0) {
@@ -227,7 +229,7 @@ export default function ShippingModal({
         if (selectedPackage.planAllocation.voice > 0) {
           services.push({
             value: selectedPackage.planAllocation.voice,
-            definitionCode: 'AIRTIME_ADVANCE',
+            definitionCode: 'GPA_CREDIT',
             expiryDate,
             priceInCents: selectedPackage.planAllocation.voice * 100
           })
@@ -245,17 +247,25 @@ export default function ShippingModal({
           }
         }
 
+        // Add shipping cost for SIM delivery if needed
+        if (selectedPackage.simStatus === 'needs-sim') {
+          services.push({
+            value: 0,  // Shipping has no service value
+            definitionCode: 'PACKAGE',  // Use PACKAGE for non-service items
+            expiryDate,
+            priceInCents: SHIPPING_COST_CENTS  // R65 = 6500 cents
+          })
+        }
+
         const dynamicPayload = {
           msisdn: allocatedMsisdn,
           services
         }
-        console.log('[Payment] Dynamic services payload:', dynamicPayload)
         
         initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
         
-      } else {
-        // PREPAID FLOW: Payment first, then subscriber creation
-        console.log('[Payment] PREPAID FLOW: MSISDN will be allocated AFTER payment')
+      } else if (selectedPackage.isComboBundle) {
+        // COMBO BUNDLE FLOW: Use unified initialize endpoint
         
         if (!selectedPackage.productId) {
           setVerificationError('Product ID is missing')
@@ -263,12 +273,38 @@ export default function ShippingModal({
           return
         }
         
+        if (!selectedPackage.price) {
+          setVerificationError('Price is missing for combo bundle')
+          console.error('[Payment] ❌ Price is missing from combo bundle')
+          return
+        }
+        
         const payload = {
           productId: String(selectedPackage.productId),
+          amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0),
           msisdn: null  // Payment-first, MSISDN allocated after payment
         }
-        console.log('[Payment] Initialize payload (payment-first):', payload)
+        initResponse = await paymentService.initializeTransaction(payload)
         
+      } else {
+        // PREPAID FLOW: Regular packages (payment first, then subscriber creation)
+        if (!selectedPackage.productId) {
+          setVerificationError('Product ID is missing')
+          console.error('[Payment] ❌ Product ID is missing from selectedPackage')
+          return
+        }
+        
+        if (!selectedPackage.price) {
+          setVerificationError('Price is missing for package')
+          console.error('[Payment] ❌ Price is missing from selectedPackage')
+          return
+        }
+        
+        const payload = {
+          productId: String(selectedPackage.productId),
+          msisdn: null,  // Payment-first, MSISDN allocated after payment
+          amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0)
+        }
         initResponse = await paymentService.initializeTransaction(payload)
       }
 
@@ -276,18 +312,13 @@ export default function ShippingModal({
         setVerificationError(initResponse.error || 'Failed to initialize payment')
         return
       }
-
-      console.log('[Payment] Transaction initialized, access_code:', initResponse.data.access_code)
-
       // Use Paystack Popup with access_code
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: (transaction: any) => {
-          console.log('[Payment] Payment successful, verifying with backend...')
           handlePaymentVerification(transaction.reference || initResponse.data?.reference || '')
         },
         onCancel: () => {
-          console.log('[Payment] Payment cancelled by user')
           setVerificationError(null)
         }
       })
@@ -313,7 +344,6 @@ export default function ShippingModal({
       const isSubscription = selectedPackage?.planChargeType === 'monthly'
       
       // STEP 1: Verify payment (no longer creates order automatically)
-      console.log('[Payment] Step 1: Verifying payment...')
       const verifyResponse = await paymentService.verifyPayment({
         reference: reference,
         saveCard: isSubscription
@@ -322,18 +352,15 @@ export default function ShippingModal({
       if (!verifyResponse.success) {
         throw new Error(verifyResponse.error || 'Payment verification failed')
       }
-      console.log('[Payment] ✓ Payment verified')
       
       // STEP 2: Create subscriber (get MSISDN) - SKIP if already created in contract flow
       let newMsisdn: string
       
       if (allocatedMsisdn) {
         // Contract flow: Subscriber was already created before payment
-        console.log('[Payment] Step 2: Using pre-allocated MSISDN from contract flow:', allocatedMsisdn)
         newMsisdn = allocatedMsisdn
       } else {
         // Prepaid flow: Create subscriber after payment
-        console.log('[Payment] Step 2: Creating subscriber...')
         if (!ricaData) {
           throw new Error('RICA data is required for subscriber creation')
         }
@@ -385,7 +412,6 @@ export default function ShippingModal({
         
         if (!simStatus.isActive) {
           // SIM not active - store pending dynamic services
-          console.log('[Payment] Step 3: Storing pending dynamic services...')
           
           const pendingServices = []
           if (planAllocation.data > 0) {
@@ -402,7 +428,7 @@ export default function ShippingModal({
           }
           if (planAllocation.voice > 0) {
             pendingServices.push({
-              definitionCode: 'AIRTIME_ADVANCE' as const,
+              definitionCode: 'GPA_CREDIT' as const,
               value: planAllocation.voice,
               priceInCents: planAllocation.voice * 100,
               expiryDate,
@@ -438,12 +464,9 @@ export default function ShippingModal({
           for (const service of pendingServices) {
             await subscriptionService.storePendingDynamicService(newMsisdn, service)
           }
-          console.log('[Payment] ✓ Pending dynamic services stored:', pendingServices.length)
-          console.log('[Payment] Services will be created and linked when SIM activates')
           
         } else {
           // SIM is active - create services immediately
-          console.log('[Payment] Step 3: Creating dynamic services...')
           const services = []
           
           if (planAllocation.data > 0) {
@@ -459,7 +482,7 @@ export default function ShippingModal({
           if (planAllocation.voice > 0) {
             services.push({
               value: planAllocation.voice,
-              definitionCode: 'AIRTIME_ADVANCE' as const,
+              definitionCode: 'GPA_CREDIT' as const,
               expiryDate
             })
           }
@@ -489,34 +512,26 @@ export default function ShippingModal({
             .filter(r => r.success && r.id)
             .map(r => r.id!)
           
-          console.log('[Payment] ✓ Dynamic services created:', serviceIds.length)
-          
           // STEP 4: Link transaction to services
-          console.log('[Payment] Step 4: Linking transaction to services...')
           await paymentService.linkTransactionToServices({
             transactionReference: reference,
             serviceIds: serviceIds
           })
-          console.log('[Payment] ✓ Transaction linked to services')
         }
         
       } else {
         // Regular order flow
         if (!simStatus.isActive) {
           // SIM not active - store pending order
-          console.log('[Payment] Step 3: Storing pending order...')
           await subscriptionService.storePendingOrder({
             msisdn: newMsisdn,
             productId: selectedPackage!.productId,
             productAmount: selectedPackage!.price,
             paymentReference: reference
           })
-          console.log('[Payment] ✓ Pending order stored')
-          console.log('[Payment] Order will be created and linked when SIM activates')
           
         } else {
           // SIM is active - create order immediately
-          console.log('[Payment] Step 3: Creating order...')
           const orderResponse = await subscriptionService.createOrder({
             products: [{ id: selectedPackage!.productId, amount: selectedPackage!.price }],
             msisdn: newMsisdn
@@ -524,15 +539,11 @@ export default function ShippingModal({
           
           if (orderResponse.orderId) {
             // Order created immediately - link transaction
-            console.log('[Payment] ✓ Order created:', orderResponse.orderId)
-            
             // STEP 4: Link transaction to order
-            console.log('[Payment] Step 4: Linking transaction to order...')
             await paymentService.linkTransactionToOrder({
               transactionReference: reference,
               orderId: orderResponse.orderId
             })
-            console.log('[Payment] ✓ Transaction linked to order')
           } else {
             throw new Error('Order creation failed - no orderId in response')
           }
@@ -541,17 +552,15 @@ export default function ShippingModal({
       
       // STEP 5: Create recurring subscription if monthly
       if (isSubscription && verifyResponse.cardSaved) {
-        console.log('[Payment] Step 5: Creating recurring dynamic services subscription...')
         const savedCards = await paymentService.getSavedCards()
         if (savedCards && savedCards.length > 0) {
           
           // Build services array from plan allocation
-          const services = []
+          const services: DynamicServicePaymentItem[] = []
           const expiryDate = getDefaultExpiryDate()
           
           if (selectedPackage!.planAllocation) {
             // CONTRACT OR PREPAID WITH ALLOCATION: Use plan allocation
-            console.log('[Payment] Building services from plan allocation')
             
             if (selectedPackage!.planAllocation.data > 0) {
               const dataValue = convertRandsToServiceValue('DATA', selectedPackage!.planAllocation.data, selectedPackage!.packageType || 'prepaid')
@@ -568,7 +577,7 @@ export default function ShippingModal({
             if (selectedPackage!.planAllocation.voice > 0) {
               services.push({
                 value: selectedPackage!.planAllocation.voice,
-                definitionCode: 'AIRTIME_ADVANCE',
+                definitionCode: 'GPA_CREDIT',
                 expiryDate,
                 priceInCents: selectedPackage!.planAllocation.voice * 100
               })
@@ -599,7 +608,6 @@ export default function ShippingModal({
             }
           } else {
             // PREPAID WITHOUT ALLOCATION: Backend should derive services from productId
-            console.log('[Payment] No plan allocation - backend will derive services from productId')
             // Create a placeholder service that backend will expand based on productId
             const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
             services.push({
@@ -610,20 +618,33 @@ export default function ShippingModal({
             })
           }
 
-          if (services.length === 0) {
-            throw new Error('No services defined for recurring subscription')
-          }
+          // Check if this is a combo bundle - use different endpoint
+          if (selectedPackage!.isComboBundle) {
+            const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
+            
+            await paymentService.subscribeToComboBundle({
+              productId: selectedPackage!.productId,
+              msisdn: newMsisdn,
+              paymentMethodId: savedCards[0].id,
+              amount: priceInCents  // Already in cents
+            })
+          } else {
+            if (services.length === 0) {
+              throw new Error('No services defined for recurring subscription')
+            }
 
-          await paymentService.createDynamicServicesRecurring({
-            msisdn: newMsisdn,
-            paymentMethodId: savedCards[0].id,
-            services
-          })
-          console.log('[Payment] ✓ Dynamic services recurring subscription created')
+            await paymentService.createDynamicServicesRecurring({
+              msisdn: newMsisdn,
+              paymentMethodId: savedCards[0].id,
+              services
+            })
+          }
         }
       }
       
       setPaymentSuccess(true)
+      // Notify Dashboard to refresh data after successful payment
+      window.dispatchEvent(new CustomEvent('limes:payment-success'))
       setTimeout(() => {
         if (onPay) onPay()
         onClose()
@@ -671,20 +692,19 @@ export default function ShippingModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-2xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <div className="grid place-items-center size-8 rounded-lg bg-neutral-900 text-white">
-              <Package className="w-4 h-4" />
+      <div className="relative w-full max-w-2xl mx-0 sm:mx-4 rounded-[28px] bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-[28px]">
+          <div>
+            <div className="text-[20px] sm:text-[22px] font-semibold leading-[1.1]">
+              Confirm SIM delivery
             </div>
-            <div>
-              <div className="font-extrabold text-lg">Confirm SIM Delivery</div>
-              <div className="text-sm text-neutral-500">Review your package and shipping details</div>
+            <div className="text-sm text-neutral-500 mt-0.5">
+              Review your package and shipping details
             </div>
           </div>
           <button 
             aria-label="Close" 
-            className="size-10 grid place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 text-2xl" 
+            className="size-10 grid place-items-center rounded-xl text-neutral-500 hover:bg-neutral-100 text-2xl" 
             onClick={onClose}
           >
             ×
@@ -697,32 +717,37 @@ export default function ShippingModal({
             {/* Selected Package Section */}
             {selectedPackage && (
               <div className="space-y-3">
-                <h3 className="text-neutral-900 font-bold text-sm uppercase tracking-wide">Selected Package</h3>
-                <div className="rounded-xl border-2 border-neutral-900 bg-lime-50 p-4">
+                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                  Selected package
+                </h3>
+                <div className="rounded-[22px] border border-[#ABFF63] bg-[#EEFFD9] p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-lg bg-lime-400 grid place-items-center">
-                        <img 
-                          src={`${import.meta.env.BASE_URL}images/plan_logo.png`} 
-                          alt="Package" 
-                          className="w-6 h-6" 
-                        />
-                      </div>
+                      <img
+                        src={`${import.meta.env.BASE_URL}images/lime-icon.png`}
+                        alt=""
+                        aria-hidden="true"
+                        className="hidden sm:block h-8 w-8 select-none"
+                      />
                       <div>
-                        <div className="font-bold text-lg text-neutral-900">{selectedPackage.name}</div>
-                        <div className="text-xs text-neutral-600">Product ID: {selectedPackage.productId}</div>
+                        <div className="font-semibold text-[28px] leading-[1.05] tracking-tight text-neutral-900">
+                          {selectedPackage.name}
+                        </div>
+                        <div className="text-sm text-neutral-600">Product ID: {selectedPackage.productId}</div>
                         {selectedPackage.simPackageProductId && (
-                          <div className="text-xs text-neutral-600">SIM Package: {selectedPackage.simPackageProductId}</div>
+                          <div className="text-sm text-neutral-600">SIM Package: {selectedPackage.simPackageProductId}</div>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-neutral-900">R{selectedPackage.price}</div>
-                      <div className="text-xs text-neutral-600">
-                        {selectedPackage.planChargeType === 'once-off' ? 'once-off payment' : 'first month (then auto-renews)'}
+                      <div className="text-[28px] font-semibold leading-[1.05] text-neutral-900">
+                        R{selectedPackage.price}
+                      </div>
+                      <div className="text-sm text-neutral-600">
+                        {selectedPackage.planChargeType === 'once-off' ? 'Once-off payment' : 'First month (then auto-renews)'}
                       </div>
                       {selectedPackage.packageType && (
-                        <div className="text-xs text-lime-700 font-semibold mt-1">
+                        <div className="text-sm text-lime-700 font-semibold mt-1">
                           {selectedPackage.packageType === 'contract' ? 'Contract' : 'Prepaid'}
                         </div>
                       )}
@@ -731,57 +756,57 @@ export default function ShippingModal({
                   
                   {/* Package Features - Dynamic Plan Allocation */}
                   {selectedPackage.isDynamicPlan && selectedPackage.planAllocation ? (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3 mt-4">
                       {selectedPackage.planAllocation.data > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">Data</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.data}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">Mobile data</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.data}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.voice > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">Voice</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.voice}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">Airtime</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.voice}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.sms > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">SMS</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.sms}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">SMS</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.sms}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.whatsapp > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                          <div className="text-xs text-neutral-600 mb-1">WhatsApp</div>
-                          <div className="font-semibold text-neutral-900">R{selectedPackage.planAllocation.whatsapp}</div>
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">WhatsApp</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.whatsapp}</div>
                         </div>
                       )}
                     </div>
                   ) : (
                   /* Package Features - Regular Bundle */
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                     {selectedPackage.features?.mobileData && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Mobile Data</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.mobileData}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Mobile data</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.mobileData}</div>
                       </div>
                     )}
                     {selectedPackage.features?.messaging && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Messaging</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.messaging}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Messaging</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.messaging}</div>
                       </div>
                     )}
                     {selectedPackage.features?.phone && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Phone</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.phone}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Phone</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.phone}</div>
                       </div>
                     )}
                     {selectedPackage.features?.airtime && (
-                      <div className="bg-white rounded-lg p-3 border border-neutral-200">
-                        <div className="text-xs text-neutral-600 mb-1">Airtime</div>
-                        <div className="font-semibold text-neutral-900">{selectedPackage.features.airtime}</div>
+                      <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                        <div className="text-neutral-900 text-base">Airtime</div>
+                        <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.airtime}</div>
                       </div>
                     )}
                   </div>
@@ -793,11 +818,13 @@ export default function ShippingModal({
             {/* Shipping Address Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-neutral-900 font-bold text-sm uppercase tracking-wide">Shipping Address</h3>
+                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                  Shipping address
+                </h3>
                 {!showAddAddress && (
                   <button
                     onClick={() => setShowAddAddress(true)}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-lime-600 hover:text-lime-700"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-lime-700 hover:text-lime-800"
                   >
                     <Plus className="w-4 h-4" />
                     Add New Address
@@ -812,23 +839,22 @@ export default function ShippingModal({
                     <div
                       key={idx}
                       onClick={() => setSelectedAddressIndex(idx)}
-                      className={`rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`rounded-[22px] border cursor-pointer transition-all ${
                         selectedAddressIndex === idx
-                          ? 'border-neutral-900 bg-lime-50'
+                          ? 'border-[#ABFF63] bg-[#EEFFD9]'
                           : 'border-neutral-200 bg-white hover:border-neutral-300'
                       } p-4`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <div className={`size-8 rounded-lg grid place-items-center ${
-                            selectedAddressIndex === idx ? 'bg-neutral-900' : 'bg-neutral-100'
-                          }`}>
-                            <MapPin className={`w-4 h-4 ${
-                              selectedAddressIndex === idx ? 'text-white' : 'text-neutral-600'
-                            }`} />
-                          </div>
+                          <img
+                            src={`${import.meta.env.BASE_URL}images/location.png`}
+                            alt=""
+                            aria-hidden="true"
+                            className="hidden sm:block h-10 w-10 select-none"
+                          />
                           <div className="flex-1">
-                            <div className="font-medium text-neutral-900 mb-1">
+                            <div className="font-semibold text-neutral-900 text-[28px] leading-[1.05] mb-0.5">
                               {idx === 0 ? 'Default Address' : `Address ${idx + 1}`}
                             </div>
                             <div className="text-sm text-neutral-600 leading-relaxed">
@@ -836,19 +862,14 @@ export default function ShippingModal({
                             </div>
                           </div>
                         </div>
-                        <span
-                          className={`size-5 rounded-full border-2 transition-all ${
-                            selectedAddressIndex === idx
-                              ? 'bg-neutral-900 border-neutral-900'
-                              : 'bg-white border-neutral-300'
-                          }`}
-                        >
-                          {selectedAddressIndex === idx && (
-                            <svg className="w-full h-full text-white" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </span>
+                        {selectedAddressIndex === idx && (
+                          <img
+                            src={`${import.meta.env.BASE_URL}images/doc_success.png`}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-10 w-10 select-none"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -918,7 +939,12 @@ export default function ShippingModal({
 
               {!showAddAddress && addresses.length === 0 && (
                 <div className="text-center py-8 text-neutral-500">
-                  <MapPin className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                  <img
+                    src={`${import.meta.env.BASE_URL}images/location.png`}
+                    alt=""
+                    aria-hidden="true"
+                    className="hidden sm:block h-12 w-12 mx-auto mb-3 opacity-40 select-none"
+                  />
                   <p className="text-sm">No addresses available. Please add one.</p>
                 </div>
               )}
@@ -927,7 +953,9 @@ export default function ShippingModal({
             {/* Customer Details for Payment */}
             {!showAddAddress && addresses.length > 0 && selectedPackage && (
               <div className="space-y-3">
-                <h3 className="text-neutral-900 font-bold text-sm uppercase tracking-wide">Payment Details</h3>
+                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                  Payment details
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <TextField
                     label="Email"
@@ -947,6 +975,7 @@ export default function ShippingModal({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="27123456789"
+                    className="md:col-span-2"
                   />
                 </div>
                 <div className="space-y-2">
@@ -994,18 +1023,24 @@ export default function ShippingModal({
             {/* Summary & Pay Button */}
             {!showAddAddress && addresses.length > 0 && selectedPackage && (
               <div className="space-y-4 pt-2">
-                <div className="rounded-xl bg-neutral-100 p-4 space-y-2">
+                <div className="rounded-[18px] bg-neutral-100 p-5 space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-neutral-600">Package</span>
                     <span className="font-semibold text-neutral-900">R{selectedPackage.price}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-neutral-600">Shipping</span>
-                    <span className="font-semibold text-lime-600">FREE</span>
+                    {selectedPackage.simStatus === 'needs-sim' ? (
+                      <span className="font-semibold text-neutral-900">R{SHIPPING_COST_RANDS}</span>
+                    ) : (
+                      <span className="font-semibold text-lime-600">FREE</span>
+                    )}
                   </div>
                   <div className="border-t border-neutral-300 pt-2 flex items-center justify-between">
-                    <span className="font-bold text-neutral-900">Total</span>
-                    <span className="font-bold text-2xl text-neutral-900">R{selectedPackage.price}</span>
+                    <span className="font-semibold text-neutral-900 text-base">Total</span>
+                    <span className="font-semibold text-2xl text-lime-700">
+                      R{getTotalWithShipping(selectedPackage)}
+                    </span>
                   </div>
                 </div>
 
@@ -1023,9 +1058,9 @@ export default function ShippingModal({
                   ) : (
                     <button
                       onClick={handleInitializePayment}
-                      className="w-full bg-lime-400 text-neutral-900 py-3.5 px-4 rounded-xl font-bold hover:bg-lime-300 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-lg"
+                      className="w-full bg-[#ABFF63] text-neutral-900 py-3.5 px-4 rounded-[18px] font-semibold hover:brightness-95 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 text-sm"
                     >
-                      Pay Now
+                      Pay now
                     </button>
                   )
                 ) : (

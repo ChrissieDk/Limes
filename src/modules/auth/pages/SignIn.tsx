@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import AuthLayout from '../layouts/AuthLayout'
 import TextField from '../components/TextField'
 import Button from '../components/Button'
+import Checkbox from '../components/Checkbox'
+import Footer from '../components/Footer'
 import { useState } from 'react'
 import { firebaseAuthService } from '../services/firebaseAuthService'
 
@@ -43,54 +45,73 @@ export default function SignIn() {
 
   return (
     <AuthLayout
+      variant="signin"
+      footer={<Footer />}
       heading={
         <>
-          Welcome back,
+          Back for more
           <br />
-          let’s sign you in
+          zest?
         </>
       }
-      subheading={
-        <>Enter your credentials to access your Limes account.</>
-      }
+      subheading="Welcome back! Login to manage your data, earn rewards, and keep the good stuff rolling."
       side={
-        <div className="h-full w-full rounded-3xl overflow-hidden border border-neutral-700/60">
-          <img src={`${import.meta.env.BASE_URL}images/signin.png`} alt="Sign in" className="h-full w-full object-cover" />
+        <div className="h-full w-full rounded-3xl overflow-hidden flex items-center justify-center p-3">
+          <img
+            src={`${import.meta.env.BASE_URL}images/sign_in_hero.svg`}
+            alt="Sign in"
+            className="h-full w-full object-contain"
+          />
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-5">
-        <TextField
-          label="Email Address"
-          type="email"
-          placeholder="Enter your email address"
-          {...register('email')}
-          error={errors.email?.message}
-        />
+      <div className="grid gap-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+          <TextField
+            variant="dark"
+            type="email"
+            label="Email Address"
+            placeholder="Enter your email address"
+            {...register('email')}
+            error={errors.email?.message}
+          />
 
-        <TextField
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          {...register('password')}
-          error={errors.password?.message}
-        />
+          <TextField
+            variant="dark"
+            label="Password"
+            type="password"
+            placeholder="Enter your password"
+            {...register('password')}
+            error={errors.password?.message}
+          />
 
-        <Button type="submit" disabled={submitting}>{submitting ? 'Signing In...' : 'Sign In'}</Button>
+          <div className="flex items-center justify-between pt-1">
+            <Checkbox label="Remember Me" {...register('rememberMe' as any)} />
+            <Link to="/contact" className="text-sm text-neutral-500 hover:text-neutral-400 transition-colors">
+              Forgot your password?
+            </Link>
+          </div>
 
-        {submitError && (
-          <div className="text-sm text-red-400 text-center">{submitError}</div>
-        )}
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="mt-2 h-10 rounded-lg border border-white/10 shadow-none"
+          >
+            {submitting ? 'Signing In...' : 'Log in'}
+          </Button>
 
-        <div className="text-sm text-neutral-400 text-center">
-          New to Limes?{' '}
-          <Link to="/" className="underline">
-            Create an account
-          </Link>
-        </div>
-      </form>
+          {submitError && (
+            <div className="text-sm text-red-400 text-center">{submitError}</div>
+          )}
+
+          <div className="pt-2 text-sm text-neutral-500 text-center">
+            Don&apos;t have an account?{' '}
+            <Link to="/signup" className="text-[#ABFF63] hover:text-[#ABFF63]/90 transition-colors">
+              Sign up now
+            </Link>
+          </div>
+        </form>
+      </div>
     </AuthLayout>
   )
 }
-
-

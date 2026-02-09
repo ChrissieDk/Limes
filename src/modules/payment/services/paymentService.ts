@@ -18,6 +18,9 @@ import type {
   LinkTransactionToOrderResponse,
   LinkTransactionToServicesRequest,
   LinkTransactionToServicesResponse,
+  GetSubscriptionsResponse,
+  ComboSubscriptionRequest,
+  ComboSubscriptionResponse,
 } from '../../../types/payment'
 
 export const paymentService = {
@@ -26,8 +29,9 @@ export const paymentService = {
   // ============================================
 
   /**
-   * Initialize a transaction (Step 1)
-   * Backend controls amount and returns access_code
+   * Initialize a transaction (Step 1 - UNIFIED ENDPOINT)
+   * Frontend provides amount in CENTS, backend creates Paystack transaction
+   * Used for ALL payment types: prepaid packages, combo bundles, top-ups
    */
   async initializeTransaction(payload: InitializeTransactionRequest): Promise<InitializeTransactionResponse> {
     const response = await apiClient.post('/payment/paystack/initialize', payload)
@@ -39,6 +43,9 @@ export const paymentService = {
    * Used for contract plans where user selects service allocations
    */
   async initializeDynamicServicesPayment(payload: InitializeDynamicServicesPaymentRequest): Promise<InitializeDynamicServicesPaymentResponse> {
+    if (import.meta.env.DEV) {
+      console.log('[Payment] initializeDynamicServicesPayment payload:', payload)
+    }
     const response = await apiClient.post('/payment/dynamic-services/initialize', payload)
     return response.data
   },
@@ -100,6 +107,9 @@ export const paymentService = {
    * Requires a saved card
    */
   async createDynamicServicesRecurring(payload: CreateDynamicServicesRecurringRequest): Promise<CreateDynamicServicesRecurringResponse> {
+    if (import.meta.env.DEV) {
+      console.log('[Payment] createDynamicServicesRecurring payload:', payload)
+    }
     const response = await apiClient.post('/payment/dynamic-services/recurring', payload)
     return response.data
   },
@@ -117,6 +127,24 @@ export const paymentService = {
    */
   async cancelSubscription(payload: CancelSubscriptionRequest): Promise<CancelSubscriptionResponse> {
     const response = await apiClient.post('/payment/paystack/cancel-subscription', payload)
+    return response.data
+  },
+
+  /**
+   * Get all subscriptions for authenticated user
+   * NEW: Replaces parsing subscriptions from GetUser
+   */
+  async getAllSubscriptions(): Promise<GetSubscriptionsResponse> {
+    const response = await apiClient.get('/payment/paystack/subscriptions')
+    return response.data
+  },
+
+  /**
+   * Subscribe to combo bundle (recurring)
+   * NEW: For recurring combo bundle subscriptions
+   */
+  async subscribeToComboBundle(payload: ComboSubscriptionRequest): Promise<ComboSubscriptionResponse> {
+    const response = await apiClient.post('/payment/combo-bundle/recurring', payload)
     return response.data
   },
 

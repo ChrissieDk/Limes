@@ -2,7 +2,7 @@ import { apiClient } from '../../../config/api'
 
 export interface DynamicService {
   value: number
-  definitionCode: 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP'
+  definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
   expiryDate: string
   priceInCents: number
 }
@@ -68,6 +68,9 @@ export const dynamicServicesPaymentService = {
     payload: InitializeDynamicServicesPaymentRequest
   ): Promise<InitializeDynamicServicesPaymentResponse> {
     try {
+      if (import.meta.env.DEV) {
+        console.log('[DynamicServicesPayment] initializePayment payload:', payload)
+      }
       const response = await apiClient.post<InitializeDynamicServicesPaymentResponse>(
         '/payment/dynamic-services/initialize',
         payload

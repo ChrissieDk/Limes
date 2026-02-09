@@ -96,7 +96,7 @@ export interface CheckSimActiveResponse {
 export interface CreateDynamicServicesRequest {
   services: Array<{
     value: number
-    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE'
+    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
     expiryDate: string
   }>
 }
