@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 
 export default function Packages() {
-  const bulletSrc = `${import.meta.env.BASE_URL}images/plan_line.png`
+  const bulletSrc = `${import.meta.env.BASE_URL}images/plan_icon_small.svg`
+  const bulletSrcYellow = `${import.meta.env.BASE_URL}images/plan_icon_yellow_small.svg`
 
   type Card = {
     key: string
@@ -113,12 +114,15 @@ export default function Packages() {
                 </div>
 
                 <ul className="mt-2.5 space-y-2 text-[14px] leading-snug font-manrope">
-                  {card.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2">
-                      <img src={bulletSrc} alt="" className="h-4 w-5 mt-[2px] object-contain" />
-                      <span>{b}</span>
-                    </li>
-                  ))}
+                  {card.bullets.map((b) => {
+                    const iconSrc = card.key === 'limes-unlimited' || card.key === 'limes-one' ? bulletSrcYellow : bulletSrc
+                    return (
+                      <li key={b} className="flex items-start gap-2">
+                        <img src={iconSrc} alt="" className="h-4 w-5 mt-[2px] object-contain" />
+                        <span>{b}</span>
+                      </li>
+                    )
+                  })}
                 </ul>
 
                 <div className="mt-auto pt-4">

@@ -12,9 +12,9 @@ export default function HowToJoin() {
         {/* Left card */}
         <div className="rounded-[28px] bg-yellow-300 text-neutral-900 p-5 md:p-6">
           <img
-            src={`${import.meta.env.BASE_URL}images/limes_sim.png`}
+            src={`${import.meta.env.BASE_URL}images/zblock.svg`}
             alt=""
-            className="h-8 w-8"
+            className="h-10 w-10"
           />
 
           <h3 className="mt-2.5 font-grotesque font-bold text-[26px] md:text-[28px] leading-[1.05] tracking-tight">
@@ -39,9 +39,9 @@ export default function HowToJoin() {
         {/* Right card */}
         <div className="rounded-[28px] bg-pink-300 text-neutral-900 p-5 md:p-6">
           <img
-            src={`${import.meta.env.BASE_URL}images/star.png`}
+            src={`${import.meta.env.BASE_URL}images/house_small.svg`}
             alt=""
-            className="h-8 w-8"
+            className="h-10 w-10"
           />
 
           <h3 className="mt-2.5 font-grotesque font-bold text-[26px] md:text-[28px] leading-[1.05] tracking-tight">
