@@ -20,11 +20,7 @@ export default function Partners() {
       bgClass: 'bg-pink-300',
       textClass: 'text-neutral-900',
       icon: (
-        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M14 7l-9 9" />
-          <path d="M6 7h8v8" />
-          <path d="M16 5h3v3" />
-        </svg>
+        <img src={`${import.meta.env.BASE_URL}images/arrow_icon.svg`} alt="" className="h-10 w-10" />
       ),
     },
     {
@@ -35,10 +31,7 @@ export default function Partners() {
       bgClass: 'bg-white',
       textClass: 'text-neutral-900',
       icon: (
-        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M8 8l8 8" />
-        </svg>
+        <img src={`${import.meta.env.BASE_URL}images/blocker_icon.svg`} alt="" className="h-10 w-10" />
       ),
     },
     {
@@ -49,11 +42,7 @@ export default function Partners() {
       bgClass: 'bg-[#5BA0FF]',
       textClass: 'text-neutral-900',
       icon: (
-        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M7 7h10v10H7z" />
-          <path d="M9 5h6" />
-          <path d="M9 19h6" />
-        </svg>
+        <img src={`${import.meta.env.BASE_URL}images/flexable_icon.svg`} alt="" className="h-10 w-10" />
       ),
     },
     {
@@ -64,11 +53,7 @@ export default function Partners() {
       bgClass: 'bg-lime-300',
       textClass: 'text-neutral-900',
       icon: (
-        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M8 12h8" strokeLinecap="round" />
-          <path d="M12 8v8" strokeLinecap="round" />
-          <path d="M7 3h10l4 4v14H3V7l4-4Z" />
-        </svg>
+        <img src={`${import.meta.env.BASE_URL}images/scalable_icon.svg`} alt="" className="h-10 w-10" />
       ),
     },
     {
@@ -79,10 +64,7 @@ export default function Partners() {
       bgClass: 'bg-white',
       textClass: 'text-neutral-900',
       icon: (
-        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 12c6-8 8 8 14 0" strokeLinecap="round" />
-          <path d="M7 17l2 2" strokeLinecap="round" />
-        </svg>
+        <img src={`${import.meta.env.BASE_URL}images/wings_icon.svg`} alt="" className="h-10 w-10" />
       ),
     },
     {
@@ -93,15 +75,7 @@ export default function Partners() {
       bgClass: 'bg-yellow-300',
       textClass: 'text-neutral-900',
       icon: (
-        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M7 7h10v10H7z" />
-          <path d="M4 10h3" strokeLinecap="round" />
-          <path d="M17 10h3" strokeLinecap="round" />
-          <path d="M10 4v3" strokeLinecap="round" />
-          <path d="M14 4v3" strokeLinecap="round" />
-          <path d="M10 17v3" strokeLinecap="round" />
-          <path d="M14 17v3" strokeLinecap="round" />
-        </svg>
+        <img src={`${import.meta.env.BASE_URL}images/ticket_icon.svg`} alt="" className="h-10 w-10" />
       ),
     },
   ]

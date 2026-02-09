@@ -55,7 +55,7 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-3">
             <Link to="/signin">
-              <button className="h-12 px-4 text-sm font-semibold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-white text-black hover:bg-neutral-50 transition-colors cursor-pointer">
+              <button className="h-12 px-4 text-sm font-semibold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
                 Sign In
               </button>
             </Link>
@@ -104,7 +104,7 @@ export default function Navbar() {
             </li>
             <li className="pt-2 space-y-2">
               <Link to="/signin">
-                <button className="w-full px-4 py-2.5 text-sm font-medium text-black bg-white hover:bg-neutral-100 rounded-xl transition-colors">
+                <button className="w-full px-4 py-2.5 text-sm font-medium text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
                   Sign In
                 </button>
               </Link>
