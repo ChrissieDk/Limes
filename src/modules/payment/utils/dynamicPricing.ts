@@ -79,7 +79,7 @@ function calculateUnitsFromTiers(rands: number, tiers: PricingBracket[]): number
  * @param serviceType - Type of service (VOICE, DATA, SMS, WHATSAPP, MMS, AIRTIME)
  * @param rands - Amount in Rands
  * @param packageType - Package type (contract or prepaid)
- * @returns Service value in API units (seconds for VOICE, bytes for DATA/WHATSAPP, messages for SMS/MMS, cents for AIRTIME), or null if not available
+ * @returns Service value in API units (seconds for VOICE, bytes for DATA/WHATSAPP, messages for SMS/MMS, Rands for AIRTIME), or null if not available
  */
 export function convertRandsToServiceValue(
   serviceType: ServiceType, 
@@ -103,8 +103,8 @@ export function convertRandsToServiceValue(
     // Tier units: minutes → API units: seconds
     return Math.floor(tierUnits * 60)
   } else if (serviceType === 'AIRTIME') {
-    // Tier units: Rands → API units: cents
-    return Math.floor(tierUnits * 100)
+    // API expects value in Rands (decimal), not cents. priceInCents is sent separately.
+    return Math.round(tierUnits * 100) / 100
   } else {
     // SMS: count (already in API units)
     return Math.floor(tierUnits)
@@ -173,7 +173,7 @@ export function getDefaultExpiryDate(): string {
  */
 export function validateServiceValue(serviceType: ServiceType, value: number): boolean {
   const limits: Record<ServiceType, { min: number; max: number; unit: string }> = {
-    AIRTIME: { min: 1, max: 100000, unit: 'cents' },  // R0.01 to R1000
+    AIRTIME: { min: 0.01, max: 1000, unit: 'rands' },  // R0.01 to R1000
     VOICE: { min: 0.0001, max: 1200000, unit: 'seconds' },  // Up to 20,000 minutes
     SMS: { min: 0.0001, max: 2000, unit: 'messages' },
     DATA: { min: 0.0001, max: 214748364800, unit: 'bytes' },
