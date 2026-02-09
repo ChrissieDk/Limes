@@ -76,8 +76,8 @@ export function PlanDetails({ sim }: PlanDetailsProps) {
 
   // Fetch all balance types from API
   const mobileData = getBalanceValue('data', 'DATA') || sim.plan.mobileData;
-  // Try AIRTIME_ADVANCE first, fall back to GPA_CREDIT, then default
-  const airtime = getBalanceValue('gpa', 'AIRTIME_ADVANCE') || getBalanceValue('gpa', 'GPA_CREDIT') || sim.plan.airtime;
+  // Try GPA_CREDIT first, fall back to GPA_CREDIT, then default
+  const airtime = getBalanceValue('gpa', 'GPA_CREDIT') || getBalanceValue('gpa', 'GPA_CREDIT') || sim.plan.airtime;
   const voiceMinutes = getBalanceValue('voice', 'VOICE') || sim.plan.phone;
   const smsCount = getBalanceValue('sms', 'SMS') || sim.plan.messaging;
 

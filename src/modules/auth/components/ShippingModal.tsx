@@ -216,7 +216,7 @@ export default function ShippingModal({
         if (selectedPackage.planAllocation.voice > 0) {
           services.push({
             value: selectedPackage.planAllocation.voice,
-            definitionCode: 'AIRTIME_ADVANCE',
+            definitionCode: 'GPA_CREDIT',
             expiryDate,
             priceInCents: selectedPackage.planAllocation.voice * 100
           })
@@ -398,7 +398,7 @@ export default function ShippingModal({
           }
           if (planAllocation.voice > 0) {
             pendingServices.push({
-              definitionCode: 'AIRTIME_ADVANCE' as const,
+              definitionCode: 'GPA_CREDIT' as const,
               value: planAllocation.voice,
               priceInCents: planAllocation.voice * 100,
               expiryDate,
@@ -452,7 +452,7 @@ export default function ShippingModal({
           if (planAllocation.voice > 0) {
             services.push({
               value: planAllocation.voice,
-              definitionCode: 'AIRTIME_ADVANCE' as const,
+              definitionCode: 'GPA_CREDIT' as const,
               expiryDate
             })
           }
@@ -547,7 +547,7 @@ export default function ShippingModal({
             if (selectedPackage!.planAllocation.voice > 0) {
               services.push({
                 value: selectedPackage!.planAllocation.voice,
-                definitionCode: 'AIRTIME_ADVANCE',
+                definitionCode: 'GPA_CREDIT',
                 expiryDate,
                 priceInCents: selectedPackage!.planAllocation.voice * 100
               })

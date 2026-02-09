@@ -2,7 +2,7 @@ import { apiClient } from '../../../config/api'
 
 export interface DynamicService {
   value: number
-  definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE'
+  definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
   expiryDate: string
   priceInCents: number
 }

@@ -80,7 +80,7 @@ await paymentService.initializeDynamicServicesPayment({
     },
     {
       value: 30,                // Rands for voice
-      definitionCode: "AIRTIME_ADVANCE",
+      definitionCode: "GPA_CREDIT",
       expiryDate: "2026-02-28T23:59:59Z",
       priceInCents: 3000        // R30 in cents
     }
@@ -106,7 +106,7 @@ POST /api/payment/dynamic-services/initialize
     },
     {
       "value": 30,
-      "definitionCode": "AIRTIME_ADVANCE",
+      "definitionCode": "GPA_CREDIT",
       "expiryDate": "2026-02-28T23:59:59Z",
       "priceInCents": 3000
     }

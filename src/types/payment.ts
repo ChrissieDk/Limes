@@ -167,7 +167,7 @@ export interface InitializeTransactionResponse {
 // Dynamic Services Payment Initialization (for contract plans)
 export interface DynamicServicePaymentItem {
   value: number           // The value/amount of the service (e.g., 1073741824 for bytes, 20 for minutes)
-  definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE' | 'PACKAGE'  // Service type (PACKAGE = backend expands based on productId)
+  definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT' | 'PACKAGE'  // Service type (PACKAGE = backend expands based on productId)
   expiryDate: string      // ISO format date: "2026-07-30"
   priceInCents: number    // Price in cents (e.g., 5000 = R50)
 }

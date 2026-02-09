@@ -308,8 +308,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       const expiryDate = getDefaultExpiryDate()
       const priceInCents = price * 100
       
-      // Map AIRTIME to AIRTIME_ADVANCE for backend
-      const definitionCode = serviceType === 'AIRTIME' ? 'AIRTIME_ADVANCE' : serviceType
+      // Map AIRTIME to GPA_CREDIT for backend
+      const definitionCode = serviceType === 'AIRTIME' ? 'GPA_CREDIT' : serviceType
 
       console.log('[TopUp] Initializing dynamic service payment:', {
         serviceType,
@@ -325,7 +325,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         services: [
           {
             value: serviceValue,
-            definitionCode: definitionCode as any, // Backend expects AIRTIME_ADVANCE
+            definitionCode: definitionCode as any, // Backend expects GPA_CREDIT
             expiryDate,
             priceInCents,
           },
@@ -367,7 +367,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
               throw new Error(`${kind} service is not available for prepaid packages`)
             }
             
-            const definitionCode = kind.toUpperCase() === 'AIRTIME' ? 'AIRTIME_ADVANCE' : kind.toUpperCase()
+            const definitionCode = kind.toUpperCase() === 'AIRTIME' ? 'GPA_CREDIT' : kind.toUpperCase()
             
             const servicesResponse = await subscriptionService.createDynamicServices(
               selectedPhoneNumber,

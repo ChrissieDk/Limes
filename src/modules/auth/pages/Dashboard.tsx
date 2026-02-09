@@ -313,7 +313,7 @@ function Dashboard() {
                 plan: {
                   ...sim.plan,
                   mobileData: response.balances.find(b => b.grouping === 'data')?.formattedParts?.value || sim.plan.mobileData,
-                  airtime: response.balances.find(b => b.grouping === 'gpa')?.formattedParts?.value || sim.plan.airtime,
+                  airtime: response.balances.find(b => b.grouping === 'gpa' && b.definitionCode === 'GPA_CREDIT')?.formattedParts?.value || sim.plan.airtime,
                 }
               };
             }
