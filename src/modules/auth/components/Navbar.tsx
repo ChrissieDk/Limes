@@ -24,9 +24,9 @@ export default function Navbar() {
   return (
     <div className="sticky top-3 z-10 px-3 sm:px-0">
       <nav className="w-full mx-auto max-w-6xl rounded-xl bg-[#26252C] text-white shadow-sm ring-1 ring-white/10">
-        <div className="flex items-center justify-between px-5 py-2.5">
+        <div className="flex items-center justify-between px-5 py-3">
           <div className="flex items-center gap-8">
-            <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-10" />
+            <img src={`${import.meta.env.BASE_URL}images/limes_high_def_logo.svg`} alt="Limes" className="h-8" />
           </div>
 
           <ul className="hidden md:flex gap-6 text-[15px]">

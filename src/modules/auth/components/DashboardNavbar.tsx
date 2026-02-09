@@ -31,11 +31,11 @@ export default function DashboardNavbar() {
     <div className="sticky top-3 z-20">
       <div className="mx-auto max-w-7xl px-6">
         <nav className="w-full rounded-xl bg-[#26252C] text-white border border-white/10">
-          <div className="flex items-center justify-between px-4 py-2.5">
+          <div className="flex items-center justify-between px-4 py-3">
             {/* Logo */}
             <div className="flex items-center">
               <Link to="/dashboard">
-                <img src={`${import.meta.env.BASE_URL}images/Logo.png`} alt="Limes" className="h-8" />
+                <img src={`${import.meta.env.BASE_URL}images/limes_high_def_logo.svg`} alt="Limes" className="h-7" />
               </Link>
             </div>
 
