@@ -4,8 +4,6 @@ import type {
   InitializeTransactionResponse,
   InitializeDynamicServicesPaymentRequest,
   InitializeDynamicServicesPaymentResponse,
-  InitializeComboPaymentRequest,
-  InitializeComboPaymentResponse,
   VerifyPaymentRequest,
   VerifyPaymentResponse,
   SavedCard,
@@ -31,8 +29,9 @@ export const paymentService = {
   // ============================================
 
   /**
-   * Initialize a transaction (Step 1)
-   * Backend controls amount and returns access_code
+   * Initialize a transaction (Step 1 - UNIFIED ENDPOINT)
+   * Frontend provides amount in CENTS, backend creates Paystack transaction
+   * Used for ALL payment types: prepaid packages, combo bundles, top-ups
    */
   async initializeTransaction(payload: InitializeTransactionRequest): Promise<InitializeTransactionResponse> {
     const response = await apiClient.post('/payment/paystack/initialize', payload)
@@ -48,16 +47,6 @@ export const paymentService = {
       console.log('[Payment] initializeDynamicServicesPayment payload:', payload)
     }
     const response = await apiClient.post('/payment/dynamic-services/initialize', payload)
-    return response.data
-  },
-
-  /**
-   * Initialize combo bundle payment (Step 1 for m2m_combo packages)
-   * Used for combo bundles where MVNX catalog shows price: 0 but frontend knows actual price
-   * Amount is sent in CENTS (e.g., 15000 = R150.00)
-   */
-  async initializeComboPayment(payload: InitializeComboPaymentRequest): Promise<InitializeComboPaymentResponse> {
-    const response = await apiClient.post('/payment/paystack/initialize-combo', payload)
     return response.data
   },
 

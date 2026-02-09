@@ -3,7 +3,7 @@ import { catalogService } from '../../catalog/services/catalogService'
 import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
 import { dynamicServicesPaymentService } from '../../payment/services/dynamicServicesPaymentService'
-import { getServiceDisplayValue, convertRandsToServiceValue, getDefaultExpiryDate } from '../../payment/utils/dynamicPricing'
+import { getServiceDisplayValue, convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../../payment/utils/dynamicPricing'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import type { ServiceType } from '../../payment/utils/dynamicPricing'
 import { Loader2 } from 'lucide-react'
@@ -124,14 +124,16 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         }
         
         if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
-          // Filter out FWA categories
+          // Filter out FWA and Airtime categories
           const filteredCategories = onceOffTopUp.children.filter(category => 
             !category.name?.toUpperCase().includes('FWA') && 
-            !category.id?.toUpperCase().includes('FWA')
+            !category.id?.toUpperCase().includes('FWA') &&
+            !category.name?.toUpperCase().includes('AIRTIME') && 
+            !category.id?.toUpperCase().includes('AIRTIME')
           )
           setBundleCategories(filteredCategories)
           console.log('[TopUp] Bundle categories from once_off_top_up:', filteredCategories)
-          console.log('[TopUp] Filtered out FWA categories')
+          console.log('[TopUp] Filtered out FWA and Airtime categories')
         } else {
           setError('No bundle categories found')
           console.error('[TopUp] No children found under once_off_top_up')
@@ -195,9 +197,16 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       console.log('[TopUp] Initializing payment for bundle:', selectedProduct)
       console.log('[TopUp] MSISDN:', selectedPhoneNumber)
       
+      if (!selectedProduct.price) {
+        setPaymentError('Price is missing for bundle')
+        console.error('[TopUp] ❌ Price is missing from selectedProduct')
+        return
+      }
+      
       const payload = {
         productId: String(selectedProduct.id),
-        msisdn: String(selectedPhoneNumber)
+        msisdn: String(selectedPhoneNumber),
+        amount: toCents(selectedProduct.price)  // Convert R150 → 15000 cents
       }
       
       const initResponse = await paymentService.initializeTransaction(payload)
@@ -308,8 +317,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       const expiryDate = getDefaultExpiryDate()
       const priceInCents = price * 100
       
-      // Map AIRTIME to AIRTIME_ADVANCE for backend
-      const definitionCode = serviceType === 'AIRTIME' ? 'AIRTIME_ADVANCE' : serviceType
+      // Map AIRTIME to GPA_CREDIT for backend
+      const definitionCode = serviceType === 'AIRTIME' ? 'GPA_CREDIT' : serviceType
 
       console.log('[TopUp] Initializing dynamic service payment:', {
         serviceType,
@@ -325,7 +334,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         services: [
           {
             value: serviceValue,
-            definitionCode: definitionCode as any, // Backend expects AIRTIME_ADVANCE
+            definitionCode: definitionCode as any, // Backend expects GPA_CREDIT
             expiryDate,
             priceInCents,
           },
@@ -367,7 +376,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
               throw new Error(`${kind} service is not available for prepaid packages`)
             }
             
-            const definitionCode = kind.toUpperCase() === 'AIRTIME' ? 'AIRTIME_ADVANCE' : kind.toUpperCase()
+            const definitionCode = kind.toUpperCase() === 'AIRTIME' ? 'GPA_CREDIT' : kind.toUpperCase()
             
             const servicesResponse = await subscriptionService.createDynamicServices(
               selectedPhoneNumber,

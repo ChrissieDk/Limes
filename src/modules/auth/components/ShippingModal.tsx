@@ -5,6 +5,7 @@ import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
 import { convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../../payment/utils/dynamicPricing'
 import type { DynamicServicePaymentItem } from '../../../types/payment'
+import { SHIPPING_COST_RANDS, SHIPPING_COST_CENTS } from '../../../constants/shipping'
 
 // Load Paystack Inline JS
 declare const PaystackPop: any
@@ -76,6 +77,18 @@ interface ShippingModalProps {
   customerPhone?: string
   allocatedMsisdn?: string  // DEPRECATED: Will be removed - MSISDN now allocated after payment
   ricaData?: RicaData  // NEW: RICA data for post-payment subscriber creation
+}
+
+// Calculate shipping cost based on SIM status
+const getShippingCost = (selectedPackage: SelectedPackage | null): number => {
+  if (!selectedPackage) return 0
+  return selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_RANDS : 0
+}
+
+// Calculate total including shipping
+const getTotalWithShipping = (selectedPackage: SelectedPackage | null): number => {
+  if (!selectedPackage) return 0
+  return selectedPackage.price + getShippingCost(selectedPackage)
 }
 
 export default function ShippingModal({ 
@@ -216,7 +229,7 @@ export default function ShippingModal({
         if (selectedPackage.planAllocation.voice > 0) {
           services.push({
             value: selectedPackage.planAllocation.voice,
-            definitionCode: 'AIRTIME_ADVANCE',
+            definitionCode: 'GPA_CREDIT',
             expiryDate,
             priceInCents: selectedPackage.planAllocation.voice * 100
           })
@@ -234,6 +247,16 @@ export default function ShippingModal({
           }
         }
 
+        // Add shipping cost for SIM delivery if needed
+        if (selectedPackage.simStatus === 'needs-sim') {
+          services.push({
+            value: 0,  // Shipping has no service value
+            definitionCode: 'PACKAGE',  // Use PACKAGE for non-service items
+            expiryDate,
+            priceInCents: SHIPPING_COST_CENTS  // R65 = 6500 cents
+          })
+        }
+
         const dynamicPayload = {
           msisdn: allocatedMsisdn,
           services
@@ -242,7 +265,7 @@ export default function ShippingModal({
         initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
         
       } else if (selectedPackage.isComboBundle) {
-        // COMBO BUNDLE FLOW: Use dedicated combo initialize endpoint
+        // COMBO BUNDLE FLOW: Use unified initialize endpoint
         
         if (!selectedPackage.productId) {
           setVerificationError('Product ID is missing')
@@ -256,12 +279,12 @@ export default function ShippingModal({
           return
         }
         
-        const comboPayload = {
+        const payload = {
           productId: String(selectedPackage.productId),
-          amount: toCents(selectedPackage.price),  // Convert to CENTS (e.g., R150 → 15000)
+          amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0),
           msisdn: null  // Payment-first, MSISDN allocated after payment
         }
-        initResponse = await paymentService.initializeComboPayment(comboPayload)
+        initResponse = await paymentService.initializeTransaction(payload)
         
       } else {
         // PREPAID FLOW: Regular packages (payment first, then subscriber creation)
@@ -271,9 +294,16 @@ export default function ShippingModal({
           return
         }
         
+        if (!selectedPackage.price) {
+          setVerificationError('Price is missing for package')
+          console.error('[Payment] ❌ Price is missing from selectedPackage')
+          return
+        }
+        
         const payload = {
           productId: String(selectedPackage.productId),
-          msisdn: null  // Payment-first, MSISDN allocated after payment
+          msisdn: null,  // Payment-first, MSISDN allocated after payment
+          amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0)
         }
         initResponse = await paymentService.initializeTransaction(payload)
       }
@@ -398,7 +428,7 @@ export default function ShippingModal({
           }
           if (planAllocation.voice > 0) {
             pendingServices.push({
-              definitionCode: 'AIRTIME_ADVANCE' as const,
+              definitionCode: 'GPA_CREDIT' as const,
               value: planAllocation.voice,
               priceInCents: planAllocation.voice * 100,
               expiryDate,
@@ -452,7 +482,7 @@ export default function ShippingModal({
           if (planAllocation.voice > 0) {
             services.push({
               value: planAllocation.voice,
-              definitionCode: 'AIRTIME_ADVANCE' as const,
+              definitionCode: 'GPA_CREDIT' as const,
               expiryDate
             })
           }
@@ -547,7 +577,7 @@ export default function ShippingModal({
             if (selectedPackage!.planAllocation.voice > 0) {
               services.push({
                 value: selectedPackage!.planAllocation.voice,
-                definitionCode: 'AIRTIME_ADVANCE',
+                definitionCode: 'GPA_CREDIT',
                 expiryDate,
                 priceInCents: selectedPackage!.planAllocation.voice * 100
               })
@@ -1000,11 +1030,17 @@ export default function ShippingModal({
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-neutral-600">Shipping</span>
-                    <span className="font-semibold text-lime-600">FREE</span>
+                    {selectedPackage.simStatus === 'needs-sim' ? (
+                      <span className="font-semibold text-neutral-900">R{SHIPPING_COST_RANDS}</span>
+                    ) : (
+                      <span className="font-semibold text-lime-600">FREE</span>
+                    )}
                   </div>
                   <div className="border-t border-neutral-300 pt-2 flex items-center justify-between">
                     <span className="font-semibold text-neutral-900 text-base">Total</span>
-                    <span className="font-semibold text-2xl text-lime-700">R{selectedPackage.price}</span>
+                    <span className="font-semibold text-2xl text-lime-700">
+                      R{getTotalWithShipping(selectedPackage)}
+                    </span>
                   </div>
                 </div>
 

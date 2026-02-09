@@ -82,7 +82,7 @@ export const subscriptionService = {
 
   // Store pending dynamic service (when SIM is not yet active)
   async storePendingDynamicService(msisdn: string, payload: {
-    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'AIRTIME_ADVANCE'
+    definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
     value: number
     priceInCents: number
     expiryDate: string
