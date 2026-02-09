@@ -144,13 +144,12 @@ export interface PaystackSubscription {
   updatedAt: string
 }
 
-// Transaction initialization request/response (SECURE - Backend controls amount)
-// Backend fetches price from MVNX, frontend only provides productId and msisdn
-// For combo bundles, amount can be provided since MVNX catalog has price: 0
+// Transaction initialization request/response (UNIFIED ENDPOINT)
+// Frontend provides amount in CENTS for ALL payment types
 export interface InitializeTransactionRequest {
-  productId: string        // REQUIRED - Product ID to purchase (backend gets price from MVNX)
+  productId: string        // REQUIRED - Product ID to purchase
   msisdn: string | null    // OPTIONAL - Can be null for payment-first flow (MSISDN allocated after payment)
-  amount?: number          // OPTIONAL - Price override in cents (ONLY for combo bundles with catalog price: 0)
+  amount: number           // REQUIRED - Price in CENTS (e.g., 15000 = R150.00)
 }
 
 export interface InitializeTransactionResponse {
@@ -178,25 +177,6 @@ export interface InitializeDynamicServicesPaymentRequest {
 }
 
 export interface InitializeDynamicServicesPaymentResponse {
-  success: boolean
-  message: string
-  data?: {
-    authorization_url: string
-    access_code: string
-    reference: string
-  }
-  error?: string
-}
-
-// Combo Bundle Payment Initialization (for m2m_combo packages)
-// Used when MVNX catalog shows price: 0 but frontend knows actual price
-export interface InitializeComboPaymentRequest {
-  productId: string        // Combo bundle product ID (e.g., "COMBO_BUNDLE_001")
-  amount: number           // Price in CENTS (e.g., 15000 = R150.00)
-  msisdn?: string | null   // Optional - can be null for payment-first flow
-}
-
-export interface InitializeComboPaymentResponse {
   success: boolean
   message: string
   data?: {

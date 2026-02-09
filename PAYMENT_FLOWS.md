@@ -1,6 +1,57 @@
 # Payment Initialization Flows
 
-This document explains the three different payment initialization flows in the Limes application.
+This document explains the different payment initialization flows in the Limes application.
+
+---
+
+## ⚠️ PAYMENT INITIALIZATION - UNIFIED ENDPOINT
+
+### POST /api/payment/paystack/initialize
+
+**ALL regular payment types now use this single unified endpoint.**
+
+#### Request Body
+
+```json
+{
+  "productId": "7027225P",
+  "msisdn": "27821234567",  // or null for payment-first flow
+  "amount": 15000           // REQUIRED - amount in CENTS (R150.00 = 15000)
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Transaction initialized",
+  "data": {
+    "authorization_url": "https://checkout.paystack.com/...",
+    "access_code": "abc123def456",
+    "reference": "ref_xyz789"
+  }
+}
+```
+
+#### Frontend Responsibilities
+
+1. Calculate total price in Rands (package price + any addons)
+2. Convert to cents using `toCents(rands)` utility
+3. Send amount with productId and msisdn
+
+#### Example Usage
+
+```typescript
+import { toCents } from '../../payment/utils/dynamicPricing'
+
+// For a R150.00 package
+await paymentService.initializeTransaction({
+  productId: "7029225P",
+  msisdn: null,              // Payment-first flow
+  amount: toCents(150.00)    // Converts to 15000 cents
+})
+```
 
 ---
 
@@ -8,16 +59,15 @@ This document explains the three different payment initialization flows in the L
 
 | Flow | Used For | Endpoint | Amount Source | MSISDN Timing |
 |------|----------|----------|---------------|---------------|
-| **Normal** | Regular prepaid packages | `/payment/paystack/initialize` | Backend (from MVNX catalog) | After payment |
-| **Dynamic** | Contract dynamic plans | `/payment/dynamic-services/initialize` | Frontend (user allocation) | Before payment |
-| **Combo** | Contract combo bundles (m2m_combo) | `/payment/paystack/initialize-combo` | Frontend (RANDS) | After payment |
+| **Unified** | Regular packages & combo bundles | `/payment/paystack/initialize` | Frontend (CENTS) | After payment |
+| **Dynamic** | Contract dynamic plans | `/payment/dynamic-services/initialize` | Frontend (per service) | Before payment |
 
 ---
 
-## 1️⃣ Normal Initialize - Regular Prepaid Packages
+## 1️⃣ Unified Initialize - Regular Packages & Combo Bundles
 
 ### Use Case
-Regular prepaid packages where the product price is available in the MVNX catalog.
+Regular prepaid packages and combo bundles (all non-dynamic payment flows).
 
 ### Flow
 ```
@@ -26,9 +76,12 @@ Regular prepaid packages where the product price is available in the MVNX catalo
 
 ### Frontend Request
 ```typescript
+import { toCents } from '../../payment/utils/dynamicPricing'
+
 await paymentService.initializeTransaction({
-  productId: "7029225",  // Regular product ID
-  msisdn: null           // Allocated AFTER payment
+  productId: "7029225",           // Product ID
+  msisdn: null,                   // Allocated AFTER payment
+  amount: toCents(150.00)         // R150.00 in cents (15000)
 })
 ```
 
@@ -41,19 +94,21 @@ POST /api/payment/paystack/initialize
 ```json
 {
   "productId": "7029225",
-  "msisdn": null
+  "msisdn": null,
+  "amount": 15000
 }
 ```
 
 ### Backend Logic
-1. Fetch product price from MVNX catalog
-2. Create Paystack transaction with catalog price
+1. Use the amount provided by frontend (in cents)
+2. Create Paystack transaction with this amount
 3. Return `access_code` and `reference`
 
 ### Notes
-- Backend controls the amount (security)
-- Frontend only provides product ID
+- Frontend calculates and provides the amount in CENTS
+- Used for both regular packages AND combo bundles (unified endpoint)
 - MSISDN allocated after successful payment
+- Frontend must validate price exists before calling
 
 ---
 
@@ -127,77 +182,28 @@ POST /api/payment/dynamic-services/initialize
 
 ---
 
-## 3️⃣ Combo Initialize - Contract Combo Bundles (m2m_combo)
-
-### Use Case
-Contract combo bundles where the MVNX catalog shows `price: 0` but the frontend knows the actual price from the mapping configuration.
-
-### Flow
-```
-1. Payment → 2. MSISDN Allocation → 3. Order Creation
-```
-
-### Frontend Request
-```typescript
-await paymentService.initializeComboPayment({
-  productId: "COMBO_BUNDLE_001",
-  amount: 199.99,         // In RANDS (not cents!)
-  msisdn: null            // Allocated AFTER payment
-})
-```
-
-### Backend Endpoint
-```
-POST /api/payment/paystack/initialize-combo
-```
-
-### Request Payload
-```json
-{
-  "productId": "COMBO_BUNDLE_001",
-  "amount": 199.99,
-  "msisdn": null
-}
-```
-
-### Backend Logic
-1. Receive amount in RANDS from frontend
-2. Convert RANDS to cents (multiply by 100)
-3. Create Paystack transaction with converted amount
-4. Return `access_code` and `reference`
-
-### Notes
-- **CRITICAL**: Amount is sent in **RANDS**, not cents
-- Backend converts RANDS → cents for Paystack
-- MSISDN allocated after successful payment (payment-first flow)
-- Used because MVNX catalog has `price: 0` for combo bundles
-
----
-
 ## 🔍 Key Differences
 
 ### Amount Control
 
 | Flow | Who Controls Amount | Format | Source |
 |------|---------------------|--------|--------|
-| Normal | Backend | Cents | MVNX Catalog |
-| Dynamic | Frontend | Cents | User Allocation |
-| Combo | Frontend | **RANDS** | Frontend Mapping |
+| Unified | Frontend | **CENTS** | Frontend calculation |
+| Dynamic | Frontend | Cents (per service) | User Allocation |
 
 ### MSISDN Timing
 
 | Flow | MSISDN Allocation | Reason |
 |------|------------------|--------|
-| Normal | After payment | Prepaid flow |
+| Unified | After payment | Payment-first flow |
 | Dynamic | Before payment | Contract flow - lock MSISDN first |
-| Combo | After payment | Payment-first flow |
 
 ---
 
 ## 📊 Implementation in ShippingModal.tsx
 
 ```typescript
-// Line 174-257: CONTRACT DYNAMIC PLANS
+// CONTRACT DYNAMIC PLANS
 if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan) {
   // 1. Create subscriber first (get MSISDN)
   const subscriberResponse = await subscriptionService.createSubscription(...)
@@ -210,19 +216,20 @@ if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan)
   })
 }
 
-// Line 258-277: COMBO BUNDLE FLOW (NEW)
+// COMBO BUNDLE FLOW - Uses unified endpoint
 else if (selectedPackage.isComboBundle) {
-  initResponse = await paymentService.initializeComboPayment({
+  initResponse = await paymentService.initializeTransaction({
     productId: String(selectedPackage.productId),
-    amount: selectedPackage.price,  // In RANDS
+    amount: toCents(selectedPackage.price),  // Convert R150 → 15000 cents
     msisdn: null
   })
 }
 
-// Line 278-292: PREPAID FLOW
+// PREPAID FLOW - Uses unified endpoint
 else {
   initResponse = await paymentService.initializeTransaction({
     productId: String(selectedPackage.productId),
+    amount: toCents(selectedPackage.price),  // Convert R150 → 15000 cents
     msisdn: null
   })
 }
@@ -232,14 +239,15 @@ else {
 
 ## 🧪 Testing Each Flow
 
-### Test Normal Initialize
+### Test Unified Initialize (Regular/Combo Packages)
 ```bash
 curl -X POST 'https://limes-staging.up.railway.app/api/payment/paystack/initialize' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -d '{
     "productId": "7029225",
-    "msisdn": null
+    "msisdn": null,
+    "amount": 15000
   }'
 ```
 
@@ -261,36 +269,25 @@ curl -X POST 'https://limes-staging.up.railway.app/api/payment/dynamic-services/
   }'
 ```
 
-### Test Combo Initialize
-```bash
-curl -X POST 'https://limes-staging.up.railway.app/api/payment/paystack/initialize-combo' \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer YOUR_TOKEN' \
-  -d '{
-    "productId": "COMBO_BUNDLE_001",
-    "amount": 199.99,
-    "msisdn": null
-  }'
-```
-
 ---
 
 ## ⚠️ Important Notes
 
-1. **Combo Bundle Amount Format**
-   - Always send in **RANDS**, not cents
-   - Backend converts to cents (×100) for Paystack
-   - Example: R199.99 → 19999 cents
+1. **Unified Endpoint Amount Format**
+   - ALWAYS send amount in **CENTS**, not rands
+   - Use `toCents(rands)` utility to convert
+   - Example: R150.00 → toCents(150.00) → 15000 cents
 
 2. **Security**
-   - Normal flow: Backend controls amount (secure)
+   - Unified flow: Frontend provides amount in cents (validated on backend)
    - Dynamic flow: Amount from services array (validated on backend)
-   - Combo flow: Amount from frontend (validated against expected range on backend)
+   - All amounts are validated against expected ranges on backend
 
 3. **Error Handling**
    - All flows return same response format
    - Check `success` field before proceeding
    - Log errors for debugging
+   - Validate price exists before calling initialize
 
 ---
 
