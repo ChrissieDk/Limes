@@ -41,7 +41,7 @@ export const DEFAULT_RATES = {
 export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   '40890': {
     productId: '40890',
-    name: 'Mobile Package 1',
+    name: 'Limes29',
     monthlyCostCents: 2900,
     monthlyCostRands: 29,
     validity: '30 Days',
@@ -68,7 +68,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40891': {
     productId: '40891',
-    name: 'Mobile Package 2',
+    name: 'Limes69',
     monthlyCostCents: 6900,
     monthlyCostRands: 69,
     validity: '30 Days',
@@ -101,7 +101,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40892': {
     productId: '40892',
-    name: 'Mobile Package 3',
+    name: 'Limes75',
     monthlyCostCents: 7500,
     monthlyCostRands: 75,
     validity: '30 Days',
@@ -126,7 +126,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40893': {
     productId: '40893',
-    name: 'Mobile Package 4',
+    name: 'Limes99',
     monthlyCostCents: 9900,
     monthlyCostRands: 99,
     validity: '30 Days',
@@ -159,7 +159,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40894': {
     productId: '40894',
-    name: 'Mobile Package 5',
+    name: 'Limes149',
     monthlyCostCents: 14900,
     monthlyCostRands: 149,
     validity: '30 Days',
@@ -184,7 +184,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40895': {
     productId: '40895',
-    name: 'Mobile Package 6',
+    name: 'Limes169',
     monthlyCostCents: 16900,
     monthlyCostRands: 169,
     validity: '30 Days',
@@ -217,7 +217,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40896': {
     productId: '40896',
-    name: 'Mobile Package 7',
+    name: 'Limes199',
     monthlyCostCents: 19900,
     monthlyCostRands: 199,
     validity: '30 Days',
@@ -250,7 +250,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40897': {
     productId: '40897',
-    name: 'Mobile Package 8',
+    name: 'Limes200',
     monthlyCostCents: 20000,
     monthlyCostRands: 200,
     validity: '30 Days',
@@ -275,7 +275,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40898': {
     productId: '40898',
-    name: 'Mobile Package 9',
+    name: 'Limes229',
     monthlyCostCents: 22900,
     monthlyCostRands: 229,
     validity: '30 Days',
@@ -308,7 +308,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40899': {
     productId: '40899',
-    name: 'Mobile Package 10',
+    name: 'Limes279',
     monthlyCostCents: 27900,
     monthlyCostRands: 279,
     validity: '30 Days',
@@ -341,7 +341,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40900': {
     productId: '40900',
-    name: 'Mobile Package 11',
+    name: 'Limes319',
     monthlyCostCents: 31900,
     monthlyCostRands: 319,
     validity: '30 Days',
@@ -374,7 +374,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40901': {
     productId: '40901',
-    name: 'Mobile Package 12',
+    name: 'Limes399',
     monthlyCostCents: 39900,
     monthlyCostRands: 399,
     validity: '30 Days',
@@ -406,7 +406,7 @@ export const COMBO_PACKAGES_MAP: Record<string, ComboPackageDetails> = {
   },
   '40902': {
     productId: '40902',
-    name: 'Mobile Package 13',
+    name: 'Limes159',
     monthlyCostCents: 15900,
     monthlyCostRands: 159,
     validity: '30 Days',
