@@ -82,26 +82,47 @@ export function PlanDetails({ sim }: PlanDetailsProps) {
   const smsCount = getBalanceValue('sms', 'SMS') || sim.plan.messaging;
 
   return (
-    <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 p-4">
-      <h4 className="text-white font-semibold text-lg mb-3">Balance</h4>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-[#D8B0FF] rounded-[16px] p-3 flex flex-col gap-0.5">
-          <div className="text-neutral-900 text-xs font-medium">Airtime</div>
-          <div className="text-neutral-900 font-bold text-xl leading-none">{airtime}</div>
-        </div>
-        <div className="bg-[#ABFF63] rounded-[16px] p-3 flex flex-col gap-0.5">
-          <div className="text-neutral-900 text-xs font-medium">Mobile data</div>
-          <div className="text-neutral-900 font-bold text-xl leading-none">{mobileData}</div>
-        </div>
-        <div className="bg-[#629BFC] rounded-[16px] p-3 flex flex-col gap-0.5">
-          <div className="text-neutral-900 text-xs font-medium">SMS</div>
-          <div className="text-neutral-900 font-bold text-xl leading-none">{smsCount}</div>
-        </div>
-        <div className="bg-pink-300 rounded-[16px] p-3 flex flex-col gap-0.5">
-          <div className="text-neutral-900 text-xs font-medium">Voice minutes</div>
-          <div className="text-neutral-900 font-bold text-xl leading-none">{voiceMinutes}</div>
+    <>
+      <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 p-4">
+        <h4 className="text-white font-semibold text-lg mb-3">Balance</h4>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-[#D8B0FF] rounded-[16px] p-3 flex items-center gap-2">
+            <img src={`${import.meta.env.BASE_URL}images/plan_lime.svg`} alt="" className="w-7 h-7 flex-shrink-0" />
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="text-neutral-900 text-xs font-medium">Airtime</div>
+              <div className="text-neutral-900 font-bold text-xl leading-none">{airtime}</div>
+            </div>
+          </div>
+          <div className="bg-[#ABFF63] rounded-[16px] p-3 flex items-center gap-2">
+            <img src={`${import.meta.env.BASE_URL}images/plan_data.svg`} alt="" className="w-7 h-7 flex-shrink-0" />
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="text-neutral-900 text-xs font-medium">Mobile data</div>
+              <div className="text-neutral-900 font-bold text-xl leading-none">{mobileData}</div>
+            </div>
+          </div>
+          <div className="bg-[#629BFC] rounded-[16px] p-3 flex items-center gap-2">
+            <img src={`${import.meta.env.BASE_URL}images/plan_sms.svg`} alt="" className="w-7 h-7 flex-shrink-0" />
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="text-neutral-900 text-xs font-medium">SMS</div>
+              <div className="text-neutral-900 font-bold text-xl leading-none">{smsCount}</div>
+            </div>
+          </div>
+          <div className="bg-pink-300 rounded-[16px] p-3 flex items-center gap-2">
+            <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="w-7 h-7 flex-shrink-0" />
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="text-neutral-900 text-xs font-medium">Voice minutes</div>
+              <div className="text-neutral-900 font-bold text-xl leading-none">{voiceMinutes}</div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 p-4">
+        <h4 className="text-white font-semibold text-lg mb-1">Ready to keep your number?</h4>
+        <p className="text-neutral-400 text-sm leading-snug">
+          Insert your Limes SIM and dial *140# to start porting. Follow the prompts, quick and easy.
+        </p>
+      </div>
+    </>
   );
 }
