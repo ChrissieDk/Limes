@@ -69,14 +69,17 @@ export const dataBrackets: PricingBracket[] = [
 ]
 
 /**
- * WhatsApp pricing tiers (tiered pricing per MB)
- * When you reach a tier, ALL your data is priced at that tier's rate.
- * Example: 2GB falls in the 1-2GB tier, so all 2048MB costs 2048 × R0.039 = R79.87
+ * WhatsApp pricing tiers (progressive/incremental pricing per MB)
+ * Like tax brackets: each tier applies only to the units within that tier's range.
+ * Progressive pricing ensures smooth, gradual price increases without cliff effects.
+ * 
+ * Target prices: 500MB=R30, 1GB=R39, 2GB=R79
  */
 export const whatsappBrackets: PricingBracket[] = [
-  { fromUnits: 0, toUnits: 500, pricePerUnit: 0.060, displayName: '0-500MB' },
-  { fromUnits: 500, toUnits: 1024, pricePerUnit: 0.038, displayName: '500MB-1GB' },
-  { fromUnits: 1024, toUnits: null, pricePerUnit: 0.039, displayName: '1GB+' },
+  { fromUnits: 0, toUnits: 501, pricePerUnit: 0.060, displayName: '0-500MB' },        // R30 total
+  { fromUnits: 501, toUnits: 1025, pricePerUnit: 0.0172, displayName: '500MB-1GB' },  // +R9 = R39 total
+  { fromUnits: 1025, toUnits: 2049, pricePerUnit: 0.0391, displayName: '1-2GB' },     // +R40 = R79 total
+  { fromUnits: 2049, toUnits: null, pricePerUnit: 0.0391, displayName: '2GB+' },
 ]
 
 /**
