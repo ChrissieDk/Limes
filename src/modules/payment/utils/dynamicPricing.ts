@@ -2,8 +2,8 @@
  * Dynamic Pricing Utilities
  * 
  * Handles pricing calculations for both contract and prepaid packages.
- * Uses tiered pricing where applicable (DATA, VOICE, SMS, WHATSAPP).
- * In tiered pricing, once you reach a tier, ALL usage is priced at that tier's rate.
+ * Uses progressive/incremental pricing where applicable (DATA, VOICE, SMS, WHATSAPP).
+ * Like tax brackets: each tier applies only to the units within that tier's range.
  */
 
 import { 
@@ -16,58 +16,65 @@ import {
 export type ServiceType = 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP' | 'MMS'
 
 /**
- * Find the appropriate pricing tier for a given number of units
- * @param totalUnits - Total units to find tier for
- * @param tiers - Pricing tiers
- * @returns The tier that applies, or null if not found
- */
-function findTier(totalUnits: number, tiers: PricingBracket[]): PricingBracket | null {
-  for (const tier of tiers) {
-    const tierEnd = tier.toUnits ?? Infinity
-    if (totalUnits >= tier.fromUnits && totalUnits < tierEnd) {
-      return tier
-    }
-  }
-  // If we're beyond all tiers, use the last tier
-  return tiers[tiers.length - 1] || null
-}
-
-/**
- * Calculate cost using tiered pricing
- * In tiered pricing, ALL units are priced at the tier's rate
+ * Calculate cost using progressive/incremental pricing
+ * Like tax brackets: each tier applies only to the units within that tier's range
  * @param totalUnits - Total units to calculate cost for
  * @param tiers - Pricing tiers to use
  * @returns Total cost in Rands
  */
 export function calculateTieredCost(totalUnits: number, tiers: PricingBracket[]): number {
-  const tier = findTier(totalUnits, tiers)
-  if (!tier) return 0
+  let remainingUnits = totalUnits
+  let totalCost = 0
   
-  return totalUnits * tier.pricePerUnit
+  for (const tier of tiers) {
+    if (remainingUnits <= 0) break
+    
+    const tierEnd = tier.toUnits ?? Infinity
+    const tierSize = tierEnd - tier.fromUnits
+    const unitsInThisTier = Math.min(remainingUnits, tierSize)
+    
+    totalCost += unitsInThisTier * tier.pricePerUnit
+    remainingUnits -= unitsInThisTier
+  }
+  
+  return totalCost
 }
 
 /**
- * Calculate units from Rands using tiered pricing
+ * Calculate units from Rands using progressive/incremental pricing
+ * Like tax brackets: each tier applies only to the units within that tier's range
  * This is the inverse of calculateTieredCost
  * @param rands - Amount in Rands to spend
  * @param tiers - Pricing tiers to use
  * @returns Total units you can buy
  */
 function calculateUnitsFromTiers(rands: number, tiers: PricingBracket[]): number {
-  // Try each tier from most expensive to cheapest to find the best fit
-  for (let i = tiers.length - 1; i >= 0; i--) {
-    const tier = tiers[i]
-    const unitsAtThisTier = rands / tier.pricePerUnit
+  let remainingBudget = rands
+  let totalUnits = 0
+  
+  for (const tier of tiers) {
+    if (remainingBudget <= 0) break
     
-    // Check if this amount of units falls within this tier
     const tierEnd = tier.toUnits ?? Infinity
-    if (unitsAtThisTier >= tier.fromUnits && unitsAtThisTier < tierEnd) {
-      return unitsAtThisTier
+    const tierSize = tierEnd - tier.fromUnits
+    
+    // Cost to buy all units in this tier
+    const costForFullTier = tierSize * tier.pricePerUnit
+    
+    if (remainingBudget >= costForFullTier && tierEnd !== Infinity) {
+      // Can afford the entire tier, move to next
+      totalUnits += tierSize
+      remainingBudget -= costForFullTier
+    } else {
+      // Can only afford part of this tier
+      const unitsInThisTier = remainingBudget / tier.pricePerUnit
+      totalUnits += unitsInThisTier
+      remainingBudget = 0
+      break
     }
   }
   
-  // If no tier matches, use the first tier
-  return rands / tiers[0].pricePerUnit
+  return totalUnits
 }
 
 /**

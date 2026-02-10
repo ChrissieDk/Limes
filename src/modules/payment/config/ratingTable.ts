@@ -28,32 +28,58 @@ export interface PricingBracket {
 }
 
 /**
- * Data pricing tiers (tiered pricing per MB)
- * When you reach a tier, ALL your data is priced at that tier's rate.
- * Example: 20GB falls in the 10-20GB tier, so all 20GB costs 20480 × R0.015 = R307.20
+ * Data pricing tiers (progressive/incremental pricing per MB)
+ * Like tax brackets: each tier applies only to the units within that tier's range.
+ * Progressive pricing ensures smooth, gradual price increases without cliff effects.
+ * 
+ * Target prices:
+ * 100MB=R5, 300MB=R20, 500MB=R30, 1GB=R50, 2GB=R99, 3GB=R149, 5GB=R179, 10GB=R199, 20GB=R299
  */
 export const dataBrackets: PricingBracket[] = [
-  { fromUnits: 0, toUnits: 100, pricePerUnit: 0.050, displayName: '0-100MB' },
-  { fromUnits: 100, toUnits: 300, pricePerUnit: 0.067, displayName: '100-300MB' },
-  { fromUnits: 300, toUnits: 500, pricePerUnit: 0.060, displayName: '300-500MB' },
-  { fromUnits: 500, toUnits: 1024, pricePerUnit: 0.049, displayName: '500MB-1GB' },
-  { fromUnits: 1024, toUnits: 2048, pricePerUnit: 0.048, displayName: '1-2GB' },
-  { fromUnits: 2048, toUnits: 3072, pricePerUnit: 0.049, displayName: '2-3GB' },
-  { fromUnits: 3072, toUnits: 5120, pricePerUnit: 0.035, displayName: '3-5GB' },
-  { fromUnits: 5120, toUnits: 10240, pricePerUnit: 0.019, displayName: '5-10GB' },
-  { fromUnits: 10240, toUnits: 20480, pricePerUnit: 0.015, displayName: '10-20GB' },
-  { fromUnits: 20480, toUnits: null, pricePerUnit: 0.015, displayName: '20GB+' },
+  // Small data packages
+  { fromUnits: 0, toUnits: 101, pricePerUnit: 0.050, displayName: '0-100MB' },        // R5 total
+  { fromUnits: 101, toUnits: 301, pricePerUnit: 0.075, displayName: '100-300MB' },    // +R15 = R20 total
+  { fromUnits: 301, toUnits: 501, pricePerUnit: 0.050, displayName: '300-500MB' },    // +R10 = R30 total
+  
+  // 1-3GB range
+  { fromUnits: 501, toUnits: 1025, pricePerUnit: 0.0382, displayName: '500MB-1GB' },  // +R20 = R50 total
+  { fromUnits: 1025, toUnits: 2049, pricePerUnit: 0.0478, displayName: '1-2GB' },     // +R49 = R99 total
+  { fromUnits: 2049, toUnits: 3073, pricePerUnit: 0.0488, displayName: '2-3GB' },     // +R50 = R149 total
+  
+  // 3-5GB range with 4GB intermediate
+  { fromUnits: 3073, toUnits: 4097, pricePerUnit: 0.0146, displayName: '3-4GB' },     // +R15 = R164 total
+  { fromUnits: 4097, toUnits: 5121, pricePerUnit: 0.0146, displayName: '4-5GB' },     // +R15 = R179 total
+  
+  // 5-10GB range: R179 → R199 (R20 over 5GB, gradually decreasing for smoother transition)
+  { fromUnits: 5121, toUnits: 6145, pricePerUnit: 0.00977, displayName: '5-6GB' },    // +R10 = R189 total
+  { fromUnits: 6145, toUnits: 7169, pricePerUnit: 0.00488, displayName: '6-7GB' },    // +R5 = R194 total
+  { fromUnits: 7169, toUnits: 8193, pricePerUnit: 0.00293, displayName: '7-8GB' },    // +R3 = R197 total
+  { fromUnits: 8193, toUnits: 9217, pricePerUnit: 0.00098, displayName: '8-9GB' },    // +R1 = R198 total
+  { fromUnits: 9217, toUnits: 10241, pricePerUnit: 0.00098, displayName: '9-10GB' },  // +R1 = R199 total
+  
+  // 10-20GB range: R199 → R299 (R100 over 10GB, gradually decreasing)
+  { fromUnits: 10241, toUnits: 12289, pricePerUnit: 0.0117, displayName: '10-12GB' }, // +R24 = R223 total
+  { fromUnits: 12289, toUnits: 14337, pricePerUnit: 0.0107, displayName: '12-14GB' }, // +R22 = R245 total
+  { fromUnits: 14337, toUnits: 16385, pricePerUnit: 0.0098, displayName: '14-16GB' }, // +R20 = R265 total
+  { fromUnits: 16385, toUnits: 18433, pricePerUnit: 0.0088, displayName: '16-18GB' }, // +R18 = R283 total
+  { fromUnits: 18433, toUnits: 20481, pricePerUnit: 0.0078, displayName: '18-20GB' }, // +R16 = R299 total
+  
+  // 20GB+
+  { fromUnits: 20481, toUnits: null, pricePerUnit: 0.0098, displayName: '20GB+' },
 ]
 
 /**
- * WhatsApp pricing tiers (tiered pricing per MB)
- * When you reach a tier, ALL your data is priced at that tier's rate.
- * Example: 2GB falls in the 1-2GB tier, so all 2048MB costs 2048 × R0.039 = R79.87
+ * WhatsApp pricing tiers (progressive/incremental pricing per MB)
+ * Like tax brackets: each tier applies only to the units within that tier's range.
+ * Progressive pricing ensures smooth, gradual price increases without cliff effects.
+ * 
+ * Target prices: 500MB=R30, 1GB=R39, 2GB=R79
  */
 export const whatsappBrackets: PricingBracket[] = [
-  { fromUnits: 0, toUnits: 500, pricePerUnit: 0.060, displayName: '0-500MB' },
-  { fromUnits: 500, toUnits: 1024, pricePerUnit: 0.038, displayName: '500MB-1GB' },
-  { fromUnits: 1024, toUnits: null, pricePerUnit: 0.039, displayName: '1GB+' },
+  { fromUnits: 0, toUnits: 501, pricePerUnit: 0.060, displayName: '0-500MB' },        // R30 total
+  { fromUnits: 501, toUnits: 1025, pricePerUnit: 0.0172, displayName: '500MB-1GB' },  // +R9 = R39 total
+  { fromUnits: 1025, toUnits: 2049, pricePerUnit: 0.0391, displayName: '1-2GB' },     // +R40 = R79 total
+  { fromUnits: 2049, toUnits: null, pricePerUnit: 0.0391, displayName: '2GB+' },
 ]
 
 /**
