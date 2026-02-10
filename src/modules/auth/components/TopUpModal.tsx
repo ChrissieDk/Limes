@@ -81,7 +81,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [selectedMethod, setSelectedMethod] = useState<'wallet' | 'card' | 'eft'>('eft')
 
   useEffect(() => {
     if (!open) return
