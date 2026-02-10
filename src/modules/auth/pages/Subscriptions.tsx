@@ -7,14 +7,11 @@ import { paymentService } from '../../payment/services/paymentService';
 import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
 import type { SubscriptionDetails } from '../../../types/payment';
 import { 
-  Calendar, 
-  DollarSign, 
-  CheckCircle2, 
   XCircle, 
   Loader2,
   AlertCircle,
   ChevronLeft,
-  Phone
+  CheckCircle2
 } from 'lucide-react';
 
 // Map product IDs and Paystack plan codes to friendly names
@@ -351,10 +348,8 @@ function Subscriptions() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {/* MSISDN */}
-                    <div className="flex items-start">
-                      <div className="bg-purple-400/10 p-3 rounded-lg mr-4">
-                        <Phone className="w-5 h-5 text-purple-400" />
-                      </div>
+                    <div className="flex items-start gap-3">
+                      <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
                         <p className="text-neutral-400 text-sm mb-1">Phone Number</p>
                         <p className="text-white font-semibold text-lg">{sub.msisdn}</p>
@@ -362,10 +357,8 @@ function Subscriptions() {
                     </div>
 
                     {/* Amount */}
-                    <div className="flex items-start">
-                      <div className="bg-lime-400/10 p-3 rounded-lg mr-4">
-                        <DollarSign className="w-5 h-5 text-lime-400" />
-                      </div>
+                    <div className="flex items-start gap-3">
+                      <img src={`${import.meta.env.BASE_URL}images/plan_lime.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
                         <p className="text-neutral-400 text-sm mb-1">Amount</p>
                         <p className="text-white font-semibold text-lg">
@@ -375,10 +368,8 @@ function Subscriptions() {
                     </div>
 
                     {/* Auto-Renewal Status */}
-                    <div className="flex items-start">
-                      <div className="bg-blue-400/10 p-3 rounded-lg mr-4">
-                        <CheckCircle2 className="w-5 h-5 text-blue-400" />
-                      </div>
+                    <div className="flex items-start gap-3">
+                      <img src={`${import.meta.env.BASE_URL}images/data_icon.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
                         <p className="text-neutral-400 text-sm mb-1">Auto-Renewal</p>
                         <p className="text-white font-semibold">
@@ -388,10 +379,8 @@ function Subscriptions() {
                     </div>
 
                     {/* Next Payment */}
-                    <div className="flex items-start">
-                      <div className="bg-orange-400/10 p-3 rounded-lg mr-4">
-                        <Calendar className="w-5 h-5 text-orange-400" />
-                      </div>
+                    <div className="flex items-start gap-3">
+                      <img src={`${import.meta.env.BASE_URL}images/ticket_icon.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
                         <p className="text-neutral-400 text-sm mb-1">Next Payment</p>
                         <p className="text-white font-semibold">

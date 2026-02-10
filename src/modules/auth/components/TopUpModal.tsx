@@ -21,25 +21,40 @@ interface TopUpModalProps {
   phoneNumbers?: string[]
 }
 
-const renderProductList = (products: CatalogProduct[], selectedProduct: CatalogProduct | null, onSelect: (product: CatalogProduct) => void) => {
+const renderProductList = (products: CatalogProduct[], selectedProduct: CatalogProduct | null, onSelect: (product: CatalogProduct) => void, categoryId: string | null) => {
+  // Map category to color
+  const getCategoryColor = (catId: string | null) => {
+    const colorMap: Record<string, string> = {
+      'data': 'bg-[#ABFF63]/20',      // Green for Data
+      'voice': 'bg-pink-300/60',       // Pink for Voice
+      'sms': 'bg-[#629BFC]/20',        // Blue for SMS
+      'whatsapp': 'bg-[#FF9F66]/20',   // Orange for WhatsApp
+    }
+    return colorMap[catId || ''] || 'bg-neutral-200'
+  }
+  
+  const priceBgColor = getCategoryColor(categoryId)
+  
   return products.map((product) => (
     <button
       key={product.id}
       onClick={() => onSelect(product)}
-      className={`w-full rounded-xl border-2 ${
+      className={`w-full rounded-2xl border-2 ${
         selectedProduct?.id === product.id
-          ? 'border-neutral-900 bg-lime-50'
-          : 'border-neutral-200 bg-white hover:border-neutral-300'
-      } p-4 text-left transition-all`}
+          ? 'border-neutral-900 bg-neutral-50'
+          : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
+      } p-5 text-left transition-all active:scale-[0.98]`}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="font-semibold text-neutral-900">{product.name}</div>
-          <div className="text-sm text-neutral-600 mt-1">{product.description}</div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-neutral-900 text-base">{product.name}</div>
+          <div className="text-sm text-neutral-600 mt-1.5 line-clamp-1">{product.description}</div>
         </div>
-        <div className="text-right ml-4">
-          <div className="font-bold text-lg text-neutral-900">R{product.price.toFixed(2)}</div>
-          <div className="text-xs text-neutral-500">once-off</div>
+        <div className="text-right flex-shrink-0">
+          <div className={`inline-block px-3 py-1.5 rounded-lg ${priceBgColor}`}>
+            <div className="font-bold text-lg text-neutral-900">R{product.price.toFixed(2)}</div>
+          </div>
+          <div className="text-xs text-neutral-500 font-medium mt-1">once-off</div>
         </div>
       </div>
     </button>
@@ -66,7 +81,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [selectedMethod, setSelectedMethod] = useState<'wallet' | 'card' | 'eft'>('eft')
 
   useEffect(() => {
     if (!open) return
@@ -436,31 +450,46 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg sm:max-w-xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <div className="grid place-items-center size-8 rounded-lg bg-neutral-900 text-white">▣</div>
-            <div>
-              <div className="font-extrabold text-lg">Top-up</div>
-              <div className="text-sm text-neutral-500">Enter the details below to top-up</div>
-            </div>
+      <div className="relative w-full max-w-lg sm:max-w-xl mx-0 sm:mx-4 rounded-3xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-3xl">
+          <div>
+            <div className="font-bold text-xl text-neutral-900">Top-up</div>
+            <div className="text-sm text-neutral-500 mt-0.5">Enter the details below to top-up</div>
           </div>
-          <button aria-label="Close" className="size-10 grid place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 text-2xl" onClick={onClose}>×</button>
+          <button aria-label="Close" className="size-10 grid place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 text-2xl transition-colors" onClick={onClose}>×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="px-5 pt-4 pb-5 space-y-5">
+          <div className="px-6 pt-5 pb-6 space-y-5">
           {/* Tab Selection */}
           <div className="flex items-center justify-center gap-2 flex-wrap">
-            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'airtime' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('airtime')}>Airtime</button>
-            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${kind === 'bundles' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-700'}`} onClick={() => setKind('bundles')}>Bundles</button>
+            <button 
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                kind === 'airtime' 
+                  ? 'bg-neutral-900 text-white shadow-md' 
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`} 
+              onClick={() => setKind('airtime')}
+            >
+              Airtime
+            </button>
+            <button 
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                kind === 'bundles' 
+                  ? 'bg-neutral-900 text-white shadow-md' 
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`} 
+              onClick={() => setKind('bundles')}
+            >
+              Bundles
+            </button>
           </div>
 
           {/* Price Entry UI for Airtime */}
           {kind !== 'bundles' && (
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-5">
               <button 
-                className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100 transition-colors" 
+                className="size-12 grid place-items-center rounded-xl ring-2 ring-neutral-200 hover:bg-neutral-50 active:scale-95 transition-all text-xl font-bold text-neutral-700" 
                 onClick={() => adjustPrice(-5)}
               >
                 −
@@ -472,12 +501,12 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
                   inputMode="numeric"
                   value={price}
                   onChange={handlePriceInput}
-                  className="w-32 text-center font-grotesque font-extrabold text-6xl tracking-tight bg-transparent border-0 outline-none focus:ring-0 p-0"
+                  className="w-32 text-center font-grotesque font-extrabold text-6xl tracking-tight bg-transparent border-0 outline-none focus:ring-0 p-0 text-neutral-900"
                   style={{ appearance: 'none' }}
                 />
               </div>
               <button 
-                className="size-10 grid place-items-center rounded-xl ring-1 ring-neutral-200 hover:bg-neutral-100 transition-colors" 
+                className="size-12 grid place-items-center rounded-xl ring-2 ring-neutral-200 hover:bg-neutral-50 active:scale-95 transition-all text-xl font-bold text-neutral-700" 
                 onClick={() => adjustPrice(5)}
               >
                 +
@@ -488,8 +517,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           {/* Display what user will get for their money */}
           {kind !== 'bundles' && (
             <div className="flex items-center justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full bg-lime-100 px-4 py-2">
-                <span className="text-sm text-neutral-600">You'll get:</span>
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#ABFF63]/20 px-4 py-2.5">
+                <span className="text-sm text-neutral-700">You'll get:</span>
                 <span className="text-sm font-bold text-neutral-900">
                   {getServiceDisplayValue(kind.toUpperCase() as ServiceType, price)}
                 </span>
@@ -497,70 +526,54 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             </div>
           )}
 
-          {/* Payment method selection for Voice/Data/SMS/WhatsApp */}
-          {kind !== 'bundles' && (
-            <div className="space-y-3">
-              <h3 className="text-neutral-900 font-semibold text-sm">Payment Method</h3>
-              
-
-              
-
-              <div className={`rounded-xl border ${selectedMethod === 'eft' ? 'border-neutral-900' : 'border-neutral-200'} px-4 py-3 cursor-pointer`} onClick={() => setSelectedMethod('eft')}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="size-6 rounded bg-emerald-400 inline-block" />
-                    <div>
-                      <div className="font-medium">Instant EFT</div>
-                      <div className="text-sm text-neutral-500">Credit or debit card</div>
-                    </div>
-                  </div>
-                  <span className={`size-4 rounded-full ${selectedMethod === 'eft' ? 'bg-neutral-900' : 'bg-white ring-1 ring-neutral-300'}`} />
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Bundles - Show Categories or Products */}
           {kind === 'bundles' && !selectedCategory && (
-            <div className="space-y-3">
-              <h3 className="text-neutral-900 font-semibold text-sm">Choose Bundle Type</h3>
+            <div className="space-y-4">
+              <h3 className="text-neutral-900 font-semibold text-base">Choose Bundle Type</h3>
               
               {loading && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="animate-pulse rounded-xl border border-neutral-200 p-4 h-24 bg-neutral-50" />
+                    <div key={i} className="animate-pulse rounded-2xl border border-neutral-200 p-4 h-28 bg-neutral-50" />
                   ))}
                 </div>
               )}
               
               {error && (
-                <div className="text-center py-8 text-red-600">
-                  <p>{error}</p>
+                <div className="text-center py-8">
+                  <div className="inline-block rounded-xl bg-red-50 border-2 border-red-200 px-6 py-4">
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                  </div>
                 </div>
               )}
               
               {!loading && !error && bundleCategories.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {bundleCategories.map((category, idx) => {
-                    const colors = [
-                      'bg-lime-400 hover:bg-lime-300',
-                      'bg-blue-400 hover:bg-blue-300',
-                      'bg-purple-400 hover:bg-purple-300',
-                      'bg-orange-400 hover:bg-orange-300',
-                      'bg-pink-400 hover:bg-pink-300',
-                      'bg-cyan-400 hover:bg-cyan-300',
-                    ]
-                    const colorClass = colors[idx % colors.length]
+                  {bundleCategories.map((category) => {
+                    const getCategoryStyle = (id: string) => {
+                      const styles: Record<string, { bg: string; icon: string }> = {
+                        'data': { bg: 'bg-[#ABFF63]', icon: 'plan_data.svg' },
+                        'voice': { bg: 'bg-pink-300', icon: 'plan_phone.svg' },
+                        'sms': { bg: 'bg-[#629BFC]', icon: 'plan_sms.svg' },
+                        'whatsapp': { bg: 'bg-[#FF9F66]', icon: 'whatsapp_icon_small.svg' },
+                      }
+                      return styles[id] || { bg: 'bg-neutral-200', icon: 'plan_data.svg' }
+                    }
+                    
+                    const style = getCategoryStyle(category.id)
                     
                     return (
                       <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
-                        className={`rounded-xl ${colorClass} p-4 text-left transition-all shadow-md hover:shadow-lg`}
+                        className={`rounded-2xl ${style.bg} p-4 text-left transition-all hover:brightness-95 active:scale-[0.98] flex items-center gap-4`}
                       >
-                        <div className="font-bold text-neutral-900 mb-1">{category.name}</div>
-                        <div className="text-sm text-neutral-800">
-                          {category.productCount} {category.productCount === 1 ? 'option' : 'options'}
+                        <img src={`${import.meta.env.BASE_URL}images/${style.icon}`} alt="" className="w-10 h-10 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-neutral-900 text-lg">{category.name}</div>
+                          <div className="text-sm text-neutral-700 font-medium">
+                            {category.productCount} {category.productCount === 1 ? 'option' : 'options'}
+                          </div>
                         </div>
                       </button>
                     )
@@ -572,26 +585,27 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
           {/* Show Products when category is selected */}
           {kind === 'bundles' && selectedCategory && !selectedProduct && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-neutral-900 font-semibold text-sm">Select a Bundle</h3>
+                <h3 className="text-neutral-900 font-semibold text-base">Select a Bundle</h3>
                 <button
                   onClick={handleBackToCategories}
-                  className="text-sm text-neutral-600 hover:text-neutral-900 font-medium"
+                  className="text-sm text-neutral-600 hover:text-neutral-900 font-semibold transition-colors inline-flex items-center gap-1"
                 >
-                  ← Back
+                  <span>←</span>
+                  <span>Back</span>
                 </button>
               </div>
               
               {loading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse rounded-xl border border-neutral-200 p-4 h-20 bg-neutral-50" />
+                    <div key={i} className="animate-pulse rounded-2xl border border-neutral-200 p-5 h-24 bg-neutral-50" />
                   ))}
                 </div>
               ) : products.length > 0 ? (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {renderProductList(products, selectedProduct, setSelectedProduct)}
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {renderProductList(products, selectedProduct, setSelectedProduct, selectedCategory)}
                 </div>
               ) : null}
             </div>
@@ -600,19 +614,19 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           {/* Phone Number Selection - Show for bundles when product selected, or always for data/airtime */}
           {(selectedProduct || kind !== 'bundles') && (
             <div className="space-y-2">
-              <div className="text-neutral-600 text-sm font-medium">Phone number to top-up</div>
+              <div className="text-neutral-700 text-sm font-semibold">Phone number to top-up</div>
               <div className="relative">
-                <button className="w-full flex items-center gap-2 rounded-xl ring-1 ring-neutral-300 px-3 py-2 bg-white text-left" onClick={() => setIsPhoneMenuOpen((v) => !v)}>
-                  <img src={`${import.meta.env.BASE_URL}images/plan_logo.png`} alt="limes" className="h-6 w-6" />
-                  <span className="flex-1 text-neutral-900">{selectedPhoneNumber || 'Select a SIM'}</span>
-                  <span className={`text-neutral-400 transition-transform text-2xl leading-none ${isPhoneMenuOpen ? 'rotate-180' : ''}`}>▾</span>
+                <button className="w-full flex items-center gap-3 rounded-xl ring-1 ring-neutral-300 px-4 py-3 bg-white text-left hover:ring-neutral-400 transition-all" onClick={() => setIsPhoneMenuOpen((v) => !v)}>
+                  <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="h-6 w-6" />
+                  <span className="flex-1 text-neutral-900 font-medium">{selectedPhoneNumber || 'Select a SIM'}</span>
+                  <span className={`text-neutral-400 transition-transform text-xl leading-none ${isPhoneMenuOpen ? 'rotate-180' : ''}`}>▾</span>
                 </button>
                 {isPhoneMenuOpen && (
-                  <div className="absolute left-0 right-0 mt-1 z-10 rounded-xl bg-white ring-1 ring-neutral-200 shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                  <div className="absolute left-0 right-0 mt-2 z-10 rounded-xl bg-white ring-1 ring-neutral-200 shadow-lg overflow-hidden max-h-48 overflow-y-auto">
                     {(phoneNumbers && phoneNumbers.length > 0 ? phoneNumbers : [selectedPhoneNumber]).filter(Boolean).map((num) => (
-                      <button key={num} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-neutral-100 text-left" onClick={() => { setSelectedPhoneNumber(num); setIsPhoneMenuOpen(false) }}>
-                        <span className="inline-flex items-center justify-center size-6 rounded bg-lime-400 text-neutral-900 text-xs font-bold">SIM</span>
-                        <span className="text-neutral-900">{num}</span>
+                      <button key={num} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 text-left transition-colors" onClick={() => { setSelectedPhoneNumber(num); setIsPhoneMenuOpen(false) }}>
+                        <span className="inline-flex items-center justify-center size-6 rounded bg-[#ABFF63] text-neutral-900 text-xs font-bold">SIM</span>
+                        <span className="text-neutral-900 font-medium">{num}</span>
                       </button>
                     ))}
                   </div>
@@ -623,36 +637,36 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
           {/* Payment Status Messages */}
           {paymentError && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-              <p className="text-sm text-red-700">{paymentError}</p>
+            <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4">
+              <p className="text-sm font-medium text-red-700">{paymentError}</p>
             </div>
           )}
 
           {paymentSuccess && (
-            <div className="rounded-lg bg-green-50 border border-green-200 p-3 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 text-green-600 animate-spin" />
-              <p className="text-sm text-green-700">Payment successful! Closing...</p>
+            <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 flex items-center gap-3">
+              <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
+              <p className="text-sm font-medium text-green-700">Payment successful! Closing...</p>
             </div>
           )}
 
           {/* Purchase Button for Voice/Data/SMS/WhatsApp */}
           {kind !== 'bundles' && selectedPhoneNumber && (
             <div className="space-y-3 pt-2">
-              <div className="rounded-xl bg-neutral-100 p-4 space-y-2">
+              <div className="rounded-2xl bg-neutral-50 p-5 space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-600">Type</span>
+                  <span className="text-neutral-600 font-medium">Type</span>
                   <span className="font-semibold text-neutral-900 capitalize">{kind}</span>
                 </div>
-                <div className="border-t border-neutral-300 pt-2 flex items-center justify-between">
-                  <span className="font-bold text-neutral-900">Total</span>
-                  <span className="font-bold text-2xl text-neutral-900">{formattedPrice}</span>
+                <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
+                  <span className="font-bold text-neutral-900 text-base">Total</span>
+                  <span className="font-bold text-3xl text-neutral-900">{formattedPrice}</span>
                 </div>
               </div>
 
               <button
                 onClick={handlePurchaseDynamicService}
                 disabled={isPaymentProcessing || paymentSuccess}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-3 hover:bg-lime-300 active:scale-[0.99] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#ABFF63] text-neutral-900 font-bold px-6 py-3.5 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed text-base"
               >
                 {isPaymentProcessing ? (
                   <>
@@ -674,14 +688,14 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           {/* Purchase Button - Only show when product is selected for bundles */}
           {kind === 'bundles' && selectedProduct && (
             <div className="space-y-3 pt-2">
-              <div className="rounded-xl bg-neutral-100 p-4 space-y-2">
+              <div className="rounded-2xl bg-neutral-50 p-5 space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-600">Bundle</span>
+                  <span className="text-neutral-600 font-medium">Bundle</span>
                   <span className="font-semibold text-neutral-900">{selectedProduct.name}</span>
                 </div>
-                <div className="border-t border-neutral-300 pt-2 flex items-center justify-between">
-                  <span className="font-bold text-neutral-900">Total</span>
-                  <span className="font-bold text-2xl text-neutral-900">R{selectedProduct.price.toFixed(2)}</span>
+                <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
+                  <span className="font-bold text-neutral-900 text-base">Total</span>
+                  <span className="font-bold text-3xl text-neutral-900">R{selectedProduct.price.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -689,7 +703,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
                 <button
                   onClick={handlePurchaseBundle}
                   disabled={isPaymentProcessing || paymentSuccess}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-3 hover:bg-lime-300 active:scale-[0.99] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#ABFF63] text-neutral-900 font-bold px-6 py-3.5 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed text-base"
                 >
                   {isPaymentProcessing ? (
                     <>
@@ -706,7 +720,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
                   )}
                 </button>
               ) : (
-                <div className="text-center py-2">
+                <div className="text-center py-3">
                   <p className="text-sm text-neutral-600">Please select a phone number above</p>
                 </div>
               )}
