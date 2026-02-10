@@ -16,23 +16,6 @@ import {
 export type ServiceType = 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP' | 'MMS'
 
 /**
- * Find the appropriate pricing tier for a given number of units
- * @param totalUnits - Total units to find tier for
- * @param tiers - Pricing tiers
- * @returns The tier that applies, or null if not found
- */
-function findTier(totalUnits: number, tiers: PricingBracket[]): PricingBracket | null {
-  for (const tier of tiers) {
-    const tierEnd = tier.toUnits ?? Infinity
-    if (totalUnits >= tier.fromUnits && totalUnits < tierEnd) {
-      return tier
-    }
-  }
-  // If we're beyond all tiers, use the last tier
-  return tiers[tiers.length - 1] || null
-}
-
-/**
  * Calculate cost using progressive/incremental pricing
  * Like tax brackets: each tier applies only to the units within that tier's range
  * @param totalUnits - Total units to calculate cost for
