@@ -8,6 +8,10 @@ import Subscriptions from './modules/auth/pages/Subscriptions'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
+import { analytics } from './config/firebase'
+
+// Initialize Google Analytics (imported to ensure it's loaded)
+console.log('Google Analytics initialized:', analytics ? '✓' : '✗')
 
 const router = createBrowserRouter([
   {
