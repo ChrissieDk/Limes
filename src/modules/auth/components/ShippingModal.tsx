@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Plus, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
@@ -127,7 +127,8 @@ export default function ShippingModal({
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false)
   const [verificationError, setVerificationError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [allocatedMsisdn, setAllocatedMsisdn] = useState<string | null>(null)  // For contract flow: MSISDN allocated before payment
+  const [refundRequested, setRefundRequested] = useState(false)
+  const allocatedMsisdnRef = useRef<string | null>(null)  // Use ref instead of state - updates immediately, no closure issues
 
   const formatAddress = (addr: Address) => {
     const parts = [
@@ -150,12 +151,13 @@ export default function ShippingModal({
     }
   }, [defaultAddress])
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  // ESC key disabled - user must explicitly click X to close during payment flow
+  // useEffect(() => {
+  //   if (!open) return
+  //   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+  //   document.addEventListener('keydown', onKey)
+  //   return () => document.removeEventListener('keydown', onKey)
+  // }, [open, onClose])
 
   // Update customer details when props change
   useEffect(() => {
@@ -177,7 +179,7 @@ export default function ShippingModal({
 
       let initResponse: { success: boolean; data?: { access_code: string; reference: string }; error?: string }
 
-      // CONTRACT DYNAMIC PLANS: Create subscriber FIRST, then initialize with MSISDN + services
+      // CONTRACT DYNAMIC PLANS: Initialize with services (MSISDN allocated by backend after payment)
       if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
         
         if (!ricaData) {
@@ -190,26 +192,6 @@ export default function ShippingModal({
           return
         }
 
-        // STEP 1: Create subscriber to get MSISDN
-        const subscriberPayload = {
-          productId: selectedPackage.simPackageProductId,
-          eSim: false,
-          address: ricaData.address ? [{
-            referredType: 'SUBSCRIBER',
-            addressType: 'INSTALLATION',
-            ...ricaData.address,
-            oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
-          }] : []
-        }
-        
-        const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
-        const allocatedMsisdn = subscriberResponse.msisdn
-
-        // Store MSISDN for later use in verification
-        setAllocatedMsisdn(allocatedMsisdn)
-
-        // STEP 2: Initialize dynamic services payment with MSISDN
-        
         // Convert plan allocation (in Rands) to services array
         const services: DynamicServicePaymentItem[] = []
         const expiryDate = getDefaultExpiryDate()
@@ -247,19 +229,12 @@ export default function ShippingModal({
           }
         }
 
-        // Add shipping cost for SIM delivery if needed
-        if (selectedPackage.simStatus === 'needs-sim') {
-          services.push({
-            value: 0,  // Shipping has no service value
-            definitionCode: 'PACKAGE',  // Use PACKAGE for non-service items
-            expiryDate,
-            priceInCents: SHIPPING_COST_CENTS  // R65 = 6500 cents
-          })
-        }
-
-        const dynamicPayload = {
-          msisdn: allocatedMsisdn,
-          services
+        // Build payload with optional shipping cost (separate field, not in services array)
+        // MSISDN is null - backend will allocate after payment
+        const dynamicPayload: import('../../../types/payment').InitializeDynamicServicesPaymentRequest = {
+          msisdn: null as any,  // Backend allocates MSISDN after payment
+          services,
+          ...(selectedPackage.simStatus === 'needs-sim' && { shippingCostInCents: SHIPPING_COST_CENTS })
         }
         
         initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
@@ -353,56 +328,56 @@ export default function ShippingModal({
         throw new Error(verifyResponse.error || 'Payment verification failed')
       }
       
-      // STEP 2: Create subscriber (get MSISDN) - SKIP if already created in contract flow
+      // STEP 2: Create subscriber (get MSISDN) - ALL FLOWS create subscriber AFTER payment
       let newMsisdn: string
+  
+      if (!ricaData) {
+        throw new Error('RICA data is required for subscriber creation')
+      }
       
-      if (allocatedMsisdn) {
-        // Contract flow: Subscriber was already created before payment
-        newMsisdn = allocatedMsisdn
-      } else {
-        // Prepaid flow: Create subscriber after payment
-        if (!ricaData) {
-          throw new Error('RICA data is required for subscriber creation')
-        }
-        
-        const subscriberPayload = {
-          productId: selectedPackage!.simPackageProductId!,  // SIM package ID ending with P (e.g., 7029225P)
-          ...(selectedPackage!.simStatus === 'has-sim' && selectedPackage!.iccid 
-            ? { iccid: selectedPackage!.iccid }
-            : {}),
-          eSim: false,
-          address: [{
-            referredType: 'SUBSCRIBER',
-            addressType: 'INSTALLATION',
-            ...ricaData.address,
-            oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
-          }]
-        }
-        
-        console.log('[Payment] Subscriber payload:', subscriberPayload)
+      const subscriberPayload = {
+        productId: selectedPackage!.simPackageProductId!,  // SIM package ID ending with P (e.g., 7029225P)
+        ...(selectedPackage!.simStatus === 'has-sim' && selectedPackage!.iccid 
+          ? { iccid: selectedPackage!.iccid }
+          : {}),
+        eSim: false,
+        address: [{
+          referredType: 'SUBSCRIBER',
+          addressType: 'INSTALLATION',
+          ...ricaData.address,
+          oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
+        }]
+      }
+      
+      
+      try {
         const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
         newMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
         
         if (!newMsisdn) {
-          throw new Error('Failed to allocate MSISDN')
+          throw new Error('Failed to allocate MSISDN - subscriber creation unsuccessful')
         }
-        console.log('[Payment] ✓ Subscriber created, MSISDN:', newMsisdn)
+      } catch (subscriberErr: any) {
+        // Subscriber creation failed - request refund
+        console.error('[Payment] ❌ Subscriber creation failed:', subscriberErr)
+        console.error('[Payment] Requesting refund for transaction:', reference)
+        
+        try {
+          await paymentService.requestRefund({
+            transactionReference: reference,
+            amountInCents: null, // Full refund
+            reason: 'MVNX subscriber creation failed'
+          })
+          setRefundRequested(true)
+        } catch (refundErr) {
+          console.error('[Payment] ❌ Refund request also failed:', refundErr)
+        }
+        
+        throw new Error('Subscriber creation failed. A refund has been requested and will be processed within 5-7 business days.')
       }
       
       // Check if SIM is active
-      console.log('[Payment] Checking SIM activation status...')
       const simStatus = await subscriptionService.checkSimActive(newMsisdn)
-      console.log('[Payment] SIM Status:', {
-        isActive: simStatus.isActive,
-        hasPendingOrders: simStatus.hasPendingOrders,
-        message: simStatus.message
-      })
-      
-      if (simStatus.isActive) {
-        console.log('[Payment] ✓ SIM is active - order will be created immediately')
-      } else {
-        console.log('[Payment] ⏳ SIM not yet active - order will be queued')
-      }
       
       // STEP 3: Create order OR dynamic services (based on SIM active status)
       if (selectedPackage!.isDynamicPlan && selectedPackage!.planAllocation) {
@@ -691,7 +666,8 @@ export default function ShippingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      {/* Backdrop click disabled - user must explicitly click X to close during payment flow */}
+      <div className="absolute inset-0 bg-black/60" />
       <div className="relative w-full max-w-2xl mx-0 sm:mx-4 rounded-[28px] bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
         <div className="flex items-start justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-[28px]">
           <div>
@@ -994,8 +970,15 @@ export default function ShippingModal({
               <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-red-900 mb-1">Payment Verification Failed</h4>
+                  <h4 className="font-semibold text-red-900 mb-1">
+                    {refundRequested ? 'Payment Failed - Refund Requested' : 'Payment Verification Failed'}
+                  </h4>
                   <p className="text-sm text-red-700">{verificationError}</p>
+                  {refundRequested && (
+                    <p className="text-sm text-red-600 mt-2 font-medium">
+                      Your payment will be refunded within 5-7 business days.
+                    </p>
+                  )}
                 </div>
               </div>
             )}

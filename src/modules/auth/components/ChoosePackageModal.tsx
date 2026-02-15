@@ -83,12 +83,13 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   const [custPostCode, setCustPostCode] = useState('')
   const [custCountry, setCustCountry] = useState('South Africa')
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  // ESC key disabled - user must explicitly click X to close during RICA flow
+  // useEffect(() => {
+  //   if (!open) return
+  //   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+  //   document.addEventListener('keydown', onKey)
+  //   return () => document.removeEventListener('keydown', onKey)
+  // }, [open, onClose])
 
   const canNext = useMemo(() => {
     if (step === 1) return firstname.trim() !== '' && lastname.trim() !== '' && idNumber.trim() !== '' && billEmail.trim() !== ''
@@ -176,7 +177,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
 
       const response = await crmService.createAccountCustomer(payload)
       
-      console.log('Account created successfully:', response)
       
       // If we got a response without an error, consider it successful
       setAccountCreated(true)
@@ -186,7 +186,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
       
       // If account already exists, treat it as success and allow user to continue to uploads
       if (errorMessage.toLowerCase().includes('already exists') || errorMessage.toLowerCase().includes('duplicate')) {
-        console.log('Account already exists, proceeding to document uploads')
+  
         setAccountCreated(true)
         setStep(5) // Move to ID upload step
       } else {
@@ -206,12 +206,10 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
     try {
       // Upload the file
       const uploadResponse = await ricaService.uploadId(file)
-      console.log('ID uploaded successfully:', uploadResponse)
       
       // If upload succeeded (has path), fetch the signed URL
       if (uploadResponse.path) {
         const signedUrlResponse = await ricaService.getIdSignedUrl()
-        console.log('ID signed URL fetched:', signedUrlResponse)
         
         setIdSignedUrl(signedUrlResponse.signedUrl)
         setIdUploaded(true)
@@ -236,12 +234,10 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
     try {
       // Upload the file
       const uploadResponse = await ricaService.uploadProofOfAddress(file)
-      console.log('Proof of address uploaded successfully:', uploadResponse)
       
       // If upload succeeded (has path), fetch the signed URL
       if (uploadResponse.path) {
         const signedUrlResponse = await ricaService.getPoaSignedUrl()
-        console.log('POA signed URL fetched:', signedUrlResponse)
         
         setPoaSignedUrl(signedUrlResponse.signedUrl)
         setPoaUploaded(true)
@@ -260,11 +256,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
 
   const handleFinalSubmit = () => {
     // RICA process completed successfully
-    console.log('[RICA] RICA process completed successfully')
-    console.log('[RICA] ID Signed URL:', idSignedUrl)
-    console.log('[RICA] POA Signed URL:', poaSignedUrl)
-    console.log('[RICA] Selected Package:', selectedPackage)
-    
     // NEW FLOW: Open payment modal directly
     // Subscriber will be created AFTER successful payment
     console.log('[RICA] Opening payment modal - subscriber will be created after payment')
@@ -281,7 +272,8 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      {/* Backdrop click disabled - user must explicitly click X to close during RICA flow */}
+      <div className="absolute inset-0 bg-black/60" />
       <div className="relative w-full max-w-xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-2xl">
           <div>
