@@ -172,8 +172,9 @@ export interface DynamicServicePaymentItem {
 }
 
 export interface InitializeDynamicServicesPaymentRequest {
-  msisdn: string
+  msisdn: string | null  // Nullable - backend allocates MSISDN if null
   services: DynamicServicePaymentItem[]
+  shippingCostInCents?: number  // Optional: SIM delivery shipping cost (R65 = 6500 cents)
 }
 
 export interface InitializeDynamicServicesPaymentResponse {
@@ -393,6 +394,18 @@ export interface LinkTransactionToServicesRequest {
 }
 
 export interface LinkTransactionToServicesResponse {
+  success: boolean
+  message: string
+}
+
+// Refund Types
+export interface RefundRequest {
+  transactionReference: string
+  amountInCents?: number | null  // null = full refund
+  reason: string
+}
+
+export interface RefundResponse {
   success: boolean
   message: string
 }

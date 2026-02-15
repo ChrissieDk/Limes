@@ -191,4 +191,21 @@ export const paymentService = {
     const response = await apiClient.post('/payment/paystack/link-transaction-to-services', payload)
     return response.data
   },
+
+  // ============================================
+  // REFUNDS
+  // ============================================
+
+  /**
+   * Request refund for failed transaction
+   * Used when subscriber creation fails after successful payment
+   */
+  async requestRefund(payload: {
+    transactionReference: string
+    amountInCents?: number | null
+    reason: string
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/payment/refund', payload)
+    return response.data
+  },
 }

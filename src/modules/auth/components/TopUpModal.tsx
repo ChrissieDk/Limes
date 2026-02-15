@@ -121,7 +121,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         setError(null)
         
         const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
-        console.log('[TopUp] Full category tree:', tree)
         
         const channel = tree.find((node) => node.id === 'channels')
         if (!channel) {
@@ -146,8 +145,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             !category.id?.toUpperCase().includes('AIRTIME')
           )
           setBundleCategories(filteredCategories)
-          console.log('[TopUp] Bundle categories from once_off_top_up:', filteredCategories)
-          console.log('[TopUp] Filtered out FWA and Airtime categories')
         } else {
           setError('No bundle categories found')
           console.error('[TopUp] No children found under once_off_top_up')
@@ -184,8 +181,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         )
         
         setProducts(filteredProducts)
-        console.log(`[TopUp] Fetched products from ${selectedCategory}:`, response)
-        console.log(`[TopUp] Filtered out ${response.data.length - filteredProducts.length} FWA products`)
       } catch (err) {
         setError('Failed to load products')
         console.error('Error fetching products:', err)
@@ -208,8 +203,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setPaymentError(null)
 
     try {
-      console.log('[TopUp] Initializing payment for bundle:', selectedProduct)
-      console.log('[TopUp] MSISDN:', selectedPhoneNumber)
       
       if (!selectedProduct.price) {
         setPaymentError('Price is missing for bundle')
@@ -230,13 +223,10 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         return
       }
 
-      console.log('[TopUp] Transaction initialized, opening Paystack...')
-
       // Use Paystack Popup
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: async (transaction: any) => {
-          console.log('[TopUp] Payment successful, verifying...')
           
           try {
             // STEP 1: Verify payment
@@ -248,10 +238,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             if (!verificationResponse.success) {
               throw new Error(verificationResponse.error || 'Payment verification failed')
             }
-            console.log('[TopUp] ✓ Payment verified')
             
             // STEP 2: Create order (NO subscriber creation - already exists)
-            console.log('[TopUp] Creating order...')
             const orderResponse = await subscriptionService.createOrder({
               products: [{ id: selectedProduct.id, amount: selectedProduct.price }],
               msisdn: selectedPhoneNumber
@@ -259,19 +247,14 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             
             if (orderResponse.orderId) {
               // Order created immediately - link transaction
-              console.log('[TopUp] ✓ Order created:', orderResponse.orderId)
               
               // STEP 3: Link transaction to order
-              console.log('[TopUp] Linking transaction to order...')
               await paymentService.linkTransactionToOrder({
                 transactionReference: transaction.reference || initResponse.data?.reference || '',
                 orderId: orderResponse.orderId
               })
-              console.log('[TopUp] ✓ Transaction linked')
             } else if (orderResponse.message) {
               // Order queued/pending
-              console.log('[TopUp] ℹ Order pending:', orderResponse.message)
-              console.log('[TopUp] Order will be created and linked when SIM activates')
             } else {
               throw new Error('Order creation failed - no orderId or message in response')
             }
@@ -290,7 +273,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           }
         },
         onCancel: () => {
-          console.log('[TopUp] Payment cancelled')
           setPaymentError(null)
         }
       })
