@@ -21,8 +21,6 @@ import type {
   GetSubscriptionsResponse,
   ComboSubscriptionRequest,
   ComboSubscriptionResponse,
-  RefundRequest,
-  RefundResponse,
 } from '../../../types/payment'
 
 export const paymentService = {

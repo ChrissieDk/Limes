@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TextField from './TextField'
 import Checkbox from './Checkbox'
@@ -29,12 +29,12 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   const [idFile, setIdFile] = useState<File | null>(null)
   const [idUploaded, setIdUploaded] = useState(false)
   const [idUploading, setIdUploading] = useState(false)
-  const [idSignedUrl, setIdSignedUrl] = useState<string | null>(null)
+  const [, setIdSignedUrl] = useState<string | null>(null)
   
   const [poaFile, setPoaFile] = useState<File | null>(null)
   const [poaUploaded, setPoaUploaded] = useState(false)
   const [poaUploading, setPoaUploading] = useState(false)
-  const [poaSignedUrl, setPoaSignedUrl] = useState<string | null>(null)
+  const [, setPoaSignedUrl] = useState<string | null>(null)
 
   // Detail
   const [title, setTitle] = useState('Mr')
@@ -175,9 +175,8 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         },
       }
 
-      const response = await crmService.createAccountCustomer(payload)
-      
-      
+      await crmService.createAccountCustomer(payload)
+
       // If we got a response without an error, consider it successful
       setAccountCreated(true)
       setStep(5) // Move to ID upload step

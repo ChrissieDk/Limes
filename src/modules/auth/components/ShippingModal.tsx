@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
@@ -128,7 +128,6 @@ export default function ShippingModal({
   const [verificationError, setVerificationError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [refundRequested, setRefundRequested] = useState(false)
-  const allocatedMsisdnRef = useRef<string | null>(null)  // Use ref instead of state - updates immediately, no closure issues
 
   const formatAddress = (addr: Address) => {
     const parts = [
