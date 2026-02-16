@@ -8,6 +8,9 @@ import Subscriptions from './modules/auth/pages/Subscriptions'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
+import ForgotPassword from './modules/auth/pages/ForgotPassword'
+import VerifyEmail from './modules/auth/pages/VerifyEmail'
+import ResetPassword from './modules/auth/pages/ResetPassword'
 import { analytics } from './config/firebase'
 
 // Initialize Google Analytics (imported to ensure it's loaded)
@@ -33,6 +36,18 @@ const router = createBrowserRouter([
   {
     path: '/signin',
     element: <SignIn />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
+  {
+    path: '/auth/verify-email',
+    element: <VerifyEmail />,
+  },
+  {
+    path: '/auth/reset-password',
+    element: <ResetPassword />,
   },
   {
     path: '/dashboard',
