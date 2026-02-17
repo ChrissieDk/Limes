@@ -205,14 +205,6 @@ export default function DashboardPackages() {
   }
 
   const handleSimStatusSelect = (status: SimStatus) => {
-    // Log the product ID that will be used for this selection
-    let expectedProductId = ''
-    if (packageType === 'contract') {
-      expectedProductId = status === 'has-sim' ? PRODUCT_IDS.CONTRACT_SA : PRODUCT_IDS.CONTRACT_SOA
-    } else if (packageType === 'prepaid') {
-      expectedProductId = status === 'has-sim' ? PRODUCT_IDS.PREPAID_SA : PRODUCT_IDS.PREPAID_SOA
-    }
-    
     setSimStatus(status)
     setSelectedBundleCategory(null)
     setShowPackages(false)

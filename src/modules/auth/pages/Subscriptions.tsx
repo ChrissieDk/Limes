@@ -49,7 +49,7 @@ function Subscriptions() {
     setLoading(true);
     setError(null);
     try {
-      const userData = await userService.getCurrentUser();
+      await userService.getCurrentUser();
       
       // Use new getAllSubscriptions endpoint
       const { subscriptions: allSubs } = await paymentService.getAllSubscriptions();
