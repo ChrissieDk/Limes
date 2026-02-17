@@ -19,4 +19,32 @@ export const userService = {
     const response = await apiClient.post('/user/register', payload)
     return response.data
   },
+
+  // User: Check if user has created account
+  async hasAccount(): Promise<boolean> {
+    const response = await apiClient.get('/user/has-account')
+    const data: unknown = response.data
+
+    if (typeof data === 'boolean') {
+      return data
+    }
+
+    if (data && typeof data === 'object') {
+      const shaped = data as { hasPayload?: unknown; hasAccount?: unknown; value?: unknown }
+
+      if (typeof shaped.hasPayload === 'boolean') {
+        return shaped.hasPayload
+      }
+
+      if (typeof shaped.hasAccount === 'boolean') {
+        return shaped.hasAccount
+      }
+
+      if (typeof shaped.value === 'boolean') {
+        return shaped.value
+      }
+    }
+
+    return false
+  },
 }

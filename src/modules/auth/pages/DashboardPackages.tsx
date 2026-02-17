@@ -91,7 +91,6 @@ export default function DashboardPackages() {
         setError(null)
         
         const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
-        console.log('[Catalog] Full category tree:', tree)
         
         const channel = tree.find((node) => node.id === 'channels')
         if (!channel) {
@@ -114,8 +113,6 @@ export default function DashboardPackages() {
           !category.id?.toUpperCase().includes('FWA')
         )
         setBundleCategories(filteredCategories)
-        console.log('[Catalog] Bundle categories for prepaid:', filteredCategories)
-        console.log('[Catalog] Filtered out FWA categories')
         } else {
           setError('No bundle categories found')
         console.error('[Catalog] No children found under once_off_top_up')
@@ -134,7 +131,6 @@ export default function DashboardPackages() {
       setLoading(true)
       setError(null)
       
-      console.log('[Catalog] Fetching m2m_combo bundles...')
       const response = await catalogService.searchCategoryProducts('m2m_combo', { 
         page: 1, 
         limit: 100 
@@ -143,10 +139,7 @@ export default function DashboardPackages() {
       // Enrich packages with actual benefits and pricing
       const enrichedBundles = enrichComboPackages(response.data)
       setComboBundles(enrichedBundles)
-      
-      console.log('[Catalog] Fetched m2m_combo bundles:', response)
-      console.log('[Catalog] Enriched bundles:', enrichedBundles)
-      console.log(`[Catalog] Total bundles: ${enrichedBundles.length}`)
+    
     } catch (err) {
       setError('Failed to load combo bundles. Please try again later.')
       console.error('Error fetching combo bundles:', err)
@@ -176,8 +169,6 @@ export default function DashboardPackages() {
         )
         
         setProducts(filteredProducts)
-        console.log(`[Catalog] Fetched products from ${selectedBundleCategory}:`, response)
-        console.log(`[Catalog] Filtered out ${response.data.length - filteredProducts.length} FWA products`)
       } catch (err) {
         setError('Failed to load packages. Please try again later.')
         console.error('Error fetching packages:', err)
@@ -218,18 +209,8 @@ export default function DashboardPackages() {
     let expectedProductId = ''
     if (packageType === 'contract') {
       expectedProductId = status === 'has-sim' ? PRODUCT_IDS.CONTRACT_SA : PRODUCT_IDS.CONTRACT_SOA
-      console.log('======================================')
-      console.log('[SIM Selection] CONTRACT flow selected')
-      console.log(`[SIM Selection] Status: ${status === 'has-sim' ? 'I have a SIM' : 'Need a SIM'}`)
-      console.log(`[SIM Selection] Product ID: ${expectedProductId}`)
-      console.log('======================================')
     } else if (packageType === 'prepaid') {
       expectedProductId = status === 'has-sim' ? PRODUCT_IDS.PREPAID_SA : PRODUCT_IDS.PREPAID_SOA
-      console.log('======================================')
-      console.log('[SIM Selection] PREPAID flow selected')
-      console.log(`[SIM Selection] Status: ${status === 'has-sim' ? 'I have a SIM' : 'Need a SIM'}`)
-      console.log(`[SIM Selection] Product ID: ${expectedProductId}`)
-      console.log('======================================')
     }
     
     setSimStatus(status)
@@ -353,7 +334,6 @@ export default function DashboardPackages() {
 
   const handlePlanContinue = (allocation: { data: number; voice: number; sms: number; whatsapp: number }) => {
     setPlanAllocation(allocation)
-    console.log('[PlanBuilder] Plan allocation:', allocation)
     
     // Calculate total price
     const totalPriceInRands = allocation.data + allocation.voice + allocation.sms + allocation.whatsapp
@@ -403,7 +383,6 @@ export default function DashboardPackages() {
   // NEW: Handle contract flow type selection (Build Your Own vs Bundles)
   const handleContractFlowTypeSelect = (flowType: 'dynamic' | 'combo') => {
     setContractFlowType(flowType)
-    console.log(`[Contract Flow] Selected: ${flowType === 'dynamic' ? 'Build Your Own' : 'Combo Bundles'}`)
   }
 
   // NEW: Handle back from contract flow choice screen

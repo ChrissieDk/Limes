@@ -8,10 +8,8 @@ import Subscriptions from './modules/auth/pages/Subscriptions'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
-import { analytics } from './config/firebase'
+import TermsAndConditions from './modules/auth/pages/TermsAndConditions.tsx'
 
-// Initialize Google Analytics (imported to ensure it's loaded)
-console.log('Google Analytics initialized:', analytics ? '✓' : '✗')
 
 const router = createBrowserRouter([
   {
@@ -53,6 +51,14 @@ const router = createBrowserRouter([
   {
     path: '/contact',
     element: <Contact />,
+  },
+  {
+    path: '/terms-and-conditions',
+    element: <TermsAndConditions />,
+  },
+  {
+    path: '/terms',
+    element: <TermsAndConditions />,
   },
 ], {
   basename: (import.meta.env.BASE_URL || '/').replace(/\/$/, ''),
