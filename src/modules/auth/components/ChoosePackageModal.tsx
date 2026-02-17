@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TextField from './TextField'
-import Checkbox from './Checkbox'
 import FileUpload from './FileUpload'
 import ShippingModal from './ShippingModal'
 import { crmService } from '../../crm/services/crmService'
 import { ricaService } from '../../rica/services/ricaService'
+import { userService } from '../services/userService'
 import type { CreateAccountCustomerRequest, CatalogProduct } from '../../../types'
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6
@@ -19,11 +19,12 @@ interface ChoosePackageModalProps {
 export default function ChoosePackageModal({ open, onClose, selectedPackage }: ChoosePackageModalProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
-  const [isResidential, setIsResidential] = useState(true)
+  const isResidential = true
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accountCreated, setAccountCreated] = useState(false)
   const [showShippingModal, setShowShippingModal] = useState(false)
+
 
   // Document upload states
   const [idFile, setIdFile] = useState<File | null>(null)
@@ -40,7 +41,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   const [title, setTitle] = useState('Mr')
   const [firstname, setFirstname] = useState('')
   const [lastname, setLastname] = useState('')
-  const [hasDeposit, setHasDeposit] = useState(false)
+  const hasDeposit = false
   const [idType, setIdType] = useState<'ID' | 'PASSPORT'>('ID')
   const [idNumber, setIdNumber] = useState('')
   // Email is the only supported bill medium for now (implicit)
@@ -67,14 +68,14 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   const [contactType, setContactType] = useState<'MOBILE_NO'>('MOBILE_NO')
   const [useParentAddressType, setUseParentAddressType] = useState<'BILLING'>('BILLING')
   // Primary contact role fixed as CUSTOMER (implicit)
-  const [isAccountOwner, setIsAccountOwner] = useState(true)
-  const [isServiceOwner, setIsServiceOwner] = useState(false)
+  const isAccountOwner = true
+  const isServiceOwner = false
 
   // Customer
-  const [custIsResidential, setCustIsResidential] = useState(true)
+  const custIsResidential = true
   const [custFirstname, setCustFirstname] = useState('')
   const [custLastname, setCustLastname] = useState('')
-  const [requireSecurityQuestions, setRequireSecurityQuestions] = useState(false)
+  const requireSecurityQuestions = false
   const [custStreetNo, setCustStreetNo] = useState('')
   const [custStreetName, setCustStreetName] = useState('')
   const [custSuburb, setCustSuburb] = useState('')
@@ -90,6 +91,80 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   //   document.addEventListener('keydown', onKey)
   //   return () => document.removeEventListener('keydown', onKey)
   // }, [open, onClose])
+
+  // Reset modal state and check account when modal opens
+  useEffect(() => {
+    if (!open) return
+
+    // Reset state first (for fresh start)
+    setStep(1)
+    setAccountCreated(false)
+    setError(null)
+    setIdFile(null)
+    setIdUploaded(false)
+    setPoaFile(null)
+    setPoaUploaded(false)
+    const checkHasAccount = async () => {
+      try {
+        const accountExists = await userService.hasAccount()
+
+        // If account already exists, skip to doc upload (step 5)
+        if (accountExists) {
+          try {
+            const accountCustomer = await crmService.getAccountCustomer()
+
+            // Hydrate account detail values so resumed flow keeps ShippingModal prefilled.
+            setTitle(accountCustomer.detail.title || 'Mr')
+            setFirstname(accountCustomer.detail.firstname || '')
+            setLastname(accountCustomer.detail.lastname || '')
+            setIdType((accountCustomer.detail.identification?.idType as 'ID' | 'PASSPORT') || 'ID')
+            setIdNumber(accountCustomer.detail.identification?.idNumber || '')
+            setBillEmail(accountCustomer.detail.billMedia?.emailAddress || '')
+            setBillLanguage((accountCustomer.detail.billMedia?.language as 'en-gb' | 'en-za' | 'af-za') || 'en-gb')
+
+            const billingAddress = accountCustomer.address?.find((addr) => addr.addressType === 'BILLING')
+            if (billingAddress) {
+              setStreetNo(billingAddress.streetNo || '')
+              setStreetName(billingAddress.streetName || '')
+              setSuburb(billingAddress.suburb || '')
+              setCity(billingAddress.city || '')
+              setStateOrProvince(billingAddress.stateOrProvince || '')
+              setPostCode(billingAddress.postCode || '')
+              setCountry(billingAddress.country || 'South Africa')
+            }
+
+            setPhoneNumber(accountCustomer.phone?.phoneNumber || '')
+            setContactType((accountCustomer.phone?.contactType as 'MOBILE_NO') || 'MOBILE_NO')
+            setUseParentAddressType((accountCustomer.contact?.useParentAddressType as 'BILLING') || 'BILLING')
+            setCustFirstname(accountCustomer.customer?.detail?.firstname || '')
+            setCustLastname(accountCustomer.customer?.detail?.lastname || '')
+
+            const postalAddress = accountCustomer.customer?.address?.find((addr) => addr.addressType === 'POSTAL')
+            if (postalAddress) {
+              setCustStreetNo(postalAddress.streetNo || '')
+              setCustStreetName(postalAddress.streetName || '')
+              setCustSuburb(postalAddress.suburb || '')
+              setCustCity(postalAddress.city || '')
+              setCustStateOrProvince(postalAddress.stateOrProvince || '')
+              setCustPostCode(postalAddress.postCode || '')
+              setCustCountry(postalAddress.country || 'South Africa')
+            }
+          } catch (accountCustomerErr) {
+            // Keep resumed flow behavior even if prefill fetch fails.
+            console.error('[RICA] Failed to prefill account customer details:', accountCustomerErr)
+          }
+
+          setAccountCreated(true)
+          setStep(5)
+        }
+      } catch (err) {
+        console.error('[RICA] Error checking hasAccount:', err)
+        // On error, assume account doesn't exist and start from step 1
+      }
+    }
+
+    checkHasAccount()
+  }, [open])
 
   const canNext = useMemo(() => {
     if (step === 1) return firstname.trim() !== '' && lastname.trim() !== '' && idNumber.trim() !== '' && billEmail.trim() !== ''
@@ -246,7 +321,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
       }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'An error occurred while uploading the proof of address')
-      console.error('POA upload error:', err)
       setPoaFile(null)
     } finally {
       setPoaUploading(false)
@@ -257,7 +331,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
     // RICA process completed successfully
     // NEW FLOW: Open payment modal directly
     // Subscriber will be created AFTER successful payment
-    console.log('[RICA] Opening payment modal - subscriber will be created after payment')
     setShowShippingModal(true)
   }
 
@@ -308,9 +381,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
           {/* Step content */}
           {step === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Checkbox label={<span className="text-neutral-900">Residential account</span>} checked={isResidential} onChange={(e) => setIsResidential(e.target.checked)} />
-              </div>
               <div>
                 <label className="grid gap-2">
                   <span className="text-sm text-neutral-700">Title</span>
@@ -344,9 +414,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
                     <option value="af-za">Afrikaans</option>
                   </select>
                 </label>
-              </div>
-              <div className="md:col-span-2">
-                <Checkbox label={<span className="text-neutral-900">Deposit paid</span>} checked={hasDeposit} onChange={(e) => setHasDeposit(e.target.checked)} />
               </div>
             </div>
           )}
@@ -382,23 +449,13 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
                   </select>
                 </label>
               </div>
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Checkbox label={<span className="text-neutral-900">Primary role: Customer</span>} checked readOnly />
-                <Checkbox label={<span className="text-neutral-900">Account owner</span>} checked={isAccountOwner} onChange={(e) => setIsAccountOwner(e.target.checked)} />
-                <Checkbox label={<span className="text-neutral-900">Service owner</span>} checked={isServiceOwner} onChange={(e) => setIsServiceOwner(e.target.checked)} />
-              </div>
             </div>
           )}
 
           {step === 4 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Checkbox label={<span className="text-neutral-900">Residential customer</span>} checked={custIsResidential} onChange={(e) => setCustIsResidential(e.target.checked)} />
-              <div />
               <TextField label="First name" value={custFirstname} onChange={(e) => setCustFirstname(e.target.value)} />
               <TextField label="Last name" value={custLastname} onChange={(e) => setCustLastname(e.target.value)} />
-              <div className="md:col-span-2">
-                <Checkbox label={<span className="text-neutral-900">Require security questions</span>} checked={requireSecurityQuestions} onChange={(e) => setRequireSecurityQuestions(e.target.checked)} />
-              </div>
               <TextField label="Postal street number" value={custStreetNo} onChange={(e) => setCustStreetNo(e.target.value)} />
               <TextField label="Postal street name" value={custStreetName} onChange={(e) => setCustStreetName(e.target.value)} />
               <TextField label="Postal suburb" value={custSuburb} onChange={(e) => setCustSuburb(e.target.value)} />

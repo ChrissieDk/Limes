@@ -49,12 +49,10 @@ function Subscriptions() {
     setLoading(true);
     setError(null);
     try {
-      const userData = await userService.getCurrentUser();
-      console.log('[Subscriptions] User data:', userData);
+      await userService.getCurrentUser();
       
       // Use new getAllSubscriptions endpoint
       const { subscriptions: allSubs } = await paymentService.getAllSubscriptions();
-      console.log('[Subscriptions] All subscriptions:', allSubs);
       
       // Filter active subscriptions and map to full details
       const activeSubs = allSubs
@@ -78,7 +76,6 @@ function Subscriptions() {
       const uniqueMsisdns = Array.from(new Set(activeSubs.map(sub => sub.msisdn)));
       setAvailableMsisdns(uniqueMsisdns);
       
-      console.log('[Subscriptions] Active subscriptions:', activeSubs);
       setSubscriptions(activeSubs);
     } catch (err: any) {
       console.error('[Subscriptions] Error:', err);
@@ -103,7 +100,6 @@ function Subscriptions() {
         msisdn: subscription.msisdn,
         productId: subscription.productId
       });
-      console.log('[Subscriptions] Cancelled:', response);
       
       if (response.success) {
         setCancelSuccess(true);

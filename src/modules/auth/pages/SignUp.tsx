@@ -148,7 +148,10 @@ export default function SignUp() {
           {...register('terms')}
           label={
             <>
-              I agree to the <a className="underline" href="#">Terms & Conditions</a>
+              I agree to the{' '}
+              <Link to="/terms-and-conditions" className="underline">
+                Terms & Conditions
+              </Link>
             </>
           }
         />
