@@ -120,7 +120,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
             setIdType((accountCustomer.detail.identification?.idType as 'ID' | 'PASSPORT') || 'ID')
             setIdNumber(accountCustomer.detail.identification?.idNumber || '')
             setBillEmail(accountCustomer.detail.billMedia?.emailAddress || '')
-            setBillLanguage((accountCustomer.detail.billMedia?.language as 'en-gb' | 'en-za' | 'af-za') || 'en-gb')
+            setBillLanguage('en-gb')
 
             const billingAddress = accountCustomer.address?.find((addr) => addr.addressType === 'BILLING')
             if (billingAddress) {
