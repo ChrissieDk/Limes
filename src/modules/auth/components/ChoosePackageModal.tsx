@@ -47,7 +47,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   // Email is the only supported bill medium for now (implicit)
   const [billEmail, setBillEmail] = useState('')
   // Billing generation level fixed at ACCOUNT (implicit)
-  const [billLanguage, setBillLanguage] = useState<'en-gb' | 'en-za' | 'af-za'>('en-gb')
+  const [billLanguage, setBillLanguage] = useState<'en-gb'>('en-gb')
 
   // Address (billing)
   const [streetNo, setStreetNo] = useState('')
@@ -408,10 +408,8 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
               <div>
                 <label className="grid gap-2">
                   <span className="text-sm text-neutral-700">Bill language</span>
-                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" value={billLanguage} onChange={(e) => setBillLanguage(e.target.value as any)}>
+                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" value={billLanguage} onChange={(e) => setBillLanguage(e.target.value as any)} disabled>
                     <option value="en-gb">English (GB)</option>
-                    <option value="en-za">English (ZA)</option>
-                    <option value="af-za">Afrikaans</option>
                   </select>
                 </label>
               </div>
