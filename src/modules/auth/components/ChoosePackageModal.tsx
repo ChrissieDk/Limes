@@ -1,14 +1,52 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import TextField from './TextField'
 import FileUpload from './FileUpload'
 import ShippingModal from './ShippingModal'
 import { crmService } from '../../crm/services/crmService'
 import { ricaService } from '../../rica/services/ricaService'
 import { userService } from '../services/userService'
+import {
+  createCustomerFormSchema,
+  type CreateCustomerFormValues,
+} from '../validation/createCustomerSchemas'
 import type { CreateAccountCustomerRequest, CatalogProduct } from '../../../types'
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6
+
+const STEP_1_FIELDS = ['title', 'firstname', 'lastname', 'idType', 'idNumber', 'billEmail', 'billLanguage'] as const
+const STEP_2_FIELDS = ['streetNo', 'streetName', 'suburb', 'city', 'stateOrProvince', 'postCode', 'country'] as const
+const STEP_3_FIELDS = ['phoneNumber'] as const
+const STEP_4_FIELDS = ['custFirstname', 'custLastname', 'custStreetNo', 'custStreetName', 'custSuburb', 'custCity', 'custStateOrProvince', 'custPostCode', 'custCountry'] as const
+
+const defaultFormValues: CreateCustomerFormValues = {
+  title: 'Mr',
+  firstname: '',
+  lastname: '',
+  idType: 'ID',
+  idNumber: '',
+  billEmail: '',
+  billLanguage: 'en-gb',
+  streetNo: '',
+  streetName: '',
+  suburb: '',
+  city: '',
+  stateOrProvince: '',
+  postCode: '',
+  country: 'South Africa',
+  phoneNumber: '',
+  custFirstname: '',
+  custLastname: '',
+  custStreetNo: '',
+  custStreetName: '',
+  custSuburb: '',
+  custCity: '',
+  custStateOrProvince: '',
+  custPostCode: '',
+  custCountry: 'South Africa',
+}
 
 interface ChoosePackageModalProps {
   open: boolean
@@ -25,64 +63,34 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   const [accountCreated, setAccountCreated] = useState(false)
   const [showShippingModal, setShowShippingModal] = useState(false)
 
+  const form = useForm<CreateCustomerFormValues>({
+    resolver: zodResolver(createCustomerFormSchema),
+    defaultValues: defaultFormValues,
+    mode: 'onBlur',
+  })
+  const { register, formState: { errors }, trigger, getValues, reset } = form
 
   // Document upload states
   const [idFile, setIdFile] = useState<File | null>(null)
   const [idUploaded, setIdUploaded] = useState(false)
   const [idUploading, setIdUploading] = useState(false)
   const [, setIdSignedUrl] = useState<string | null>(null)
-  
+
   const [poaFile, setPoaFile] = useState<File | null>(null)
   const [poaUploaded, setPoaUploaded] = useState(false)
   const [poaUploading, setPoaUploading] = useState(false)
   const [, setPoaSignedUrl] = useState<string | null>(null)
 
-  // Detail
-  const [title, setTitle] = useState('Mr')
-  const [firstname, setFirstname] = useState('')
-  const [lastname, setLastname] = useState('')
   const hasDeposit = false
-  const [idType, setIdType] = useState<'ID' | 'PASSPORT'>('ID')
-  const [idNumber, setIdNumber] = useState('')
-  // Email is the only supported bill medium for now (implicit)
-  const [billEmail, setBillEmail] = useState('')
-  // Billing generation level fixed at ACCOUNT (implicit)
-  const [billLanguage, setBillLanguage] = useState<'en-gb'>('en-gb')
-
-  // Address (billing)
-  const [streetNo, setStreetNo] = useState('')
-  const [streetName, setStreetName] = useState('')
-  const [suburb, setSuburb] = useState('')
-  const [city, setCity] = useState('')
-  const [stateOrProvince, setStateOrProvince] = useState('')
-  const [postCode, setPostCode] = useState('')
-  const [country, setCountry] = useState('South Africa')
-
-  // Hardcoded values (never user-editable)
   const creditLimit = 0
   const taxSchemeId = 'VB8'
   const collectionPlanId = 'STD9'
-
-  // Misc
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [contactType, setContactType] = useState<'MOBILE_NO'>('MOBILE_NO')
-  const [useParentAddressType, setUseParentAddressType] = useState<'BILLING'>('BILLING')
-  // Primary contact role fixed as CUSTOMER (implicit)
+  const contactType = 'MOBILE_NO' as const
+  const useParentAddressType = 'BILLING' as const
   const isAccountOwner = true
   const isServiceOwner = false
-
-  // Customer
   const custIsResidential = true
-  const [custFirstname, setCustFirstname] = useState('')
-  const [custLastname, setCustLastname] = useState('')
   const requireSecurityQuestions = false
-  const [custStreetNo, setCustStreetNo] = useState('')
-  const [custStreetName, setCustStreetName] = useState('')
-  const [custSuburb, setCustSuburb] = useState('')
-  const [custCity, setCustCity] = useState('')
-  const [custStateOrProvince, setCustStateOrProvince] = useState('')
-  const [custPostCode, setCustPostCode] = useState('')
-  const [custCountry, setCustCountry] = useState('South Africa')
 
   // ESC key disabled - user must explicitly click X to close during RICA flow
   // useEffect(() => {
@@ -96,7 +104,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   useEffect(() => {
     if (!open) return
 
-    // Reset state first (for fresh start)
     setStep(1)
     setAccountCreated(false)
     setError(null)
@@ -104,53 +111,45 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
     setIdUploaded(false)
     setPoaFile(null)
     setPoaUploaded(false)
+    reset(defaultFormValues)
+
     const checkHasAccount = async () => {
       try {
         const accountExists = await userService.hasAccount()
 
-        // If account already exists, skip to doc upload (step 5)
         if (accountExists) {
           try {
             const accountCustomer = await crmService.getAccountCustomer()
-
-            // Hydrate account detail values so resumed flow keeps ShippingModal prefilled.
-            setTitle(accountCustomer.detail.title || 'Mr')
-            setFirstname(accountCustomer.detail.firstname || '')
-            setLastname(accountCustomer.detail.lastname || '')
-            setIdType((accountCustomer.detail.identification?.idType as 'ID' | 'PASSPORT') || 'ID')
-            setIdNumber(accountCustomer.detail.identification?.idNumber || '')
-            setBillEmail(accountCustomer.detail.billMedia?.emailAddress || '')
-            setBillLanguage('en-gb')
-
             const billingAddress = accountCustomer.address?.find((addr) => addr.addressType === 'BILLING')
-            if (billingAddress) {
-              setStreetNo(billingAddress.streetNo || '')
-              setStreetName(billingAddress.streetName || '')
-              setSuburb(billingAddress.suburb || '')
-              setCity(billingAddress.city || '')
-              setStateOrProvince(billingAddress.stateOrProvince || '')
-              setPostCode(billingAddress.postCode || '')
-              setCountry(billingAddress.country || 'South Africa')
-            }
-
-            setPhoneNumber(accountCustomer.phone?.phoneNumber || '')
-            setContactType((accountCustomer.phone?.contactType as 'MOBILE_NO') || 'MOBILE_NO')
-            setUseParentAddressType((accountCustomer.contact?.useParentAddressType as 'BILLING') || 'BILLING')
-            setCustFirstname(accountCustomer.customer?.detail?.firstname || '')
-            setCustLastname(accountCustomer.customer?.detail?.lastname || '')
-
             const postalAddress = accountCustomer.customer?.address?.find((addr) => addr.addressType === 'POSTAL')
-            if (postalAddress) {
-              setCustStreetNo(postalAddress.streetNo || '')
-              setCustStreetName(postalAddress.streetName || '')
-              setCustSuburb(postalAddress.suburb || '')
-              setCustCity(postalAddress.city || '')
-              setCustStateOrProvince(postalAddress.stateOrProvince || '')
-              setCustPostCode(postalAddress.postCode || '')
-              setCustCountry(postalAddress.country || 'South Africa')
-            }
+
+            reset({
+              ...defaultFormValues,
+              title: (accountCustomer.detail.title as CreateCustomerFormValues['title']) || 'Mr',
+              firstname: accountCustomer.detail.firstname || '',
+              lastname: accountCustomer.detail.lastname || '',
+              idType: (accountCustomer.detail.identification?.idType as 'ID' | 'PASSPORT') || 'ID',
+              idNumber: accountCustomer.detail.identification?.idNumber || '',
+              billEmail: accountCustomer.detail.billMedia?.emailAddress || '',
+              streetNo: billingAddress?.streetNo || '',
+              streetName: billingAddress?.streetName || '',
+              suburb: billingAddress?.suburb || '',
+              city: billingAddress?.city || '',
+              stateOrProvince: billingAddress?.stateOrProvince || '',
+              postCode: billingAddress?.postCode || '',
+              country: billingAddress?.country || 'South Africa',
+              phoneNumber: accountCustomer.phone?.phoneNumber || '',
+              custFirstname: accountCustomer.customer?.detail?.firstname || '',
+              custLastname: accountCustomer.customer?.detail?.lastname || '',
+              custStreetNo: postalAddress?.streetNo || '',
+              custStreetName: postalAddress?.streetName || '',
+              custSuburb: postalAddress?.suburb || '',
+              custCity: postalAddress?.city || '',
+              custStateOrProvince: postalAddress?.stateOrProvince || '',
+              custPostCode: postalAddress?.postCode || '',
+              custCountry: postalAddress?.country || 'South Africa',
+            })
           } catch (accountCustomerErr) {
-            // Keep resumed flow behavior even if prefill fetch fails.
             console.error('[RICA] Failed to prefill account customer details:', accountCustomerErr)
           }
 
@@ -159,67 +158,72 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         }
       } catch (err) {
         console.error('[RICA] Error checking hasAccount:', err)
-        // On error, assume account doesn't exist and start from step 1
       }
     }
 
     checkHasAccount()
-  }, [open])
+  }, [open, reset])
 
-  const canNext = useMemo(() => {
-    if (step === 1) return firstname.trim() !== '' && lastname.trim() !== '' && idNumber.trim() !== '' && billEmail.trim() !== ''
-    if (step === 2) return streetNo && streetName && city && stateOrProvince && postCode
-    if (step === 3) return phoneNumber.trim() !== ''
-    if (step === 4) return accountCreated // Can only proceed if account was created
-    if (step === 5) return idUploaded // Can only proceed if ID was uploaded
-    if (step === 6) return poaUploaded // Can only proceed if POA was uploaded
-    return true
-  }, [step, firstname, lastname, idNumber, billEmail, streetNo, streetName, city, stateOrProvince, postCode, phoneNumber, accountCreated, idUploaded, poaUploaded])
+  const handleNext = async () => {
+    if (step === 1) {
+      const valid = await trigger(STEP_1_FIELDS as unknown as (keyof CreateCustomerFormValues)[])
+      if (valid) setStep(2)
+    } else if (step === 2) {
+      const valid = await trigger(STEP_2_FIELDS as unknown as (keyof CreateCustomerFormValues)[])
+      if (valid) setStep(3)
+    } else if (step === 3) {
+      const valid = await trigger(STEP_3_FIELDS as unknown as (keyof CreateCustomerFormValues)[])
+      if (valid) setStep(4)
+    } else if (step === 5) {
+      setStep(6)
+    }
+  }
 
   const handleCreateAccount = async () => {
+    const valid = await trigger(STEP_4_FIELDS as unknown as (keyof CreateCustomerFormValues)[])
+    if (!valid) return
+
     setIsSubmitting(true)
     setError(null)
+
+    const v = getValues()
 
     try {
       const payload: CreateAccountCustomerRequest = {
         isResidential,
         detail: {
-          title,
-          firstname,
-          lastname,
+          title: v.title,
+          firstname: v.firstname,
+          lastname: v.lastname,
           creditLimit,
           hasDeposit,
           identification: {
-            idType,
-            idNumber,
+            idType: v.idType,
+            idNumber: v.idNumber,
           },
           billMedia: {
             mediaType: 'EMAIL',
-            emailAddress: billEmail,
+            emailAddress: v.billEmail,
             generationLevel: 'ACCOUNT',
-            language: billLanguage,
+            language: v.billLanguage,
           },
         },
         address: [
           {
             addressType: 'BILLING',
-            streetNo,
-            streetName,
-            suburb,
-            city,
-            stateOrProvince,
-            postCode,
-            country,
+            streetNo: v.streetNo,
+            streetName: v.streetName,
+            suburb: v.suburb,
+            city: v.city,
+            stateOrProvince: v.stateOrProvince,
+            postCode: v.postCode,
+            country: v.country,
           },
         ],
-        taxScheme: {
-          id: taxSchemeId,
-        },
-        collectionPlan: {
-          id: collectionPlanId,
-        },
+        taxScheme: { id: taxSchemeId },
+        collectionPlan: { id: collectionPlanId },
         phone: {
-          phoneNumber,
+          phoneNumber: v.phoneNumber,
           contactType,
         },
         contact: {
@@ -231,20 +235,20 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         customer: {
           isResidential: custIsResidential,
           detail: {
-            firstname: custFirstname,
-            lastname: custLastname,
+            firstname: v.custFirstname,
+            lastname: v.custLastname,
             requireSecurityQuestions,
           },
           address: [
             {
               addressType: 'POSTAL',
-              streetNo: custStreetNo,
-              streetName: custStreetName,
-              suburb: custSuburb,
-              city: custCity,
-              stateOrProvince: custStateOrProvince,
-              postCode: custPostCode,
-              country: custCountry,
+              streetNo: v.custStreetNo,
+              streetName: v.custStreetName,
+              suburb: v.custSuburb,
+              city: v.custCity,
+              stateOrProvince: v.custStateOrProvince,
+              postCode: v.custPostCode,
+              country: v.custCountry,
             },
           ],
         },
@@ -384,31 +388,31 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
               <div>
                 <label className="grid gap-2">
                   <span className="text-sm text-neutral-700">Title</span>
-                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" value={title} onChange={(e) => setTitle(e.target.value)}>
-                    <option>Mr</option>
-                    <option>Ms</option>
-                    <option>Mrs</option>
-                    <option>Dr</option>
+                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" {...register('title')}>
+                    <option value="Mr">Mr</option>
+                    <option value="Ms">Ms</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="Dr">Dr</option>
                   </select>
                 </label>
               </div>
-              <TextField label="First name" value={firstname} onChange={(e) => setFirstname(e.target.value)} />
-              <TextField label="Last name" value={lastname} onChange={(e) => setLastname(e.target.value)} />
+              <TextField label="First name" {...register('firstname')} error={errors.firstname?.message} />
+              <TextField label="Last name" {...register('lastname')} error={errors.lastname?.message} />
               <div>
                 <label className="grid gap-2">
                   <span className="text-sm text-neutral-700">ID type</span>
-                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" value={idType} onChange={(e) => setIdType(e.target.value as any)}>
+                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" {...register('idType')}>
                     <option value="ID">ID</option>
                     <option value="PASSPORT">Passport</option>
                   </select>
                 </label>
               </div>
-              <TextField label="ID number" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} />
-              <TextField label="Email for billing" type="email" value={billEmail} onChange={(e) => setBillEmail(e.target.value)} />
+              <TextField label="ID number" {...register('idNumber')} error={errors.idNumber?.message} />
+              <TextField label="Email for billing" type="email" {...register('billEmail')} error={errors.billEmail?.message} />
               <div>
                 <label className="grid gap-2">
                   <span className="text-sm text-neutral-700">Bill language</span>
-                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" value={billLanguage} onChange={(e) => setBillLanguage(e.target.value as any)} disabled>
+                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" {...register('billLanguage')} disabled>
                     <option value="en-gb">English (GB)</option>
                   </select>
                 </label>
@@ -418,23 +422,23 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
 
           {step === 2 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextField label="Street number" value={streetNo} onChange={(e) => setStreetNo(e.target.value)} />
-              <TextField label="Street name" value={streetName} onChange={(e) => setStreetName(e.target.value)} />
-              <TextField label="Suburb" value={suburb} onChange={(e) => setSuburb(e.target.value)} />
-              <TextField label="City" value={city} onChange={(e) => setCity(e.target.value)} />
-              <TextField label="State/Province" value={stateOrProvince} onChange={(e) => setStateOrProvince(e.target.value)} />
-              <TextField label="Post code" value={postCode} onChange={(e) => setPostCode(e.target.value)} />
-              <TextField label="Country" value={country} onChange={(e) => setCountry(e.target.value)} />
+              <TextField label="Street number" {...register('streetNo')} error={errors.streetNo?.message} />
+              <TextField label="Street name" {...register('streetName')} error={errors.streetName?.message} />
+              <TextField label="Suburb" {...register('suburb')} error={errors.suburb?.message} />
+              <TextField label="City" {...register('city')} error={errors.city?.message} />
+              <TextField label="State/Province" {...register('stateOrProvince')} error={errors.stateOrProvince?.message} />
+              <TextField label="Post code" {...register('postCode')} error={errors.postCode?.message} />
+              <TextField label="Country" {...register('country')} error={errors.country?.message} />
             </div>
           )}
 
           {step === 3 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextField label="Phone number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+              <TextField label="Phone number" {...register('phoneNumber')} error={errors.phoneNumber?.message} />
               <div>
                 <label className="grid gap-2">
                   <span className="text-sm text-neutral-700">Contact type</span>
-                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" value={contactType} onChange={(e) => setContactType(e.target.value as any)}>
+                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" disabled>
                     <option value="MOBILE_NO">Mobile</option>
                   </select>
                 </label>
@@ -442,7 +446,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
               <div>
                 <label className="grid gap-2">
                   <span className="text-sm text-neutral-700">Use parent address type</span>
-                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" value={useParentAddressType} onChange={(e) => setUseParentAddressType(e.target.value as any)}>
+                  <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" disabled>
                     <option value="BILLING">Billing</option>
                   </select>
                 </label>
@@ -452,15 +456,15 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
 
           {step === 4 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextField label="First name" value={custFirstname} onChange={(e) => setCustFirstname(e.target.value)} />
-              <TextField label="Last name" value={custLastname} onChange={(e) => setCustLastname(e.target.value)} />
-              <TextField label="Postal street number" value={custStreetNo} onChange={(e) => setCustStreetNo(e.target.value)} />
-              <TextField label="Postal street name" value={custStreetName} onChange={(e) => setCustStreetName(e.target.value)} />
-              <TextField label="Postal suburb" value={custSuburb} onChange={(e) => setCustSuburb(e.target.value)} />
-              <TextField label="Postal city" value={custCity} onChange={(e) => setCustCity(e.target.value)} />
-              <TextField label="Postal state/province" value={custStateOrProvince} onChange={(e) => setCustStateOrProvince(e.target.value)} />
-              <TextField label="Postal post code" value={custPostCode} onChange={(e) => setCustPostCode(e.target.value)} />
-              <TextField label="Postal country" value={custCountry} onChange={(e) => setCustCountry(e.target.value)} />
+              <TextField label="First name" {...register('custFirstname')} error={errors.custFirstname?.message} />
+              <TextField label="Last name" {...register('custLastname')} error={errors.custLastname?.message} />
+              <TextField label="Postal street number" {...register('custStreetNo')} error={errors.custStreetNo?.message} />
+              <TextField label="Postal street name" {...register('custStreetName')} error={errors.custStreetName?.message} />
+              <TextField label="Postal suburb" {...register('custSuburb')} error={errors.custSuburb?.message} />
+              <TextField label="Postal city" {...register('custCity')} error={errors.custCity?.message} />
+              <TextField label="Postal state/province" {...register('custStateOrProvince')} error={errors.custStateOrProvince?.message} />
+              <TextField label="Postal post code" {...register('custPostCode')} error={errors.custPostCode?.message} />
+              <TextField label="Postal country" {...register('custCountry')} error={errors.custCountry?.message} />
             </div>
           )}
 
@@ -520,9 +524,10 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
             <div className="flex items-center gap-2">
               {step < 4 ? (
                 <button 
-                  disabled={!canNext} 
+                  type="button"
+                  disabled={isSubmitting || idUploading || poaUploading}
                   className="inline-flex items-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-2.5 hover:bg-lime-300 disabled:opacity-60 active:scale-[0.99] transition" 
-                  onClick={() => setStep((s) => (Math.min(6, (s + 1) as Step)) as Step)}
+                  onClick={handleNext}
                 >
                   Next →
                 </button>
@@ -536,7 +541,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
                 </button>
               ) : step === 5 ? (
                 <button 
-                  disabled={!canNext || idUploading} 
+                  disabled={!idUploaded || idUploading} 
                   className="inline-flex items-center gap-2 rounded-xl bg-lime-400 text-neutral-900 font-semibold px-5 py-2.5 hover:bg-lime-300 disabled:opacity-60 active:scale-[0.99] transition" 
                   onClick={() => setStep(6)}
                 >
@@ -544,7 +549,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
                 </button>
               ) : (
                 <button 
-                  disabled={!canNext || poaUploading} 
+                  disabled={!poaUploaded || poaUploading} 
                   className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 text-white font-semibold px-5 py-2.5 hover:bg-neutral-800 disabled:opacity-60 active:scale-[0.99] transition" 
                   onClick={handleFinalSubmit}
                 >
@@ -558,54 +563,57 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
       </div>
 
       {/* Shipping Modal - shown after RICA completion */}
-      {showShippingModal && selectedPackage && (
-        <ShippingModal
-          open={showShippingModal}
-          onClose={handleShippingClose}
-          selectedPackage={{
-            productId: selectedPackage.productId || selectedPackage.id, // Use productId from navigation, or id from API
-            simPackageProductId: selectedPackage.simPackageProductId,
-            name: selectedPackage.name,
-            price: selectedPackage.price,
-            packageType: selectedPackage.packageType,
-            simStatus: selectedPackage.simStatus,
-            planChargeType: selectedPackage.planChargeType,
-            iccid: selectedPackage.iccid,
-            features: {
-              mobileData: selectedPackage.description || selectedPackage.features?.mobileData,
-            }
-          }}
-          defaultAddress={{
-            streetNo,
-            streetName,
-            suburb,
-            city,
-            stateOrProvince,
-            postCode,
-            country,
-          }}
-          customerEmail={billEmail}
-          customerName={`${firstname} ${lastname}`}
-          customerPhone={phoneNumber}
-          ricaData={{
-            address: {
-              streetNo,
-              streetName,
-              suburb: suburb || '',
-              city,
-              stateOrProvince,
-              postCode,
-              country,
-            },
-            customerInfo: {
-              firstname,
-              lastname,
-              billEmail,
-              phoneNumber,
-            }
-          }}
-        />
-      )}
+      {showShippingModal && selectedPackage && (() => {
+        const v = getValues()
+        return (
+          <ShippingModal
+            open={showShippingModal}
+            onClose={handleShippingClose}
+            selectedPackage={{
+              productId: selectedPackage.productId || selectedPackage.id,
+              simPackageProductId: selectedPackage.simPackageProductId,
+              name: selectedPackage.name,
+              price: selectedPackage.price,
+              packageType: selectedPackage.packageType,
+              simStatus: selectedPackage.simStatus,
+              planChargeType: selectedPackage.planChargeType,
+              iccid: selectedPackage.iccid,
+              features: {
+                mobileData: selectedPackage.description || selectedPackage.features?.mobileData,
+              }
+            }}
+            defaultAddress={{
+              streetNo: v.streetNo,
+              streetName: v.streetName,
+              suburb: v.suburb,
+              city: v.city,
+              stateOrProvince: v.stateOrProvince,
+              postCode: v.postCode,
+              country: v.country,
+            }}
+            customerEmail={v.billEmail}
+            customerName={`${v.firstname} ${v.lastname}`}
+            customerPhone={v.phoneNumber}
+            ricaData={{
+              address: {
+                streetNo: v.streetNo,
+                streetName: v.streetName,
+                suburb: v.suburb || '',
+                city: v.city,
+                stateOrProvince: v.stateOrProvince,
+                postCode: v.postCode,
+                country: v.country,
+              },
+              customerInfo: {
+                firstname: v.firstname,
+                lastname: v.lastname,
+                billEmail: v.billEmail,
+                phoneNumber: v.phoneNumber,
+              }
+            }}
+          />
+        )
+      })()}
     </div>
   )
 }
