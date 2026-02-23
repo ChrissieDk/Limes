@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,7 +7,7 @@ import TextField from '../components/TextField'
 import Checkbox from '../components/Checkbox'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { firebaseAuthService } from '../services/firebaseAuthService'
 import { userService } from '../services/userService'
 
@@ -28,13 +28,21 @@ type FormValues = z.infer<typeof schema>
 
 export default function SignUp() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false)
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
+
+  useEffect(() => {
+    if (searchParams.get('verify') === 'true') {
+      setShowVerificationMessage(true)
+    }
+  }, [searchParams])
 
   const onSubmit = async (values: FormValues) => {
     setSubmitError(null)
@@ -54,7 +62,10 @@ export default function SignUp() {
         firstName,
         lastName,
       })
-      navigate('/dashboard/packages')
+      
+      // Show verification message
+      // The Cloud Function will automatically send verification email on user creation
+      setShowVerificationMessage(true)
     } catch (err: unknown) {
       let message = 'Failed to sign up'
       if (err && typeof err === 'object') {
@@ -107,7 +118,26 @@ export default function SignUp() {
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+      {showVerificationMessage ? (
+        <div className="grid gap-4">
+          <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+            <h3 className="text-green-400 font-semibold mb-2 text-center">Check your email!</h3>
+            <p className="text-green-400 text-sm text-center mb-4">
+              We've sent a verification email to your inbox. Please click the link in the email to verify your account.
+            </p>
+            <p className="text-neutral-400 text-xs text-center">
+              Didn't receive the email? Check your spam folder or try signing up again.
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate('/signin')}
+            className="mt-2 h-10 rounded-lg border border-white/10 shadow-none"
+          >
+            Go to Sign In
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
         <TextField
           variant="dark"
           label="Phone number"
@@ -175,6 +205,7 @@ export default function SignUp() {
           </Link>
         </div>
       </form>
+      )}
     </AuthLayout>
   )
 }
