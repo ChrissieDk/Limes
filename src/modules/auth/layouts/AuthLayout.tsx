@@ -25,6 +25,7 @@ export default function AuthLayout({
   const cardRef = useRef<HTMLDivElement | null>(null)
   const [cardHeight, setCardHeight] = useState<number | undefined>(undefined)
   const isDark = (tone ?? (variant === 'signin' ? 'dark' : 'light')) === 'dark'
+  const hasSide = Boolean(side)
 
   useEffect(() => {
     if (!cardRef.current) return
@@ -47,12 +48,16 @@ export default function AuthLayout({
       <div
         className={
           isDark
-            ? 'mx-auto max-w-6xl px-6 py-12 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center justify-center'
-            : 'mx-auto max-w-6xl px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-start justify-center'
+            ? hasSide
+              ? 'mx-auto max-w-6xl px-6 py-12 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center justify-center'
+              : 'mx-auto max-w-6xl px-6 py-12 lg:py-16'
+            : hasSide
+              ? 'mx-auto max-w-6xl px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-start justify-center'
+              : 'mx-auto max-w-6xl px-6 py-10'
         }
       >
         <div className="w-full flex justify-center">
-          <div className={isDark ? 'max-w-[520px] w-full' : 'max-w-xl w-full'}>
+          <div className={isDark ? (hasSide ? 'max-w-[520px] w-full' : 'w-full') : (hasSide ? 'max-w-xl w-full' : 'w-full')}>
             <div
               ref={cardRef}
               className={
@@ -111,9 +116,11 @@ export default function AuthLayout({
           </div>
         </div>
 
-        <div className="hidden lg:block w-full" style={{ height: cardHeight }}>
-          {side}
-        </div>
+        {hasSide && (
+          <div className="hidden lg:block w-full" style={{ height: cardHeight }}>
+            {side}
+          </div>
+        )}
       </div>
       {footer}
     </div>

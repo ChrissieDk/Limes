@@ -54,7 +54,6 @@ function Dashboard() {
   // Refresh dashboard data after successful payment
   // This function resets all data-fetching refs to trigger fresh API calls
   const refreshDashboardData = () => {
-    console.log('[Dashboard] Payment successful - refreshing all data...')
     
     // Reset refs to allow data to be re-fetched
     balancesFetchedForRef.current = ''
@@ -65,7 +64,6 @@ function Dashboard() {
     const fetchUserData = async () => {
       try {
         const user = await userService.getCurrentUser()
-        console.log('[Dashboard] Refreshed user data after payment:', user)
         
         // Update SIM cards with potentially new MSISDNs
         if (user.msisdns && user.msisdns.length > 0) {
@@ -87,7 +85,6 @@ function Dashboard() {
         
         // Re-fetch transactions
         const txResponse = await paymentService.getTransactionHistory(1, 10)
-        console.log('[Dashboard] Refreshed transactions after payment:', txResponse)
         setTransactions(txResponse)
       } catch (err) {
         console.error('[Dashboard] Error refreshing data after payment:', err)
@@ -100,7 +97,6 @@ function Dashboard() {
   // Listen for payment success events to trigger refresh
   useEffect(() => {
     const handlePaymentSuccess = () => {
-      console.log('[Dashboard] Received payment success event')
       refreshDashboardData()
     }
     
@@ -135,12 +131,10 @@ function Dashboard() {
       try {
         const user = await userService.getCurrentUser();
         if (!cancelled) {
-          console.log('[Dashboard] User data:', user);
           setRicaComplete(user.ricaComplete ?? false);
           
           // Update SIM cards with real MSISDNs from user account
           if (user.msisdns && user.msisdns.length > 0) {
-            console.log('[Dashboard] User MSISDNs:', user.msisdns);
             const updatedSimCards = user.msisdns.map((msisdnData, index: number) => ({
               id: String(index + 1),
               name: `Sim ${index + 1}`,
@@ -192,8 +186,6 @@ function Dashboard() {
     
     // Only process if there's a package from navigation state AND RICA status has been checked
     if (selectedPackageFromState && ricaStatusChecked) {
-      console.log('[Dashboard] Package selected:', selectedPackageFromState);
-      console.log('[Dashboard] RICA complete:', ricaComplete);
       
       // Mark as handled immediately to prevent re-running
       packageSelectionHandledRef.current = true;
@@ -201,11 +193,9 @@ function Dashboard() {
       if (ricaComplete) {
         // RICA already done - go straight to payment
         // Subscriber will be created AFTER payment using CRM address
-        console.log('[Dashboard] RICA complete, opening shipping modal for returning user');
         setShippingModalOpen(true);
       } else {
         // RICA not done, open RICA flow first
-        console.log('[Dashboard] Opening RICA modal (RICA not complete)');
         setChoosePackageModalOpen(true);
       }
       
@@ -247,7 +237,6 @@ function Dashboard() {
       try {
         const response = await crmService.getAccountCustomer();
         if (!cancelled) {
-          console.log('[Account] Fetched customer details:', response);
           
           // Get postal address from customer.address
           const postalAddress = response.customer.address.find(
@@ -296,10 +285,8 @@ function Dashboard() {
       setBalancesLoading(true);
       
       try {
-        console.log('[Balance] Fetching balances for MSISDN:', msisdnToFetch, '(SIM', currentSimIndex + 1, ')');
         const response = await subscriptionService.getBalances(msisdnToFetch);
         if (!cancelled && response.balances) {
-          console.log('[Balance] Fetched balances for SIM', currentSimIndex + 1, ':', response);
           
           // Mark as fetched BEFORE updating state to prevent re-trigger
           balancesFetchedForRef.current = msisdnToFetch;
@@ -368,15 +355,7 @@ function Dashboard() {
         
         try {
           const response = await subscriptionService.checkSimActive(sim.phoneNumber);
-          
-          console.log(`[Activation] Full response for ${sim.phoneNumber}:`, response);
-          console.log(`[Activation] Checked status for ${sim.phoneNumber}:`, {
-            isActive: response.isActive,
-            hasPendingOrders: response.hasPendingOrders,
-            hasPendingDynamicServices: response.hasPendingDynamicServices,
-            canActivate: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
-            message: response.message
-          });
+      
           
           return {
             phoneNumber: sim.phoneNumber,
@@ -511,22 +490,13 @@ function Dashboard() {
     setActivatingSim(sim.phoneNumber);
     
     try {
-      console.log('[Activate] Processing pending orders and services for SIM:', sim.phoneNumber);
       
       // Process pending orders
-      console.log('[Activate] Step 1: Processing pending orders...');
       const ordersResponse = await subscriptionService.processPendingOrders(sim.phoneNumber);
-      console.log('[Activate] Orders response:', ordersResponse);
-      
       // Process pending dynamic services
-      console.log('[Activate] Step 2: Processing pending dynamic services...');
       const servicesResponse = await subscriptionService.processPendingDynamicServices(sim.phoneNumber);
-      console.log('[Activate] Services response:', servicesResponse);
       
       if (ordersResponse.success || servicesResponse.success) {
-        console.log('[Activate] ✓ Successfully processed pending items');
-        console.log('[Activate] Orders:', ordersResponse.message);
-        console.log('[Activate] Services:', servicesResponse.message);
         
         // Refresh activation status to update button visibility
         const statusResponse = await subscriptionService.checkSimActive(sim.phoneNumber);

@@ -316,15 +316,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       // Map AIRTIME to GPA_CREDIT for backend
       const definitionCode = serviceType === 'AIRTIME' ? 'GPA_CREDIT' : serviceType
 
-      console.log('[TopUp] Initializing dynamic service payment:', {
-        serviceType,
-        definitionCode,
-        price,
-        serviceValue,
-        priceInCents,
-        expiryDate
-      })
-
       const payload = {
         msisdn: String(selectedPhoneNumber),
         services: [
@@ -344,13 +335,10 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         return
       }
 
-      console.log('[TopUp] Dynamic service transaction initialized, opening Paystack...')
-
       // Use Paystack Popup
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: async (transaction: any) => {
-          console.log('[TopUp] Dynamic service payment successful, verifying...')
 
           try {
             // STEP 1: Verify payment
@@ -362,10 +350,8 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             if (!verificationResponse.success) {
               throw new Error(verificationResponse.error || 'Payment verification failed')
             }
-            console.log('[TopUp] ✓ Payment verified')
             
             // STEP 2: Create dynamic services (NO subscriber creation - already exists)
-            console.log('[TopUp] Creating dynamic services...')
             const serviceValue = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
             
             if (serviceValue === null) {
@@ -392,15 +378,12 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             if (serviceIds.length === 0) {
               throw new Error('No services created')
             }
-            console.log('[TopUp] ✓ Dynamic services created:', serviceIds)
             
             // STEP 3: Link transaction to services
-            console.log('[TopUp] Linking transaction to services...')
             await paymentService.linkTransactionToServices({
               transactionReference: transaction.reference || initResponse.data?.reference || '',
               serviceIds: serviceIds
             })
-            console.log('[TopUp] ✓ Transaction linked to services')
             
             setPaymentSuccess(true)
             // Notify Dashboard to refresh data after successful payment
@@ -415,7 +398,6 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
           }
         },
         onCancel: () => {
-          console.log('[TopUp] Dynamic service payment cancelled')
           setPaymentError(null)
         },
       })

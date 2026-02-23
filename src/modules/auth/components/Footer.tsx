@@ -9,10 +9,10 @@ export default function Footer() {
   ]
 
   const socials = [
-    { label: 'Social 1', src: `${base}images/social1.png`, href: '#' },
-    { label: 'Social 2', src: `${base}images/social2.png`, href: '#' },
-    { label: 'Social 3', src: `${base}images/social3.png`, href: '#' },
-    { label: 'Social 4', src: `${base}images/social4.png`, href: '#' },
+    { label: 'Social 1', src: `${base}images/social1.png`, href: '#', enabled: false },
+    { label: 'Social 2', src: `${base}images/social2.png`, href: '#', enabled: false },
+    { label: 'Social 3', src: `${base}images/social3.png`, href: '#', enabled: false },
+    { label: 'Instagram', src: `${base}images/social4.png`, href: 'https://www.instagram.com/limes.network/', enabled: true },
   ] as const
 
   return (
@@ -42,14 +42,26 @@ export default function Footer() {
           <div className="text-sm text-neutral-400 font-semibold">Stay Connected</div>
           <div className="mt-6 flex items-center gap-5">
             {socials.map((s) => (
-              <a
-                key={s.label}
-                href={s.href}
-                aria-label={s.label}
-                className="opacity-90 hover:opacity-100 transition-opacity"
-              >
-                <img src={s.src} alt="" className="h-5 w-5" />
-              </a>
+              s.enabled ? (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  aria-label={s.label}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="opacity-90 hover:opacity-100 transition-opacity"
+                >
+                  <img src={s.src} alt="" className="h-5 w-5" />
+                </a>
+              ) : (
+                <span
+                  key={s.label}
+                  aria-hidden="true"
+                  className="opacity-40 grayscale pointer-events-none select-none"
+                >
+                  <img src={s.src} alt="" className="h-5 w-5" />
+                </span>
+              )
             ))}
           </div>
         </div>

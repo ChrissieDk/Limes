@@ -13,9 +13,8 @@ import VerifyEmail from './modules/auth/pages/VerifyEmail'
 import ResetPassword from './modules/auth/pages/ResetPassword'
 import AuthAction from './modules/auth/pages/AuthAction'
 import { analytics } from './config/firebase'
+import TermsAndConditions from './modules/auth/pages/TermsAndConditions.tsx'
 
-// Initialize Google Analytics (imported to ensure it's loaded)
-console.log('Google Analytics initialized:', analytics ? '✓' : '✗')
 
 const router = createBrowserRouter([
   {
@@ -73,6 +72,14 @@ const router = createBrowserRouter([
   {
     path: '/contact',
     element: <Contact />,
+  },
+  {
+    path: '/terms-and-conditions',
+    element: <TermsAndConditions />,
+  },
+  {
+    path: '/terms',
+    element: <TermsAndConditions />,
   },
 ], {
   basename: (import.meta.env.BASE_URL || '/').replace(/\/$/, ''),
