@@ -87,7 +87,7 @@ export default function SignIn() {
 
           <div className="flex items-center justify-between pt-1">
             <Checkbox label="Remember Me" {...register('rememberMe' as any)} />
-            <Link to="/contact" className="text-sm text-neutral-500 hover:text-neutral-400 transition-colors">
+            <Link to="/forgot-password" className="text-sm text-neutral-500 hover:text-neutral-400 transition-colors">
               Forgot your password?
             </Link>
           </div>

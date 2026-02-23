@@ -8,8 +8,13 @@ import Subscriptions from './modules/auth/pages/Subscriptions'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
+import ForgotPassword from './modules/auth/pages/ForgotPassword'
+import VerifyEmail from './modules/auth/pages/VerifyEmail'
+import ResetPassword from './modules/auth/pages/ResetPassword'
+import AuthAction from './modules/auth/pages/AuthAction'
 import TermsAndConditions from './modules/auth/pages/TermsAndConditions.tsx'
 
+import './config/firebase'
 
 const router = createBrowserRouter([
   {
@@ -31,6 +36,22 @@ const router = createBrowserRouter([
   {
     path: '/signin',
     element: <SignIn />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
+  {
+    path: '/auth/action',
+    element: <AuthAction />,
+  },
+  {
+    path: '/auth/verify-email',
+    element: <VerifyEmail />,
+  },
+  {
+    path: '/auth/reset-password',
+    element: <ResetPassword />,
   },
   {
     path: '/dashboard',
