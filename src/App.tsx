@@ -12,9 +12,9 @@ import ForgotPassword from './modules/auth/pages/ForgotPassword'
 import VerifyEmail from './modules/auth/pages/VerifyEmail'
 import ResetPassword from './modules/auth/pages/ResetPassword'
 import AuthAction from './modules/auth/pages/AuthAction'
-import { analytics } from './config/firebase'
 import TermsAndConditions from './modules/auth/pages/TermsAndConditions.tsx'
 
+import './config/firebase'
 
 const router = createBrowserRouter([
   {
