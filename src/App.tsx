@@ -11,6 +11,7 @@ import Faqs from './modules/auth/pages/Faqs'
 import ForgotPassword from './modules/auth/pages/ForgotPassword'
 import VerifyEmail from './modules/auth/pages/VerifyEmail'
 import ResetPassword from './modules/auth/pages/ResetPassword'
+import AuthAction from './modules/auth/pages/AuthAction'
 import { analytics } from './config/firebase'
 
 // Initialize Google Analytics (imported to ensure it's loaded)
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
   {
     path: '/forgot-password',
     element: <ForgotPassword />,
+  },
+  {
+    path: '/auth/action',
+    element: <AuthAction />,
   },
   {
     path: '/auth/verify-email',

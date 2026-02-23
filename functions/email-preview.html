@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Template Preview – Limes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #111; color: #fff; }
+
+    /* Tab controls */
+    .tabs { display: flex; gap: 8px; padding: 20px 24px; background: #0a0a0a; border-bottom: 1px solid #222; }
+    .tab { padding: 8px 20px; border-radius: 8px; border: 1px solid #333; background: transparent; color: #888; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .tab.active { background: #ABFF63; color: #000; border-color: #ABFF63; }
+
+    /* Top bar info */
+    .topbar { padding: 12px 24px; background: #0a0a0a; font-size: 12px; color: #666; display: flex; align-items: center; gap: 16px; }
+    .topbar span { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #ABFF63; }
+
+    /* Preview area */
+    .preview-wrapper { padding: 32px 24px; min-height: calc(100vh - 100px); }
+    .preview-frame { display: none; width: 100%; border: none; border-radius: 16px; background: #0E0E12; }
+    .preview-frame.active { display: block; }
+
+    /* Desktop / mobile toggle */
+    .size-toggle { margin-left: auto; display: flex; gap: 6px; }
+    .size-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #888; font-size: 12px; cursor: pointer; }
+    .size-btn.active { border-color: #ABFF63; color: #ABFF63; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span><span class="dot"></span> Email Template Preview</span>
+    <span style="color:#444">|</span>
+    <span>Open this file in your browser to preview without deploying</span>
+    <div class="size-toggle">
+      <button class="size-btn active" onclick="setWidth('600px', this)">Desktop</button>
+      <button class="size-btn" onclick="setWidth('375px', this)">Mobile</button>
+      <button class="size-btn" onclick="setWidth('100%', this)">Full width</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('verification', this)">Verification Email</button>
+    <button class="tab" onclick="showTab('reset', this)">Password Reset Email</button>
+  </div>
+
+  <div class="preview-wrapper">
+    <iframe id="verification" class="preview-frame active" style="width:600px;height:900px;" srcdoc=""></iframe>
+    <iframe id="reset" class="preview-frame" style="width:600px;height:900px;" srcdoc=""></iframe>
+  </div>
+
+  <script>
+    // ─── Template data ────────────────────────────────────────────────────────
+    const USER    = 'Christiaan'
+    const YEAR    = new Date().getFullYear()
+    const VER_URL = 'https://example.com/auth/verify-email?mode=verifyEmail&oobCode=SAMPLE_CODE_HERE'
+    const RST_URL = 'https://example.com/auth/reset-password?mode=resetPassword&oobCode=SAMPLE_CODE_HERE'
+
+    // ─── Verification email HTML ───────────────────────────────────────────────
+    const verificationHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Email – Limes</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0E0E12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0E0E12;padding:48px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#16161C;border-radius:28px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;">
+
+        <tr><td style="background-color:#ABFF63;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <tr><td style="padding:36px 40px 0 40px;">
+          <p style="margin:0 0 32px 0;font-size:26px;font-weight:800;color:#FFFFFF;letter-spacing:-0.03em;">Limes</p>
+          <p style="margin:0 0 16px 0;">
+            <span style="font-size:12px;font-weight:600;color:#A0A0A8;letter-spacing:0.04em;text-transform:uppercase;">
+              <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background-color:#ABFF63;margin-right:6px;vertical-align:middle;"></span>
+              Email Verification
+            </span>
+          </p>
+          <h1 style="margin:0 0 12px 0;font-size:36px;font-weight:800;color:#FFFFFF;line-height:1.1;letter-spacing:-0.02em;">Welcome to Limes!</h1>
+          <p style="margin:0;font-size:15px;color:#A0A0A8;line-height:1.6;">Your mobile plan that actually makes sense.</p>
+        </td></tr>
+
+        <tr><td style="padding:28px 40px 0 40px;"><div style="height:1px;background-color:rgba(255,255,255,0.07);font-size:0;">&nbsp;</div></td></tr>
+
+        <tr><td style="padding:28px 40px 0 40px;">
+          <p style="margin:0 0 16px 0;font-size:16px;color:#E8E8F0;line-height:1.7;">Hi ${USER},</p>
+          <p style="margin:0 0 16px 0;font-size:16px;color:#E8E8F0;line-height:1.7;">Thanks for signing up! We're excited to have you join the Limes community. Please verify your email address to complete your registration and start enjoying your mobile plan.</p>
+        </td></tr>
+
+        <tr><td style="padding:28px 40px 0 40px;">
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr><td style="background-color:#ABFF63;border-radius:12px;border:2px solid rgba(0,0,0,0.7);box-shadow:4px 4px 0 0 rgba(0,0,0,0.7);">
+              <a href="${VER_URL}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#000000;text-decoration:none;">Verify Email Address</a>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:24px 40px 0 40px;">
+          <p style="margin:0 0 6px 0;font-size:13px;color:#606068;">Button not working? Copy and paste this link:</p>
+          <p style="margin:0;font-size:12px;color:#ABFF63;word-break:break-all;">${VER_URL}</p>
+        </td></tr>
+
+        <tr><td style="padding:24px 40px 0 40px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:rgba(171,255,99,0.07);border-radius:12px;border:1px solid rgba(171,255,99,0.15);">
+            <tr><td style="padding:16px 20px;">
+              <p style="margin:0;font-size:13px;color:#A0A0A8;line-height:1.6;">This link will expire in <strong style="color:#ABFF63;">24 hours</strong>. If you didn't create a Limes account, you can safely ignore this email.</p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:32px 40px 36px 40px;">
+          <div style="height:1px;background-color:rgba(255,255,255,0.07);margin-bottom:24px;font-size:0;">&nbsp;</div>
+          <p style="margin:0 0 6px 0;font-size:13px;color:#606068;text-align:center;">© ${YEAR} Limes. All rights reserved.</p>
+          <p style="margin:0;font-size:12px;color:#484850;text-align:center;">Questions? Reach out to our support team.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+
+    // ─── Password reset email HTML ─────────────────────────────────────────────
+    const resetHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password – Limes</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0E0E12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0E0E12;padding:48px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#16161C;border-radius:28px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;">
+
+        <tr><td style="background-color:#ABFF63;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <tr><td style="padding:36px 40px 0 40px;">
+          <p style="margin:0 0 32px 0;font-size:26px;font-weight:800;color:#FFFFFF;letter-spacing:-0.03em;">Limes</p>
+          <p style="margin:0 0 16px 0;">
+            <span style="font-size:12px;font-weight:600;color:#A0A0A8;letter-spacing:0.04em;text-transform:uppercase;">
+              <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background-color:#ABFF63;margin-right:6px;vertical-align:middle;"></span>
+              Password Reset
+            </span>
+          </p>
+          <h1 style="margin:0 0 12px 0;font-size:36px;font-weight:800;color:#FFFFFF;line-height:1.1;letter-spacing:-0.02em;">Reset your password</h1>
+          <p style="margin:0;font-size:15px;color:#A0A0A8;line-height:1.6;">We'll get you back in securely.</p>
+        </td></tr>
+
+        <tr><td style="padding:28px 40px 0 40px;"><div style="height:1px;background-color:rgba(255,255,255,0.07);font-size:0;">&nbsp;</div></td></tr>
+
+        <tr><td style="padding:28px 40px 0 40px;">
+          <p style="margin:0 0 16px 0;font-size:16px;color:#E8E8F0;line-height:1.7;">Hi ${USER},</p>
+          <p style="margin:0 0 16px 0;font-size:16px;color:#E8E8F0;line-height:1.7;">We received a request to reset your password for your Limes account. Click the button below to choose a new password. If you didn't request this, you can safely ignore this email.</p>
+        </td></tr>
+
+        <tr><td style="padding:28px 40px 0 40px;">
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr><td style="background-color:#ABFF63;border-radius:12px;border:2px solid rgba(0,0,0,0.7);box-shadow:4px 4px 0 0 rgba(0,0,0,0.7);">
+              <a href="${RST_URL}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#000000;text-decoration:none;">Reset Password</a>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:24px 40px 0 40px;">
+          <p style="margin:0 0 6px 0;font-size:13px;color:#606068;">Button not working? Copy and paste this link:</p>
+          <p style="margin:0;font-size:12px;color:#ABFF63;word-break:break-all;">${RST_URL}</p>
+        </td></tr>
+
+        <tr><td style="padding:24px 40px 0 40px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:rgba(171,255,99,0.07);border-radius:12px;border:1px solid rgba(171,255,99,0.15);">
+            <tr><td style="padding:16px 20px;">
+              <p style="margin:0;font-size:13px;color:#A0A0A8;line-height:1.6;">This link will expire in <strong style="color:#ABFF63;">1 hour</strong>. For your security, never share this link with anyone.</p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:32px 40px 36px 40px;">
+          <div style="height:1px;background-color:rgba(255,255,255,0.07);margin-bottom:24px;font-size:0;">&nbsp;</div>
+          <p style="margin:0 0 6px 0;font-size:13px;color:#606068;text-align:center;">© ${YEAR} Limes. All rights reserved.</p>
+          <p style="margin:0;font-size:12px;color:#484850;text-align:center;">If you didn't request this reset, contact our support team immediately.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+
+    // ─── Render into iframes ───────────────────────────────────────────────────
+    document.getElementById('verification').srcdoc = verificationHtml
+    document.getElementById('reset').srcdoc = resetHtml
+
+    // ─── Tab switching ─────────────────────────────────────────────────────────
+    function showTab(id, el) {
+      document.querySelectorAll('.preview-frame').forEach(f => f.classList.remove('active'))
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+      document.getElementById(id).classList.add('active')
+      el.classList.add('active')
+    }
+
+    // ─── Width toggle ──────────────────────────────────────────────────────────
+    function setWidth(w, el) {
+      document.querySelectorAll('.preview-frame').forEach(f => {
+        f.style.width = w
+        f.style.height = w === '375px' ? '780px' : '900px'
+      })
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'))
+      el.classList.add('active')
+    }
+  </script>
+</body>
+</html>
