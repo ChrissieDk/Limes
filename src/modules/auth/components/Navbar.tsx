@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from '../../../config/firebase'
 
 const navItems = [
   { href: '/#hero', label: 'Home', sub: 'Start' , dot: 'bg-indigo-400' },
@@ -11,6 +13,7 @@ const navItems = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     const onHash = (e: MouseEvent) => {
@@ -19,6 +22,13 @@ export default function Navbar() {
     }
     document.addEventListener('click', onHash)
     return () => document.removeEventListener('click', onHash)
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user)
+    })
+    return unsubscribe
   }, [])
 
   return (
@@ -54,11 +64,19 @@ export default function Navbar() {
           </ul>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/signin">
-              <button className="h-12 px-4 text-sm font-semibold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
-                Sign In
-              </button>
-            </Link>
+            {isLoggedIn ? (
+              <Link to="/dashboard">
+                <button className="h-12 px-4 text-sm font-semibold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
+                  Dashboard
+                </button>
+              </Link>
+            ) : (
+              <Link to="/signin">
+                <button className="h-12 px-4 text-sm font-semibold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
+                  Sign In
+                </button>
+              </Link>
+            )}
           </div>
 
           <button aria-label="Menu" className="md:hidden inline-flex items-center justify-center size-10 rounded-lg ring-1 ring-white/15 hover:bg-white/5 transition" onClick={() => setOpen((v) => !v)}>
@@ -103,11 +121,19 @@ export default function Navbar() {
               </Link>
             </li>
             <li className="pt-2 space-y-2">
-              <Link to="/signin">
-                <button className="w-full px-4 py-2.5 text-sm font-medium text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
-                  Sign In
-                </button>
-              </Link>
+              {isLoggedIn ? (
+                <Link to="/dashboard">
+                  <button className="w-full px-4 py-2.5 text-sm font-medium text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
+                    Dashboard
+                  </button>
+                </Link>
+              ) : (
+                <Link to="/signin">
+                  <button className="w-full px-4 py-2.5 text-sm font-medium text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
+                    Sign In
+                  </button>
+                </Link>
+              )}
             </li>
           </ul>
         </div>

@@ -1,11 +1,16 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AuthLayout from '../layouts/AuthLayout'
 import Footer from '../components/Footer'
 
 export default function TermsAndConditions() {
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
   return (
     <AuthLayout
-      variant="signup"
+      variant="policy"
       tone="dark"
       footer={<Footer />}
       heading={
