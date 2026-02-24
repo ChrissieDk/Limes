@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function Footer() {
   const base = import.meta.env.BASE_URL
 
@@ -35,6 +37,12 @@ export default function Footer() {
                 {l.label}
               </a>
             ))}
+            <Link to="/terms-and-conditions" className="hover:text-white transition-colors">
+              Terms & Conditions
+            </Link>
+            <Link to="/fair-usage-policy" className="hover:text-white transition-colors">
+              Fair Usage Policy
+            </Link>
           </nav>
         </div>
 

@@ -127,7 +127,7 @@ export default function Packages() {
 
                 <div className="mt-auto pt-4">
                   <Link
-                    to="/signin"
+                    to="/signup"
                     className="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
                   >
                     Buy now
