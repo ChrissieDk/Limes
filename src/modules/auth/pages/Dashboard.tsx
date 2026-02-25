@@ -10,12 +10,14 @@ import { crmService } from '../../crm/services/crmService';
 import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
 import type { RicaAddress } from '../../../types';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { SimCard as SimCardModel, Transaction } from '../components/dashboard/dashboardTypes.ts';
 import { mockSimCards } from '../components/dashboard/dashboardMocks.ts';
 import { SimCard, PlanDetails } from '../components/dashboard/SimComponents.tsx';
 import { TransactionHistory, TransactionsModal } from '../components/dashboard/TransactionsComponents.tsx';
 import { SimCardSkeleton, PlanDetailsSkeleton } from '../components/dashboard/SkeletonLoaders.tsx';
+import { SimSearchControls } from '../components/dashboard/SimSearchControls.tsx';
+import { useSimSearch } from '../components/dashboard/useSimSearch.ts';
+import { PortNumberModal } from '../components/dashboard/PortNumberModal.tsx';
 import Footer from '../components/Footer';
 
 // Bundles are now fetched from catalog API (see useEffect below)
@@ -30,6 +32,7 @@ function Dashboard() {
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
   const [choosePackageModalOpen, setChoosePackageModalOpen] = useState(false);
   const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
+  const [portNumberModalOpen, setPortNumberModalOpen] = useState(false);
   const [simCards, setSimCards] = useState<SimCardModel[]>(mockSimCards);
   const [balancesLoading, setBalancesLoading] = useState(true);
   const [customerAddress, setCustomerAddress] = useState<RicaAddress | null>(null);
@@ -474,12 +477,21 @@ function Dashboard() {
     };
   }, []);
 
-  const nextSim = () => {
-    setCurrentSimIndex((prev) => (prev + 1) % simCards.length);
-  };
-  const prevSim = () => {
-    setCurrentSimIndex((prev) => (prev - 1 + simCards.length) % simCards.length);
-  };
+  const {
+    searchTerm,
+    setSearchTerm,
+    hasResults: searchHasResults,
+    displayPosition,
+    displayTotal,
+    canGoPrev,
+    canGoNext,
+    goPrev,
+    goNext,
+  } = useSimSearch({
+    simCards,
+    currentSimIndex,
+    setCurrentSimIndex,
+  });
 
   const handleActivate = async (sim: SimCardModel) => {
     if (!sim.phoneNumber) {
@@ -551,6 +563,10 @@ function Dashboard() {
         phoneNumber={modalSim?.phoneNumber}
         phoneNumbers={simCards.map((s) => s.phoneNumber)}
       />
+      <PortNumberModal
+        open={portNumberModalOpen}
+        onClose={() => setPortNumberModalOpen(false)}
+      />
       <ChoosePackageModal
         open={choosePackageModalOpen}
         onClose={handleChoosePackageModalClose}
@@ -602,26 +618,17 @@ function Dashboard() {
           {/* Left: My Sims */}
           <div className="bg-neutral-800 rounded-xl p-3 md:p-6 h-full border border-neutral-700 flex flex-col">
             <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-white font-semibold text-2xl">My SIM</h2>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={prevSim}
-                  className="p-1 text-neutral-400 hover:text-white transition-colors"
-                  disabled={currentSimIndex === 0}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="text-neutral-400 text-sm font-medium">
-                  {currentSimIndex + 1} of {simCards.length}
-                </span>
-                <button
-                  onClick={nextSim}
-                  className="p-1 text-neutral-400 hover:text-white transition-colors"
-                  disabled={currentSimIndex === simCards.length - 1}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              <h2 className="text-white font-medium text-xl">My SIM</h2>
+              <SimSearchControls
+                searchTerm={searchTerm}
+                onSearchTermChange={setSearchTerm}
+                displayPosition={displayPosition}
+                displayTotal={displayTotal}
+                canGoPrev={canGoPrev}
+                canGoNext={canGoNext}
+                onPrev={goPrev}
+                onNext={goNext}
+              />
             </div>
 
             <div className="flex-1 flex flex-col gap-3">
@@ -630,6 +637,13 @@ function Dashboard() {
                   <SimCardSkeleton />
                   <PlanDetailsSkeleton />
                 </>
+              ) : !searchHasResults ? (
+                <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 p-5">
+                  <h3 className="text-white text-lg font-semibold">No SIMs found</h3>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    Try a different name or number in the search bar.
+                  </p>
+                </div>
               ) : (
                 <>
                   {/* Loading message for SIM activation */}
@@ -658,7 +672,7 @@ function Dashboard() {
                     isActive={simIsActive[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id]}
                     activationStatusLoading={activationStatusLoading}
                   />
-                  <PlanDetails sim={simCards[currentSimIndex]} />
+                  <PlanDetails sim={simCards[currentSimIndex]} onPortMyNumber={() => setPortNumberModalOpen(true)} />
                 </>
               )}
             </div>

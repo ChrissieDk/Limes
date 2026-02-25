@@ -17,7 +17,7 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="text-white font-semibold text-lg">{sim.name}</h3>
+            <h3 className="text-white font-medium text-base">{sim.name}</h3>
             {!activationStatusLoading && isActive !== undefined && (
               <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
                 isActive 
@@ -62,9 +62,10 @@ export function SimCard({ sim, onTopUp, onActivate, canActivate = false, isActiv
 
 interface PlanDetailsProps {
   sim: SimCardModel;
+  onPortMyNumber?: () => void;
 }
 
-export function PlanDetails({ sim }: PlanDetailsProps) {
+export function PlanDetails({ sim, onPortMyNumber }: PlanDetailsProps) {
   // Get balances from sim.balances or use defaults
   const getBalanceValue = (grouping: string, definitionCode?: string) => {
     if (!sim.balances) return null;
@@ -126,10 +127,22 @@ export function PlanDetails({ sim }: PlanDetailsProps) {
       </div>
 
       <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 p-4">
-        <h4 className="text-white font-semibold text-lg mb-1">Ready to keep your number?</h4>
-        <p className="text-neutral-400 text-sm leading-snug">
-          Insert your Limes SIM and dial *140# to start porting. Follow the prompts, quick and easy.
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1">
+            <h4 className="text-white font-semibold text-xl leading-snug mb-1">Ready to keep your number?</h4>
+            <p className="text-neutral-400 text-[13px] leading-relaxed">
+              Insert your Limes SIM and dial *140# to start porting. Follow the prompts, quick and easy.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onPortMyNumber}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-[#ABFF63] px-5 text-sm font-semibold text-neutral-900 shadow-[0_8px_18px_rgba(0,0,0,0.22)] hover:brightness-95 transition-all"
+          >
+            Port my number
+            <span aria-hidden="true" className="text-base leading-none">→</span>
+          </button>
+        </div>
       </div>
     </>
   );

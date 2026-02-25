@@ -1,14 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { userService } from '../services/userService'
+import { crmService } from '../../crm/services/crmService'
+
+const DISPLAY_NAME_STORAGE_KEY = 'limes:dashboard-display-name'
+
+const readCachedDisplayName = (): string => {
+  try {
+    return sessionStorage.getItem(DISPLAY_NAME_STORAGE_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+const writeCachedDisplayName = (value: string) => {
+  try {
+    sessionStorage.setItem(DISPLAY_NAME_STORAGE_KEY, value)
+  } catch {
+    // no-op
+  }
+}
+
+const clearCachedDisplayName = () => {
+  try {
+    sessionStorage.removeItem(DISPLAY_NAME_STORAGE_KEY)
+  } catch {
+    // no-op
+  }
+}
 
 const navItems = [
-  { label: 'Packages', to: '/dashboard/packages' },
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Subscriptions', to: '/dashboard/subscriptions' },
   { label: 'Payment Methods', to: '/dashboard/payment-methods' },
+  { label: 'Add a SIM', to: '/dashboard/packages' },
   // { label: 'Address Book', to: '/dashboard/address-book' },
   // { label: 'Wallet', to: '/dashboard/wallet' },
 ]
@@ -18,11 +46,84 @@ export default function DashboardNavbar() {
   const navigate = useNavigate()
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const addSimColor = '#ABFF63'
+  const [displayName, setDisplayName] = useState<string>(() => readCachedDisplayName() || 'Account')
+  const accountMenuRef = useRef<HTMLDivElement | null>(null)
+
+  const isNavItemActive = (path: string) => pathname === path
+
+  const avatarSeed = useMemo(() => displayName || 'user', [displayName])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const run = async () => {
+      try {
+        const cached = readCachedDisplayName()
+        if (cached) {
+          setDisplayName(cached)
+          return
+        }
+
+        const customer = await crmService.getAccountCustomer()
+        if (cancelled) return
+
+        const first = customer.detail.firstname?.trim() || ''
+        const last = customer.detail.lastname?.trim() || ''
+        const fullName = `${first} ${last}`.trim()
+
+        if (fullName) {
+          setDisplayName(fullName)
+          writeCachedDisplayName(fullName)
+          return
+        }
+
+        const user = await userService.getCurrentUser()
+        if (cancelled) return
+        const fallbackName = user.displayName?.trim() || user.emailAddress?.trim() || 'Account'
+        setDisplayName(fallbackName)
+        if (fallbackName !== 'Account') {
+          writeCachedDisplayName(fallbackName)
+        }
+      } catch {
+        // Best-effort only; keep fallback label
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!accountMenuOpen) return
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (!accountMenuRef.current) return
+      if (accountMenuRef.current.contains(target)) return
+      setAccountMenuOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [accountMenuOpen])
+
+  useEffect(() => {
+    setAccountMenuOpen(false)
+  }, [pathname])
 
   const handleLogout = async () => {
     try {
       await signOut(auth)
     } finally {
+      clearCachedDisplayName()
       navigate('/signin')
     }
   }
@@ -30,7 +131,7 @@ export default function DashboardNavbar() {
   return (
     <div className="sticky top-3 z-20">
       <div className="mx-auto max-w-7xl px-6">
-        <nav className="w-full rounded-xl bg-[#26252C] text-white border border-white/10">
+        <nav className="w-full rounded-xl bg-neutral-800 text-white border border-neutral-700">
           <div className="flex items-center justify-between px-4 py-3">
             {/* Logo */}
             <div className="flex items-center">
@@ -41,18 +142,30 @@ export default function DashboardNavbar() {
 
             {/* Desktop Nav - Single line with adjusted spacing */}
             <div className="hidden lg:flex items-center justify-center flex-1 px-4">
-              <ul className="flex items-center gap-3 text-xs whitespace-nowrap">
+              <ul className="flex items-center gap-7 text-sm whitespace-nowrap">
                 {navItems.map((item) => (
                   <li key={item.to}>
                     <Link
                       to={item.to}
-                      className={
-                        pathname === item.to
-                          ? 'bg-white text-neutral-900 rounded-lg px-3 py-2 font-medium inline-block'
-                          : 'text-white/90 hover:text-white px-3 py-2 inline-block'
-                      }
+                      className="group inline-flex flex-col items-center gap-0.5 py-1"
                     >
-                      {item.label}
+                      <span
+                        className="font-medium transition-colors"
+                        style={{
+                          color: item.to === '/dashboard/packages'
+                            ? addSimColor
+                            : isNavItemActive(item.to)
+                            ? '#FFFFFF'
+                            : 'rgba(255,255,255,0.9)',
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                      <span
+                        className={`size-1.5 rounded-full transition-opacity ${
+                          isNavItemActive(item.to) ? 'opacity-100 bg-white' : 'opacity-0'
+                        }`}
+                      />
                     </Link>
                   </li>
                 ))}
@@ -61,22 +174,25 @@ export default function DashboardNavbar() {
 
             {/* Desktop Account Menu */}
             <div className="hidden lg:flex items-center justify-end">
-              <div className="relative">
+              <div ref={accountMenuRef} className="relative">
                 <button
                   onClick={() => setAccountMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#26252C] px-2.5 py-1.5 text-sm hover:bg-white/5 transition-colors"
+                  className="flex items-center justify-between gap-2.5 rounded-2xl border border-neutral-700 bg-neutral-800 px-3 py-1.5 hover:bg-white/5 transition-colors min-w-[200px]"
                 >
-                  <img
-                    src={`https://api.dicebear.com/7.x/thumbs/svg?seed=user`}
-                    alt="User"
-                    className="w-6 h-6 rounded-full"
-                  />
-                  <span>Account</span>
-                  <ChevronDown className="w-4 h-4" />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={`https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(avatarSeed)}`}
+                      alt=""
+                      aria-hidden="true"
+                      className="w-7 h-7 rounded-full flex-shrink-0"
+                    />
+                    <span className="text-white text-[13px] font-semibold truncate">{displayName}</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-white/80 flex-shrink-0" />
                 </button>
 
                 {accountMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-40 rounded-xl border border-white/10 bg-[#26252C] shadow-lg p-2 text-sm">
+                  <div className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg p-2 text-sm">
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
@@ -110,13 +226,25 @@ export default function DashboardNavbar() {
                   <Link
                     to={item.to}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={
-                      pathname === item.to
-                        ? 'block bg-white text-neutral-900 rounded-lg px-3 py-2.5 text-sm font-medium'
-                        : 'block text-white/90 hover:bg-white/5 rounded-lg px-3 py-2.5 text-sm transition-colors'
-                    }
+                    className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-white/5"
                   >
-                    {item.label}
+                    <span
+                      className="font-medium"
+                      style={{
+                        color: item.to === '/dashboard/packages'
+                          ? addSimColor
+                          : isNavItemActive(item.to)
+                          ? '#FFFFFF'
+                          : 'rgba(255,255,255,0.9)',
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                    <span
+                      className={`size-1.5 rounded-full ${
+                        isNavItemActive(item.to) ? 'opacity-100 bg-white' : 'opacity-0'
+                      }`}
+                    />
                   </Link>
                 </li>
               ))}
