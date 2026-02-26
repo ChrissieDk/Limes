@@ -14,6 +14,11 @@ export const userService = {
     return response.data
   },
 
+  // User: Update SIM description (rename SIM)
+  async updateSimDescription(payload: { simDescription: string; msisdn?: string }): Promise<void> {
+    await apiClient.patch('/user/sim-description', payload)
+  },
+
   // User: Register user
   async registerUser(payload: CreateUserRequest): Promise<CreateUserResponse> {
     const response = await apiClient.post('/user/register', payload)

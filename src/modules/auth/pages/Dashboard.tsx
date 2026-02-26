@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import TopUpModal from '../components/TopUpModal';
 import ShippingModal from '../components/ShippingModal';
 import ChoosePackageModal from '../components/ChoosePackageModal';
 import DashboardNavbar from '../components/DashboardNavbar';
-import { catalogService } from '../../catalog/services/catalogService';
 import { subscriptionService } from '../../subscription/services/subscriptionService';
 import { crmService } from '../../crm/services/crmService';
 import { userService } from '../services/userService';
@@ -20,12 +19,9 @@ import { useSimSearch } from '../components/dashboard/useSimSearch.ts';
 import { PortNumberModal } from '../components/dashboard/PortNumberModal.tsx';
 import Footer from '../components/Footer';
 
-// Bundles are now fetched from catalog API (see useEffect below)
-
 // Main Dashboard Component
 function Dashboard() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCardModel | null>(null);
@@ -47,7 +43,6 @@ function Dashboard() {
   const [simIsActive, setSimIsActive] = useState<Record<string, boolean>>({});
   const [activationStatusLoading, setActivationStatusLoading] = useState(true);
   const [activatingSim, setActivatingSim] = useState<string | null>(null);
-
   // Refs to prevent infinite loops in useEffects
   const balancesFetchedForRef = useRef<string>(''); // Track MSISDN we've fetched balances for
   const activationCheckedForRef = useRef<string>(''); // Track MSISDNs we've checked activation for
@@ -55,45 +50,43 @@ function Dashboard() {
   const activationPollInFlightRef = useRef<boolean>(false); // Prevent overlapping activation polls
 
   // Refresh dashboard data after successful payment
-  // This function resets all data-fetching refs to trigger fresh API calls
   const refreshDashboardData = () => {
-    
-    // Reset refs to allow data to be re-fetched
     balancesFetchedForRef.current = ''
     activationCheckedForRef.current = ''
-    
-    // Force re-fetch by updating state (triggers dependent useEffects)
-    // We do this by fetching user data again, which will update simCards and trigger cascading refreshes
+
     const fetchUserData = async () => {
       try {
         const user = await userService.getCurrentUser()
-        
-        // Update SIM cards with potentially new MSISDNs
+
         if (user.msisdns && user.msisdns.length > 0) {
-          const updatedSimCards = user.msisdns.map((msisdnData, index: number) => ({
-            id: String(index + 1),
-            name: `Sim ${index + 1}`,
-            phoneNumber: msisdnData.msisdn,
-            isActive: msisdnData.hasActiveSubscription,
-            hasVoiceTopUp: false,
-            plan: {
-              mobileData: '0GB',
-              airtime: 'R0',
-              messaging: '0SMS',
-              phone: '0 Min'
-            }
-          }))
-          setSimCards(updatedSimCards)
+          setSimCards((prev) =>
+            user.msisdns!.map((msisdnData, index: number) => {
+              const msisdn = msisdnData.msisdn
+              const existing = prev.find((s) => s.phoneNumber === msisdn)
+              return {
+                id: String(index + 1),
+                name: msisdnData.simDescription ?? `Sim ${index + 1}`,
+                phoneNumber: msisdn,
+                isActive: msisdnData.hasActiveSubscription,
+                hasVoiceTopUp: existing?.hasVoiceTopUp ?? false,
+                plan: existing?.plan ?? {
+                  mobileData: '0GB',
+                  airtime: 'R0',
+                  messaging: '0SMS',
+                  phone: '0 Min'
+                }
+              }
+            })
+          )
         }
-        
-        // Re-fetch transactions
+
         const txResponse = await paymentService.getTransactionHistory(1, 10)
         setTransactions(txResponse)
       } catch (err) {
         console.error('[Dashboard] Error refreshing data after payment:', err)
       }
     }
-    
+
     fetchUserData()
   }
 
@@ -135,12 +128,11 @@ function Dashboard() {
         const user = await userService.getCurrentUser();
         if (!cancelled) {
           setRicaComplete(user.ricaComplete ?? false);
-          
-          // Update SIM cards with real MSISDNs from user account
+
           if (user.msisdns && user.msisdns.length > 0) {
             const updatedSimCards = user.msisdns.map((msisdnData, index: number) => ({
               id: String(index + 1),
-              name: `Sim ${index + 1}`,
+              name: msisdnData.simDescription ?? `Sim ${index + 1}`,
               phoneNumber: msisdnData.msisdn,
               isActive: msisdnData.hasActiveSubscription,
               hasVoiceTopUp: false,
@@ -150,14 +142,8 @@ function Dashboard() {
                 messaging: '0SMS',
                 phone: '0 Min'
               }
-            }));
-            setSimCards(updatedSimCards);
-            
-            // Extract subscription data from the first active MSISDN
-            const activeMsisdn = user.msisdns.find((m) => m.hasActiveSubscription);
-            if (activeMsisdn) {
-              console.log('[Dashboard] Active subscription found:', activeMsisdn);
-            }
+            }))
+            setSimCards(updatedSimCards)
           }
         }
       } catch (err) {
@@ -167,7 +153,6 @@ function Dashboard() {
         }
       } finally {
         if (!cancelled) {
-          // Mark RICA status as checked (whether successful or not)
           setRicaStatusChecked(true);
         }
       }
@@ -271,32 +256,27 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     const fetchBalances = async () => {
-      // Only fetch balances if we have a SIM card at the current index with a phone number
       if (simCards.length === 0 || !simCards[currentSimIndex]?.phoneNumber) {
         setBalancesLoading(false);
         return;
       }
-      
+
       const msisdnToFetch = simCards[currentSimIndex].phoneNumber;
-      
-      // Skip if we've already fetched balances for this MSISDN
+
       if (balancesFetchedForRef.current === msisdnToFetch) {
         setBalancesLoading(false);
         return;
       }
-      
+
       setBalancesLoading(true);
-      
+
       try {
         const response = await subscriptionService.getBalances(msisdnToFetch);
         if (!cancelled && response.balances) {
-          
-          // Mark as fetched BEFORE updating state to prevent re-trigger
           balancesFetchedForRef.current = msisdnToFetch;
-          
-          // Update the currently selected sim card with balances
+
           setSimCards(prevSims => prevSims.map((sim, idx) => {
-            if (idx === currentSimIndex) { // Update currently selected sim with real data
+            if (idx === currentSimIndex) {
               return {
                 ...sim,
                 balances: response.balances,
@@ -330,36 +310,25 @@ function Dashboard() {
         setActivationStatusLoading(false);
         return;
       }
-      
-      // Create a key from all MSISDNs to track if we've already checked
+
       const msisdnsKey = simCards.map(s => s.phoneNumber).filter(Boolean).sort().join(',');
-      
-      // Skip if we've already checked these MSISDNs
+
       if (activationCheckedForRef.current === msisdnsKey) {
         setActivationStatusLoading(false);
         return;
       }
-      
-      // Start loading
+
       setActivationStatusLoading(true);
-      
+
       const canActivateStatuses: Record<string, boolean> = {};
       const isActiveStatuses: Record<string, boolean> = {};
-      
-      // Check all SIMs in parallel for better performance
+
       const checkPromises = simCards.map(async (sim) => {
         if (!sim.phoneNumber) {
-          return {
-            phoneNumber: sim.phoneNumber || sim.id,
-            canActivate: false,
-            isActive: false
-          };
+          return { phoneNumber: sim.phoneNumber || sim.id, canActivate: false, isActive: false };
         }
-        
         try {
           const response = await subscriptionService.checkSimActive(sim.phoneNumber);
-      
-          
           return {
             phoneNumber: sim.phoneNumber,
             canActivate: response.isActive && (response.hasPendingOrders || response.hasPendingDynamicServices || false),
@@ -367,32 +336,25 @@ function Dashboard() {
           };
         } catch (err) {
           console.error(`[Activation] Error checking status for ${sim.phoneNumber}:`, err);
-          return {
-            phoneNumber: sim.phoneNumber,
-            canActivate: false,
-            isActive: false
-          };
+          return { phoneNumber: sim.phoneNumber, canActivate: false, isActive: false };
         }
       });
-      
-      // Wait for all checks to complete in parallel
+
       const results = await Promise.all(checkPromises);
-      
-      // Build status objects from results
+
       results.forEach(result => {
         canActivateStatuses[result.phoneNumber] = result.canActivate;
         isActiveStatuses[result.phoneNumber] = result.isActive;
       });
-      
+
       if (!cancelled) {
-        // Mark as checked BEFORE updating state
         activationCheckedForRef.current = msisdnsKey;
         setCanActivate(canActivateStatuses);
         setSimIsActive(isActiveStatuses);
         setActivationStatusLoading(false);
       }
     };
-    
+
     checkActivationStatuses();
     return () => {
       cancelled = true;
@@ -429,7 +391,7 @@ function Dashboard() {
           ...prev,
           [msisdn]: response.isActive,
         }))
-      } catch (err) {
+      } catch {
         // Silent in background; initial activation checker already logs errors
       } finally {
         activationPollInFlightRef.current = false
@@ -446,36 +408,6 @@ function Dashboard() {
     }
   }, [simCards, currentSimIndex]);
 
-  // TEMP: Log catalog endpoints to verify connectivity
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      try {
-        const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true });
-        if (!cancelled) console.log('[Catalog] getCategoryTree', tree);
-      } catch (err) {
-        if (!cancelled) console.error('[Catalog] getCategoryTree error', err);
-      }
-
-      try {
-        const byId = await catalogService.getCategoryById('data_bundles');
-        if (!cancelled) console.log('[Catalog] getCategoryById(data_bundles)', byId);
-      } catch (err) {
-        if (!cancelled) console.error('[Catalog] getCategoryById error', err);
-      }
-
-      try {
-        const search = await catalogService.searchCategoryProducts('website', { page: 1, limit: 20 });
-        if (!cancelled) console.log('[Catalog] searchCategoryProducts(website)', search);
-      } catch (err) {
-        if (!cancelled) console.error('[Catalog] searchCategoryProducts error', err);
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const {
     searchTerm,
@@ -492,6 +424,22 @@ function Dashboard() {
     currentSimIndex,
     setCurrentSimIndex,
   });
+
+  const handleRename = async (sim: SimCardModel, newName: string) => {
+    if (!sim.phoneNumber) return
+    const trimmed = newName.trim()
+    try {
+      await userService.updateSimDescription({
+        simDescription: trimmed,
+        msisdn: sim.phoneNumber,
+      })
+      setSimCards((prev) =>
+        prev.map((s) => (s.phoneNumber === sim.phoneNumber ? { ...s, name: trimmed } : s))
+      )
+    } catch (err) {
+      console.error('[Dashboard] Error renaming SIM:', err)
+    }
+  }
 
   const handleActivate = async (sim: SimCardModel) => {
     if (!sim.phoneNumber) {
@@ -667,6 +615,7 @@ function Dashboard() {
                     sim={simCards[currentSimIndex]} 
                     onTopUp={(sim) => { setModalSim(sim); setModalOpen(true); }}
                     onActivate={handleActivate}
+                    onRename={handleRename}
                     canActivate={canActivate[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id] || false}
                     isActivating={activatingSim === simCards[currentSimIndex]?.phoneNumber}
                     isActive={simIsActive[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id]}
@@ -690,245 +639,7 @@ function Dashboard() {
           </div>
         </section>
 
-      {/* Bottom Section - Packages Grid (left) and Top Deals (right) */}
-      <section className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
-        {/* Left: Packages Grid (70-75% width) */}
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-1.5">
-            {/* Limes99 */}
-            <div className="md:col-span-3 rounded-[20px] border-2 border-black/70 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] bg-yellow-300 p-4 flex flex-col min-h-[140px]">
-              <div className="font-grotesque font-bold text-[22px] leading-[1.0] tracking-tight text-neutral-900">
-                Limes99
-              </div>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-snug font-manrope text-neutral-900">
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>R99 airtime + R31 FREE</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>Unlimited WhatsApp text</span>
-                </li>
-              </ul>
-              <div className="mt-auto pt-3">
-                <button
-                  onClick={() => navigate('/dashboard/packages')}
-                  className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                >
-                  Buy now
-                </button>
-              </div>
-            </div>
-
-            {/* Limes29 */}
-            <div className="md:col-span-3 rounded-[20px] border-2 border-black/70 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] bg-[#5BA0FF] p-4 flex flex-col min-h-[140px]">
-              <div className="font-grotesque font-bold text-[22px] leading-[1.0] tracking-tight text-neutral-900">
-                Limes29
-              </div>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-snug font-manrope text-neutral-900">
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>R29 airtime + R6 FREE</span>
-                </li>
-              </ul>
-              <div className="mt-auto pt-3">
-                <button
-                  onClick={() => navigate('/dashboard/packages')}
-                  className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                >
-                  Buy now
-                </button>
-              </div>
-            </div>
-
-            {/* Limes69 */}
-            <div className="md:col-span-2 rounded-[20px] border-2 border-black/70 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] bg-[#CDA7FC] p-4 flex flex-col min-h-[130px]">
-              <div className="font-grotesque font-bold text-[22px] leading-[1.0] tracking-tight text-neutral-900">
-                Limes69
-              </div>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-snug font-manrope text-neutral-900">
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>R69 airtime + R21 FREE</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>Unlimited WhatsApp text</span>
-                </li>
-              </ul>
-              <div className="mt-auto pt-3">
-                <button
-                  onClick={() => navigate('/dashboard/packages')}
-                  className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                >
-                  Buy now
-                </button>
-              </div>
-            </div>
-
-            {/* Limes169 */}
-            <div className="md:col-span-2 rounded-[20px] border-2 border-black/70 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] bg-pink-300 p-4 flex flex-col min-h-[130px]">
-              <div className="font-grotesque font-bold text-[22px] leading-[1.0] tracking-tight text-neutral-900">
-                Limes169
-              </div>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-snug font-manrope text-neutral-900">
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>R169 airtime + R31 FREE</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>Unlimited WhatsApp text</span>
-                </li>
-              </ul>
-              <div className="mt-auto pt-3">
-                <button
-                  onClick={() => navigate('/dashboard/packages')}
-                  className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                >
-                  Buy now
-                </button>
-              </div>
-            </div>
-
-            {/* Limes199 */}
-            <div className="md:col-span-2 rounded-[20px] border-2 border-black/70 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] bg-lime-300 p-4 flex flex-col min-h-[130px]">
-              <div className="font-grotesque font-bold text-[22px] leading-[1.0] tracking-tight text-neutral-900">
-                Limes199
-              </div>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-snug font-manrope text-neutral-900">
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>R199 airtime + R31 FREE</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>Unlimited WhatsApp text</span>
-                </li>
-              </ul>
-              <div className="mt-auto pt-3">
-                <button
-                  onClick={() => navigate('/dashboard/packages')}
-                  className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                >
-                  Buy now
-                </button>
-              </div>
-            </div>
-
-            {/* Limes Unlimited */}
-            <div className="md:col-span-3 rounded-[20px] border-2 border-black/70 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] bg-white p-4 flex flex-col min-h-[140px]">
-              <div className="font-grotesque font-bold text-[22px] leading-[1.0] tracking-tight text-neutral-900">
-                Limes Unlimited
-              </div>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-snug font-manrope text-neutral-900">
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>Unlimited voice minutes + 10GB data</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>10GB data</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>Unlimited WhatsApp text</span>
-                </li>
-              </ul>
-              <div className="mt-auto pt-3">
-                <button
-                  onClick={() => navigate('/dashboard/packages')}
-                  className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                >
-                  Buy now
-                </button>
-              </div>
-            </div>
-
-            {/* LimesOne */}
-            <div className="md:col-span-3 rounded-[20px] border-2 border-black/70 shadow-[3px_3px_0_0_rgba(0,0,0,0.7)] bg-white p-4 flex flex-col min-h-[140px]">
-              <div className="font-grotesque font-bold text-[22px] leading-[1.0] tracking-tight text-neutral-900">
-                LimesOne
-              </div>
-              <ul className="mt-2 space-y-1.5 text-[13px] leading-snug font-manrope text-neutral-900">
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>1GB data</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>1GB WhatsApp data</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <img src={`${import.meta.env.BASE_URL}images/plan_line.png`} alt="" className="h-3.5 w-4 mt-[2px] object-contain" />
-                  <span>R100 Airtime</span>
-                </li>
-              </ul>
-              <div className="mt-auto pt-3">
-                <button
-                  onClick={() => navigate('/dashboard/packages')}
-                  className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                >
-                  Buy now
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Our Top Deals */}
-        <div className="lg:w-[280px] rounded-[28px] bg-neutral-800 p-5 flex flex-col">
-          <h3 className="text-white font-grotesque font-bold text-3xl mb-6">Our top deals</h3>
-          
-          <div className="space-y-3 flex-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src={`${import.meta.env.BASE_URL}images/plan_pink.png`} alt="" className="w-5 h-5 object-contain" />
-                <span className="text-white text-sm">1GB for R48</span>
-              </div>
-              <button className="px-3 py-1.5 rounded-lg bg-white text-neutral-900 text-xs font-semibold hover:bg-neutral-100 transition-colors">
-                Buy now
-              </button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src={`${import.meta.env.BASE_URL}images/plan_pink.png`} alt="" className="w-5 h-5 object-contain" />
-                <span className="text-white text-sm">500MB for R25</span>
-              </div>
-              <button className="px-3 py-1.5 rounded-lg bg-white text-neutral-900 text-xs font-semibold hover:bg-neutral-100 transition-colors">
-                Buy now
-              </button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src={`${import.meta.env.BASE_URL}images/plan_pink.png`} alt="" className="w-5 h-5 object-contain" />
-                <span className="text-white text-sm">3GB for R149</span>
-              </div>
-              <button className="px-3 py-1.5 rounded-lg bg-white text-neutral-900 text-xs font-semibold hover:bg-neutral-100 transition-colors">
-                Buy now
-              </button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src={`${import.meta.env.BASE_URL}images/plan_pink.png`} alt="" className="w-5 h-5 object-contain" />
-                <span className="text-white text-sm">5GB for R189</span>
-              </div>
-              <button className="px-3 py-1.5 rounded-lg bg-white text-neutral-900 text-xs font-semibold hover:bg-neutral-100 transition-colors">
-                Buy now
-              </button>
-            </div>
-          </div>
-
-          <button className="mt-6 self-start inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#ABFF63] text-neutral-900 text-sm font-semibold hover:brightness-95 transition-all">
-            Buy
-            <span className="text-base">→</span>
-          </button>
-
-          <div className="mt-auto pt-6 flex justify-center">
-            <img src={`${import.meta.env.BASE_URL}images/lime_green.png`} alt="Lime" className="w-40 h-40 object-contain" />
-          </div>
-        </div>
-      </section>
+    
       </main>
 
       <TransactionsModal

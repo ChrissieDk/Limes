@@ -1,32 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { signOut } from 'firebase/auth'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { userService } from '../services/userService'
 import { crmService } from '../../crm/services/crmService'
 
-const DISPLAY_NAME_STORAGE_KEY = 'limes:dashboard-display-name'
+const cacheKey = (uid: string) => `limes:display-name:${uid}`
 
-const readCachedDisplayName = (): string => {
+const readCachedDisplayName = (uid: string): string => {
   try {
-    return sessionStorage.getItem(DISPLAY_NAME_STORAGE_KEY) ?? ''
+    return sessionStorage.getItem(cacheKey(uid)) ?? ''
   } catch {
     return ''
   }
 }
 
-const writeCachedDisplayName = (value: string) => {
+const writeCachedDisplayName = (uid: string, value: string) => {
   try {
-    sessionStorage.setItem(DISPLAY_NAME_STORAGE_KEY, value)
-  } catch {
-    // no-op
-  }
-}
-
-const clearCachedDisplayName = () => {
-  try {
-    sessionStorage.removeItem(DISPLAY_NAME_STORAGE_KEY)
+    sessionStorage.setItem(cacheKey(uid), value)
   } catch {
     // no-op
   }
@@ -47,7 +39,7 @@ export default function DashboardNavbar() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const addSimColor = '#ABFF63'
-  const [displayName, setDisplayName] = useState<string>(() => readCachedDisplayName() || 'Account')
+  const [displayName, setDisplayName] = useState<string>('Account')
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
 
   const isNavItemActive = (path: string) => pathname === path
@@ -55,44 +47,59 @@ export default function DashboardNavbar() {
   const avatarSeed = useMemo(() => displayName || 'user', [displayName])
 
   useEffect(() => {
-    let cancelled = false
+    let fetchCancelled = false
 
-    const run = async () => {
-      try {
-        const cached = readCachedDisplayName()
-        if (cached) {
-          setDisplayName(cached)
-          return
-        }
-
-        const customer = await crmService.getAccountCustomer()
-        if (cancelled) return
-
-        const first = customer.detail.firstname?.trim() || ''
-        const last = customer.detail.lastname?.trim() || ''
-        const fullName = `${first} ${last}`.trim()
-
-        if (fullName) {
-          setDisplayName(fullName)
-          writeCachedDisplayName(fullName)
-          return
-        }
-
-        const user = await userService.getCurrentUser()
-        if (cancelled) return
-        const fallbackName = user.displayName?.trim() || user.emailAddress?.trim() || 'Account'
-        setDisplayName(fallbackName)
-        if (fallbackName !== 'Account') {
-          writeCachedDisplayName(fallbackName)
-        }
-      } catch {
-        // Best-effort only; keep fallback label
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
+        setDisplayName('Account')
+        return
       }
-    }
 
-    run()
+      const uid = firebaseUser.uid
+
+      const cached = readCachedDisplayName(uid)
+      if (cached) {
+        setDisplayName(cached)
+        return
+      }
+
+      setDisplayName('Account')
+      fetchCancelled = false
+
+      const fetchName = async () => {
+        try {
+          const customer = await crmService.getAccountCustomer()
+          if (fetchCancelled) return
+
+          const first = customer.detail.firstname?.trim() || ''
+          const last = customer.detail.lastname?.trim() || ''
+          const fullName = `${first} ${last}`.trim()
+
+          if (fullName) {
+            setDisplayName(fullName)
+            writeCachedDisplayName(uid, fullName)
+            return
+          }
+
+          const user = await userService.getCurrentUser()
+          if (fetchCancelled) return
+
+          const fallbackName = user.displayName?.trim() || user.emailAddress?.trim() || 'Account'
+          setDisplayName(fallbackName)
+          if (fallbackName !== 'Account') {
+            writeCachedDisplayName(uid, fallbackName)
+          }
+        } catch {
+          // Best-effort only; keep fallback label
+        }
+      }
+
+      fetchName()
+    })
+
     return () => {
-      cancelled = true
+      fetchCancelled = true
+      unsubscribe()
     }
   }, [])
 
@@ -123,7 +130,6 @@ export default function DashboardNavbar() {
     try {
       await signOut(auth)
     } finally {
-      clearCachedDisplayName()
       navigate('/signin')
     }
   }
