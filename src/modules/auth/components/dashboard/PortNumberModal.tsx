@@ -3,18 +3,21 @@ import { useCallback, useEffect, useState } from 'react';
 interface PortNumberModalProps {
   open: boolean;
   onClose: () => void;
+  /** Pre-filled Limes MSISDN (destination SIM we're porting to) */
   currentMsisdn: string;
-  onConfirm: (phoneNumberToPort: string) => void | Promise<void>;
+  onConfirm: (limesMsisdn: string, numberToPortFrom: string) => void | Promise<void>;
 }
 
 export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: PortNumberModalProps) {
-  const [phoneNumberToPort, setPhoneNumberToPort] = useState('');
+  const [limesMsisdn, setLimesMsisdn] = useState('');
+  const [numberToPortFrom, setNumberToPortFrom] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
-    setPhoneNumberToPort('');
+    setLimesMsisdn('');
+    setNumberToPortFrom('');
     setIsSuccess(false);
     setIsLoading(false);
     setError(null);
@@ -28,18 +31,22 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
   }, [open, onClose]);
 
   useEffect(() => {
-    if (open) resetState();
-  }, [open, resetState]);
+    if (open) {
+      resetState();
+      setLimesMsisdn(currentMsisdn);
+    }
+  }, [open, resetState, currentMsisdn]);
 
   const handleConfirm = async () => {
-    const trimmed = phoneNumberToPort.trim();
-    if (!trimmed) return;
+    const trimmedLimes = limesMsisdn.trim();
+    const trimmedPortFrom = numberToPortFrom.trim();
+    if (!trimmedLimes || !trimmedPortFrom) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      await Promise.resolve(onConfirm(trimmed));
+      await Promise.resolve(onConfirm(trimmedLimes, trimmedPortFrom));
       setIsSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to submit porting request');
@@ -53,7 +60,10 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
     onClose();
   };
 
-  const canConfirm = phoneNumberToPort.trim().length > 0 && !isLoading;
+  const canConfirm =
+    limesMsisdn.trim().length > 0 &&
+    numberToPortFrom.trim().length > 0 &&
+    !isLoading;
 
   if (!open) return null;
 
@@ -66,12 +76,7 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
           <div>
             <div className="text-[22px] font-semibold leading-[1.1]">Port your number</div>
             <div className="text-sm text-neutral-500 mt-1">
-              Tell us the number you want to port your Limes SIM to
-              {currentMsisdn && (
-                <span className="block mt-0.5 text-neutral-400">
-                  Porting for SIM: {currentMsisdn}
-                </span>
-              )}
+              Enter your Limes number (destination), then the number you&apos;re porting from another provider.
             </div>
           </div>
           <button
@@ -105,21 +110,38 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
             </div>
           </div>
         ) : (
-          <div className="px-6 pt-6 pb-7">
-            <div className="text-sm text-neutral-700 font-medium mb-3">
-              Enter the number you’d like to port to
+          <div className="px-6 pt-6 pb-7 space-y-5">
+            <div>
+              <label htmlFor="port-limes-msisdn" className="block text-sm text-neutral-700 font-medium mb-2">
+                1. Limes number to port to (your current Limes SIM)
+              </label>
+              <input
+                id="port-limes-msisdn"
+                type="tel"
+                value={limesMsisdn}
+                onChange={(e) => setLimesMsisdn(e.target.value)}
+                placeholder="098 898 8989"
+                className="w-full h-12 rounded-2xl border border-neutral-300 px-5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
+              />
             </div>
 
-            <input
-              type="tel"
-              value={phoneNumberToPort}
-              onChange={(e) => setPhoneNumberToPort(e.target.value)}
-              placeholder="082 123 4567"
-              className="w-full h-12 rounded-2xl border border-neutral-300 px-5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isLoading}
-              aria-invalid={!!error}
-              aria-describedby={error ? 'port-error' : undefined}
-            />
+            <div>
+              <label htmlFor="port-from-msisdn" className="block text-sm text-neutral-700 font-medium mb-2">
+                2. Number you&apos;re porting from (your current number at another provider)
+              </label>
+              <input
+                id="port-from-msisdn"
+                type="tel"
+                value={numberToPortFrom}
+                onChange={(e) => setNumberToPortFrom(e.target.value)}
+                placeholder="082 323 4500"
+                className="w-full h-12 rounded-2xl border border-neutral-300 px-5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
+                aria-invalid={!!error}
+                aria-describedby={error ? 'port-error' : undefined}
+              />
+            </div>
 
             {error && (
               <p id="port-error" className="mt-2 text-sm text-red-600" role="alert">
