@@ -453,15 +453,15 @@ function Dashboard() {
     }
   }
 
-  const handlePortConfirm = async (phoneNumberToPort: string) => {
-    const currentMsisdn = simCards[currentSimIndex]?.phoneNumber
-    if (!currentMsisdn) throw new Error('No SIM selected')
-    const normalized = normalizeMsisdn(phoneNumberToPort)
-    if (normalized.length < 9) throw new Error('Please enter a valid phone number')
+  const handlePortConfirm = async (limesMsisdn: string, numberToPortFrom: string) => {
+    const normalizedLimes = normalizeMsisdn(limesMsisdn)
+    const normalizedPortFrom = normalizeMsisdn(numberToPortFrom)
+    if (normalizedLimes.length < 9) throw new Error('Please enter a valid Limes number')
+    if (normalizedPortFrom.length < 9) throw new Error('Please enter a valid number to port from')
     try {
-      await subscriptionService.portNumber(currentMsisdn, normalized)
+      await subscriptionService.portNumber(normalizedLimes, normalizedPortFrom)
       setPortingInProgressMsisdns((prev) => {
-        const next: Record<string, true> = { ...prev, [currentMsisdn]: true }
+        const next: Record<string, true> = { ...prev, [normalizedLimes]: true }
         try {
           localStorage.setItem('limes_porting_in_progress', JSON.stringify(Object.keys(next)))
         } catch {
