@@ -150,9 +150,10 @@ export function SimCard({ sim, onTopUp, onActivate, onRename, canActivate = fals
 interface PlanDetailsProps {
   sim: SimCardModel;
   onPortMyNumber?: () => void;
+  isPortingInProgress?: boolean;
 }
 
-export function PlanDetails({ sim, onPortMyNumber }: PlanDetailsProps) {
+export function PlanDetails({ sim, onPortMyNumber, isPortingInProgress = false }: PlanDetailsProps) {
   // Get balances from sim.balances or use defaults
   const getBalanceValue = (grouping: string, definitionCode?: string) => {
     if (!sim.balances) return null;
@@ -221,14 +222,23 @@ export function PlanDetails({ sim, onPortMyNumber }: PlanDetailsProps) {
               Insert your Limes SIM and dial *140# to start porting. Follow the prompts, quick and easy.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onPortMyNumber}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-[#ABFF63] px-5 text-sm font-semibold text-neutral-900 shadow-[0_8px_18px_rgba(0,0,0,0.22)] hover:brightness-95 transition-all"
-          >
-            Port my number
-            <span aria-hidden="true" className="text-base leading-none">→</span>
-          </button>
+          {isPortingInProgress ? (
+            <span
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] px-5 text-sm font-semibold text-neutral-900"
+              style={{ backgroundColor: '#F9A1D9' }}
+            >
+              In progress
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onPortMyNumber}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-[#ABFF63] px-5 text-sm font-semibold text-neutral-900 shadow-[0_8px_18px_rgba(0,0,0,0.22)] hover:brightness-95 transition-all"
+            >
+              Port my number
+              <span aria-hidden="true" className="text-base leading-none">→</span>
+            </button>
+          )}
         </div>
       </div>
     </>

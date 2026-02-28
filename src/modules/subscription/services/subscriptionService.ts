@@ -80,6 +80,17 @@ export const subscriptionService = {
     return response.data
   },
 
+  // Port number: swap current Limes MSISDN with the number to port (port-in)
+  async portNumber(currentMsisdn: string, newMsisdn: string): Promise<void> {
+    const encodedCurrent = encodeURIComponent(currentMsisdn)
+    const encodedNew = encodeURIComponent(newMsisdn)
+    await apiClient.post(
+      `/subscriber/${encodedCurrent}/swap/msisdn/${encodedNew}?port=true`,
+      {},
+      { timeout: 60000 }
+    )
+  },
+
   // Store pending dynamic service (when SIM is not yet active)
   async storePendingDynamicService(msisdn: string, payload: {
     definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
