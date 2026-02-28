@@ -14,8 +14,8 @@ export const userService = {
     return response.data
   },
 
-  // User: Update SIM description (rename SIM)
-  async updateSimDescription(payload: { simDescription: string; msisdn?: string }): Promise<void> {
+  // User: Update SIM description (rename SIM) - msisdn identifies which SIM to update
+  async updateSimDescription(payload: { msisdn: string; simDescription: string }): Promise<void> {
     await apiClient.patch('/user/sim-description', payload)
   },
 
