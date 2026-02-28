@@ -17,6 +17,7 @@ import { SimCardSkeleton, PlanDetailsSkeleton } from '../components/dashboard/Sk
 import { SimSearchControls } from '../components/dashboard/SimSearchControls.tsx';
 import { useSimSearch } from '../components/dashboard/useSimSearch.ts';
 import { PortNumberModal } from '../components/dashboard/PortNumberModal.tsx';
+import { normalizeMsisdn } from '../../../utils/phoneFormat';
 import Footer from '../components/Footer';
 
 // Main Dashboard Component
@@ -43,6 +44,17 @@ function Dashboard() {
   const [simIsActive, setSimIsActive] = useState<Record<string, boolean>>({});
   const [activationStatusLoading, setActivationStatusLoading] = useState(true);
   const [activatingSim, setActivatingSim] = useState<string | null>(null);
+  const [portingInProgressMsisdns, setPortingInProgressMsisdns] = useState<Record<string, true>>(() => {
+    try {
+      const stored = localStorage.getItem('limes_porting_in_progress')
+      if (!stored) return {}
+      const parsed = JSON.parse(stored) as string[]
+      return Array.isArray(parsed) ? Object.fromEntries(parsed.map((m) => [m, true])) : {}
+    } catch {
+      return {}
+    }
+  });
+
   // Refs to prevent infinite loops in useEffects
   const balancesFetchedForRef = useRef<string>(''); // Track MSISDN we've fetched balances for
   const activationCheckedForRef = useRef<string>(''); // Track MSISDNs we've checked activation for
@@ -441,6 +453,30 @@ function Dashboard() {
     }
   }
 
+  const handlePortConfirm = async (phoneNumberToPort: string) => {
+    const currentMsisdn = simCards[currentSimIndex]?.phoneNumber
+    if (!currentMsisdn) throw new Error('No SIM selected')
+    const normalized = normalizeMsisdn(phoneNumberToPort)
+    if (normalized.length < 9) throw new Error('Please enter a valid phone number')
+    try {
+      await subscriptionService.portNumber(currentMsisdn, normalized)
+      setPortingInProgressMsisdns((prev) => {
+        const next: Record<string, true> = { ...prev, [currentMsisdn]: true }
+        try {
+          localStorage.setItem('limes_porting_in_progress', JSON.stringify(Object.keys(next)))
+        } catch {
+          /* ignore */
+        }
+        return next
+      })
+      refreshDashboardData()
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string }
+      const message = axiosErr.response?.data?.message ?? axiosErr.message ?? 'Failed to submit porting request'
+      throw new Error(message)
+    }
+  }
+
   const handleActivate = async (sim: SimCardModel) => {
     if (!sim.phoneNumber) {
       console.error('[Activate] No phone number for SIM:', sim);
@@ -514,6 +550,8 @@ function Dashboard() {
       <PortNumberModal
         open={portNumberModalOpen}
         onClose={() => setPortNumberModalOpen(false)}
+        currentMsisdn={simCards[currentSimIndex]?.phoneNumber ?? ''}
+        onConfirm={handlePortConfirm}
       />
       <ChoosePackageModal
         open={choosePackageModalOpen}
@@ -565,8 +603,8 @@ function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 items-stretch">
           {/* Left: My Sims */}
           <div className="bg-neutral-800 rounded-xl p-3 md:p-6 h-full border border-neutral-700 flex flex-col">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-white font-medium text-xl">My SIM</h2>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
+              <h2 className="text-white font-medium text-xl whitespace-nowrap">My SIM</h2>
               <SimSearchControls
                 searchTerm={searchTerm}
                 onSearchTermChange={setSearchTerm}
@@ -621,7 +659,11 @@ function Dashboard() {
                     isActive={simIsActive[simCards[currentSimIndex]?.phoneNumber || simCards[currentSimIndex]?.id]}
                     activationStatusLoading={activationStatusLoading}
                   />
-                  <PlanDetails sim={simCards[currentSimIndex]} onPortMyNumber={() => setPortNumberModalOpen(true)} />
+                  <PlanDetails
+                    sim={simCards[currentSimIndex]}
+                    onPortMyNumber={() => setPortNumberModalOpen(true)}
+                    isPortingInProgress={!!portingInProgressMsisdns[simCards[currentSimIndex]?.phoneNumber ?? '']}
+                  />
                 </>
               )}
             </div>

@@ -22,10 +22,10 @@ export function SimSearchControls({
   onNext,
 }: SimSearchControlsProps) {
   return (
-    <div className="flex items-center gap-2">
-      <label className="relative block">
+        <div className="flex w-full md:w-auto items-center gap-2">
+      <label className="relative block flex-1 min-w-0 md:flex-none">
         <span className="sr-only">Search SIMs</span>
-        <div className="flex h-9 w-[200px] items-center rounded-full border border-white/30 bg-transparent pl-3 pr-1.5">
+        <div className="flex h-9 w-full min-w-0 md:w-[200px] items-center rounded-full border border-white/30 bg-transparent pl-3 pr-1.5">
           <input
             type="text"
             value={searchTerm}
