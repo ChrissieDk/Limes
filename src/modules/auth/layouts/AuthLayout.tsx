@@ -6,7 +6,7 @@ type Props = {
   subheading?: ReactNode
   children: ReactNode
   side?: ReactNode
-  variant?: 'signin' | 'signup'
+  variant?: 'signin' | 'signup' | 'policy'
   belowCard?: ReactNode
   footer?: ReactNode
   tone?: 'dark' | 'light'
@@ -76,7 +76,7 @@ export default function AuthLayout({
                 >
                   <span className={variant === 'signin' ? 'size-2 rounded-full bg-[#ABFF63]' : 'size-2 rounded-full bg-lime-400'} />
                   <span className={variant === 'signin' ? 'font-medium' : 'font-semibold text-md'}>
-                    {variant === 'signin' ? 'Sign in' : 'Sign Up'}
+                    {variant === 'signin' ? 'Sign in' : variant === 'policy' ? 'Policies' : 'Sign Up'}
                   </span>
                 </div>
                 <div className={isDark ? 'mt-6' : 'mt-4'}>

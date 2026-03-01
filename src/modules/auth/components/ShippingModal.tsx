@@ -34,8 +34,9 @@ interface SelectedPackage {
   isComboBundle?: boolean  // True for contract combo bundles (m2m_combo)
   planAllocation?: {  // Allocation in Rands for each service (contract dynamic plans)
     data: number
-    voice: number
+    airtime: number
     sms: number
+    voice: number
     whatsapp: number
   }
   comboDetails?: any  // Full combo package details (benefits, pricing, etc.)
@@ -207,15 +208,28 @@ export default function ShippingModal({
           }
         }
         
-        if (selectedPackage.planAllocation.voice > 0) {
-          services.push({
-            value: selectedPackage.planAllocation.voice,
-            definitionCode: 'GPA_CREDIT',
-            expiryDate,
-            priceInCents: selectedPackage.planAllocation.voice * 100
-          })
+        if (selectedPackage.planAllocation.airtime > 0) {
+          const airtimeValue = convertRandsToServiceValue('AIRTIME', selectedPackage.planAllocation.airtime, selectedPackage.packageType || 'prepaid')
+          if (airtimeValue !== null) {
+            services.push({
+              value: airtimeValue,
+              definitionCode: 'GPA_CREDIT',
+              expiryDate,
+              priceInCents: selectedPackage.planAllocation.airtime * 100
+            })
+          }
         }
-        
+        if (selectedPackage.planAllocation.voice > 0) {
+          const voiceValue = convertRandsToServiceValue('VOICE', selectedPackage.planAllocation.voice, selectedPackage.packageType || 'prepaid')
+          if (voiceValue !== null) {
+            services.push({
+              value: voiceValue,
+              definitionCode: 'VOICE',
+              expiryDate,
+              priceInCents: selectedPackage.planAllocation.voice * 100
+            })
+          }
+        }
         if (selectedPackage.planAllocation.sms > 0) {
           const smsValue = convertRandsToServiceValue('SMS', selectedPackage.planAllocation.sms, selectedPackage.packageType || 'prepaid')
           if (smsValue !== null) {
@@ -224,6 +238,17 @@ export default function ShippingModal({
               definitionCode: 'SMS',
               expiryDate,
               priceInCents: selectedPackage.planAllocation.sms * 100
+            })
+          }
+        }
+        if (selectedPackage.planAllocation.whatsapp > 0) {
+          const whatsappValue = convertRandsToServiceValue('WHATSAPP', selectedPackage.planAllocation.whatsapp, selectedPackage.packageType || 'prepaid')
+          if (whatsappValue !== null) {
+            services.push({
+              value: whatsappValue,
+              definitionCode: 'WHATSAPP',
+              expiryDate,
+              priceInCents: selectedPackage.planAllocation.whatsapp * 100
             })
           }
         }
@@ -400,14 +425,29 @@ export default function ShippingModal({
               })
             }
           }
+          if (planAllocation.airtime > 0) {
+            const airtimeValue = convertRandsToServiceValue('AIRTIME', planAllocation.airtime, selectedPackage!.packageType || 'prepaid')
+            if (airtimeValue !== null) {
+              pendingServices.push({
+                definitionCode: 'GPA_CREDIT' as const,
+                value: airtimeValue,
+                priceInCents: planAllocation.airtime * 100,
+                expiryDate,
+                paymentReference: reference
+              })
+            }
+          }
           if (planAllocation.voice > 0) {
-            pendingServices.push({
-              definitionCode: 'GPA_CREDIT' as const,
-              value: planAllocation.voice,
-              priceInCents: planAllocation.voice * 100,
-              expiryDate,
-              paymentReference: reference
-            })
+            const voiceValue = convertRandsToServiceValue('VOICE', planAllocation.voice, selectedPackage!.packageType || 'prepaid')
+            if (voiceValue !== null) {
+              pendingServices.push({
+                definitionCode: 'VOICE' as const,
+                value: voiceValue,
+                priceInCents: planAllocation.voice * 100,
+                expiryDate,
+                paymentReference: reference
+              })
+            }
           }
           if (planAllocation.sms > 0) {
             const smsValue = convertRandsToServiceValue('SMS', planAllocation.sms, selectedPackage!.packageType || 'prepaid')
@@ -453,12 +493,25 @@ export default function ShippingModal({
               })
             }
           }
+          if (planAllocation.airtime > 0) {
+            const airtimeValue = convertRandsToServiceValue('AIRTIME', planAllocation.airtime, selectedPackage!.packageType || 'prepaid')
+            if (airtimeValue !== null) {
+              services.push({
+                value: airtimeValue,
+                definitionCode: 'GPA_CREDIT' as const,
+                expiryDate
+              })
+            }
+          }
           if (planAllocation.voice > 0) {
-            services.push({
-              value: planAllocation.voice,
-              definitionCode: 'GPA_CREDIT' as const,
-              expiryDate
-            })
+            const voiceValue = convertRandsToServiceValue('VOICE', planAllocation.voice, selectedPackage!.packageType || 'prepaid')
+            if (voiceValue !== null) {
+              services.push({
+                value: voiceValue,
+                definitionCode: 'VOICE' as const,
+                expiryDate
+              })
+            }
           }
           if (planAllocation.sms > 0) {
             const smsValue = convertRandsToServiceValue('SMS', planAllocation.sms, selectedPackage!.packageType || 'prepaid')
@@ -548,15 +601,28 @@ export default function ShippingModal({
               }
             }
             
-            if (selectedPackage!.planAllocation.voice > 0) {
-              services.push({
-                value: selectedPackage!.planAllocation.voice,
-                definitionCode: 'GPA_CREDIT',
-                expiryDate,
-                priceInCents: selectedPackage!.planAllocation.voice * 100
-              })
+            if (selectedPackage!.planAllocation.airtime > 0) {
+              const airtimeValue = convertRandsToServiceValue('AIRTIME', selectedPackage!.planAllocation.airtime, selectedPackage!.packageType || 'prepaid')
+              if (airtimeValue !== null) {
+                services.push({
+                  value: airtimeValue,
+                  definitionCode: 'GPA_CREDIT',
+                  expiryDate,
+                  priceInCents: selectedPackage!.planAllocation.airtime * 100
+                })
+              }
             }
-            
+            if (selectedPackage!.planAllocation.voice > 0) {
+              const voiceValue = convertRandsToServiceValue('VOICE', selectedPackage!.planAllocation.voice, selectedPackage!.packageType || 'prepaid')
+              if (voiceValue !== null) {
+                services.push({
+                  value: voiceValue,
+                  definitionCode: 'VOICE',
+                  expiryDate,
+                  priceInCents: selectedPackage!.planAllocation.voice * 100
+                })
+              }
+            }
             if (selectedPackage!.planAllocation.sms > 0) {
               const smsValue = convertRandsToServiceValue('SMS', selectedPackage!.planAllocation.sms, selectedPackage!.packageType || 'prepaid')
               if (smsValue !== null) {
@@ -738,16 +804,22 @@ export default function ShippingModal({
                           <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.data}</div>
                         </div>
                       )}
-                      {selectedPackage.planAllocation.voice > 0 && (
+                      {selectedPackage.planAllocation.airtime > 0 && (
                         <div className="rounded-[18px] bg-[#ABFF63] p-4">
                           <div className="text-neutral-900 text-base">Airtime</div>
-                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.voice}</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.airtime}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.sms > 0 && (
                         <div className="rounded-[18px] bg-[#ABFF63] p-4">
                           <div className="text-neutral-900 text-base">SMS</div>
                           <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.sms}</div>
+                        </div>
+                      )}
+                      {selectedPackage.planAllocation.voice > 0 && (
+                        <div className="rounded-[18px] bg-[#ABFF63] p-4">
+                          <div className="text-neutral-900 text-base">Voice minutes</div>
+                          <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.voice}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.whatsapp > 0 && (

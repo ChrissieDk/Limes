@@ -12,7 +12,8 @@ import ForgotPassword from './modules/auth/pages/ForgotPassword'
 import VerifyEmail from './modules/auth/pages/VerifyEmail'
 import ResetPassword from './modules/auth/pages/ResetPassword'
 import AuthAction from './modules/auth/pages/AuthAction'
-import TermsAndConditions from './modules/auth/pages/TermsAndConditions.tsx'
+import TermsAndConditions from './modules/auth/pages/TermsAndConditions'
+import FairUsagePolicy from './modules/auth/pages/FairUsagePolicy'
 
 import './config/firebase'
 
@@ -80,6 +81,10 @@ const router = createBrowserRouter([
   {
     path: '/terms',
     element: <TermsAndConditions />,
+  },
+  {
+    path: '/fair-usage-policy',
+    element: <FairUsagePolicy />,
   },
 ], {
   basename: (import.meta.env.BASE_URL || '/').replace(/\/$/, ''),

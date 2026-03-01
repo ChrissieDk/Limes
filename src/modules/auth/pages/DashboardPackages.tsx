@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardNavbar from '../components/DashboardNavbar'
 import Footer from '../components/Footer'
-import PlanBuilder from '../components/PlanBuilder'
+import PlanBuilder, { type PlanAllocation } from '../components/PlanBuilder'
 import { catalogService } from '../../catalog/services/catalogService'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
@@ -39,12 +39,7 @@ export default function DashboardPackages() {
   
   // Plan builder for CONTRACT only
   const [showPlanBuilder, setShowPlanBuilder] = useState(false)
-  const [planAllocation, setPlanAllocation] = useState<{
-    data: number
-    voice: number
-    sms: number
-    whatsapp: number
-  } | null>(null)
+  const [planAllocation, setPlanAllocation] = useState<PlanAllocation | null>(null)
   
   // NEW: Contract flow type - dynamic (build your own) or combo (bundles)
   const [contractFlowType, setContractFlowType] = useState<'dynamic' | 'combo' | null>(null)
@@ -324,11 +319,11 @@ export default function DashboardPackages() {
     setIccidConfirmed(false)
   }
 
-  const handlePlanContinue = (allocation: { data: number; voice: number; sms: number; whatsapp: number }) => {
+  const handlePlanContinue = (allocation: PlanAllocation) => {
     setPlanAllocation(allocation)
     
     // Calculate total price
-    const totalPriceInRands = allocation.data + allocation.voice + allocation.sms + allocation.whatsapp
+    const totalPriceInRands = allocation.data + allocation.airtime + allocation.sms + allocation.voice + allocation.whatsapp
     const totalPriceInCents = totalPriceInRands * 100 // For Paystack payment
     
     // Navigate to dashboard with contract plan details
@@ -345,9 +340,15 @@ export default function DashboardPackages() {
           planChargeType: 'monthly',
           iccid: simStatus === 'has-sim' ? iccid : undefined,
           isDynamicPlan: true,
-          planAllocation: allocation, // { data: R, voice: R, sms: R, whatsapp: R }
+          planAllocation: allocation,
           features: {
-            description: `Data: R${allocation.data}, Voice: R${allocation.voice}, SMS: R${allocation.sms}, WhatsApp: R${allocation.whatsapp}`
+            description: [
+              allocation.data > 0 && `Data: R${allocation.data}`,
+              allocation.airtime > 0 && `Airtime: R${allocation.airtime}`,
+              allocation.sms > 0 && `SMS: R${allocation.sms}`,
+              allocation.voice > 0 && `Voice: R${allocation.voice}`,
+              allocation.whatsapp > 0 && `WhatsApp: R${allocation.whatsapp}`,
+            ].filter(Boolean).join(', ') || 'Custom plan'
           }
         }
       }

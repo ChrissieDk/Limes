@@ -1,5 +1,6 @@
 export interface MsisdnData {
   msisdn: string
+  simDescription?: string
   hasActiveSubscription: boolean
   isAutoRenewing: boolean
   subscriptionStatus: string
