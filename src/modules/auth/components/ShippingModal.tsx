@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
