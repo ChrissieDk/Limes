@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
 import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
@@ -868,7 +868,7 @@ export default function ShippingModal({
                 <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
                   Shipping address
                 </h3>
-                {!showAddAddress && (
+                {/* {!showAddAddress && (
                   <button
                     onClick={() => setShowAddAddress(true)}
                     className="inline-flex items-center gap-1 text-sm font-semibold text-lime-700 hover:text-lime-800"
@@ -876,7 +876,7 @@ export default function ShippingModal({
                     <Plus className="w-4 h-4" />
                     Add New Address
                   </button>
-                )}
+                )} */}
               </div>
 
               {/* Address List */}
