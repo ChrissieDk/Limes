@@ -13,6 +13,7 @@ import {
   type CreateCustomerFormValues,
 } from '../validation/createCustomerSchemas'
 import type { CreateAccountCustomerRequest, CatalogProduct } from '../../../types'
+import type { PlanAllocation } from './PlanBuilder'
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -565,21 +566,34 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
       {/* Shipping Modal - shown after RICA completion */}
       {showShippingModal && selectedPackage && (() => {
         const v = getValues()
+        const pkg = selectedPackage as CatalogProduct & {
+          priceInCents?: number
+          isComboBundle?: boolean
+          isDynamicPlan?: boolean
+          planAllocation?: PlanAllocation
+          comboDetails?: unknown
+          features?: { mobileData?: string }
+        }
         return (
           <ShippingModal
             open={showShippingModal}
             onClose={handleShippingClose}
             selectedPackage={{
-              productId: selectedPackage.productId || selectedPackage.id,
-              simPackageProductId: selectedPackage.simPackageProductId,
-              name: selectedPackage.name,
-              price: selectedPackage.price,
-              packageType: selectedPackage.packageType,
-              simStatus: selectedPackage.simStatus,
-              planChargeType: selectedPackage.planChargeType,
-              iccid: selectedPackage.iccid,
+              productId: pkg.productId || pkg.id,
+              simPackageProductId: pkg.simPackageProductId,
+              name: pkg.name,
+              price: pkg.price,
+              priceInCents: pkg.priceInCents,
+              packageType: pkg.packageType,
+              simStatus: pkg.simStatus,
+              planChargeType: pkg.planChargeType,
+              iccid: pkg.iccid,
+              isDynamicPlan: pkg.isDynamicPlan,
+              isComboBundle: pkg.isComboBundle,
+              planAllocation: pkg.planAllocation,
+              comboDetails: pkg.comboDetails,
               features: {
-                mobileData: selectedPackage.description || selectedPackage.features?.mobileData,
+                mobileData: pkg.description || pkg.features?.mobileData,
               }
             }}
             defaultAddress={{
