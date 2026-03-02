@@ -102,10 +102,12 @@ export default function DashboardPackages() {
         }
         
       if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
-        // Filter out FWA categories
-        const filteredCategories = onceOffTopUp.children.filter(category => 
-          !category.name?.toUpperCase().includes('FWA') && 
-          !category.id?.toUpperCase().includes('FWA')
+        // Filter out FWA and airtime categories (provider returns airtime with R0)
+        const filteredCategories = onceOffTopUp.children.filter(category =>
+          !category.name?.toUpperCase().includes('FWA') &&
+          !category.id?.toUpperCase().includes('FWA') &&
+          !category.name?.toUpperCase().includes('AIRTIME') &&
+          !category.id?.toUpperCase().includes('AIRTIME')
         )
         setBundleCategories(filteredCategories)
         } else {
