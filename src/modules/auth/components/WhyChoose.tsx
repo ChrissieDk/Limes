@@ -118,6 +118,18 @@ export default function WhyChoose() {
         </h2>
       </div>
 
+      <div className="mt-10 w-full max-w-5xl mx-auto">
+        <img
+          src={`${import.meta.env.BASE_URL}images/benefits.svg`}
+          alt=""
+          className="w-full h-auto block"
+          width={1043}
+          height={146}
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+
       <div className="mt-10 flex items-center justify-center">
         <h3 className="font-grotesque font-bold text-neutral-400 text-[30px] sm:text-[36px] md:text-[44px] text-center leading-[1.05]">
           Build out your plan

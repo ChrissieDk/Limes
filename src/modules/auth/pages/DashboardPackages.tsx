@@ -6,6 +6,7 @@ import PlanBuilder, { type PlanAllocation } from '../components/PlanBuilder'
 import { catalogService } from '../../catalog/services/catalogService'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
+import PackageFlowBreadcrumbs from '../components/dashboard/PackageFlowBreadcrumbs'
 import { enrichComboPackages, type EnrichedComboPackage } from '../../catalog/utils/packageEnricher'
 
 type PackageType = 'contract' | 'prepaid' | null
@@ -451,9 +452,28 @@ export default function DashboardPackages() {
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
-      <main className="p-6 max-w-6xl mx-auto">
+      <main className="px-4 sm:px-6 pb-6 max-w-6xl mx-auto">
         <section className="relative bg-neutral-900">
-          <div className="mx-auto max-w-6xl px-2 sm:px-6 pt-2 sm:pt-6">
+          {/* Breadcrumbs: same horizontal frame as max-w-4xl choice cards (left edges line up) */}
+          <div className="mx-auto max-w-5xl px-2 sm:px-6 lg:px-8 pt-6 sm:pt-10">
+            <div className="max-w-4xl mx-auto w-full">
+              <PackageFlowBreadcrumbs
+                state={{
+                  packageType,
+                  contractFlowType,
+                  simStatus,
+                  iccidConfirmed,
+                  bundleCategories,
+                  selectedBundleCategory,
+                  showPackages,
+                  showPlanBuilder,
+                  planAllocation,
+                  comboBundleCount: comboBundles.length,
+                }}
+              />
+            </div>
+          </div>
+          <div className="mx-auto max-w-6xl px-2 sm:px-6 pt-4 sm:pt-6">
             <div className="flex items-center justify-center text-sm text-neutral-400">
               <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Packages
             </div>
