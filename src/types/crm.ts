@@ -211,4 +211,28 @@ export interface GetAccountCustomerResponse {
   customer: RicaCustomer
 }
 
+/** PATCH /crm/update/customer */
+export interface UpdateCustomerDetailPayload {
+  firstname: string
+  lastname: string
+  requireSecurityQuestions: boolean
+}
+
+export interface UpdateCustomerAddressPayload {
+  addressType: number
+  streetNo: string
+  streetName: string
+  suburb: string
+  city: string
+  stateOrProvince: string
+  postCode: string
+  country: string
+}
+
+export interface UpdateCustomerRequest {
+  isResidential: boolean
+  detail: UpdateCustomerDetailPayload
+  address: UpdateCustomerAddressPayload[]
+}
+
 

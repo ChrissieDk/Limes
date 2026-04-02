@@ -4,7 +4,8 @@ import type {
   SearchAccountsResponse,
   CreateAccountCustomerRequest,
   CreateAccountCustomerResponse,
-  GetAccountCustomerResponse
+  GetAccountCustomerResponse,
+  UpdateCustomerRequest,
 } from '../../../types'
 
 export const crmService = {
@@ -24,6 +25,10 @@ export const crmService = {
   async getAccountCustomer(): Promise<GetAccountCustomerResponse> {
     const response = await apiClient.get('/crm/account/customer')
     return response.data
+  },
+
+  async updateCustomer(payload: UpdateCustomerRequest): Promise<void> {
+    await apiClient.patch('/crm/update/customer', payload)
   },
 }
 
