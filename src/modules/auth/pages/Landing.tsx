@@ -15,8 +15,9 @@ export default function Landing() {
       <div>
         <Hero />
         <WhyChoose />
-        <HowToJoin />
+        
         <Packages />
+        <HowToJoin />
         <Partners />
         <TelecomCta />
         <Footer />

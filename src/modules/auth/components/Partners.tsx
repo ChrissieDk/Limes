@@ -125,13 +125,8 @@ export default function Partners() {
 
       <div className="mt-10 flex items-center justify-center gap-4">
         <div className="w-44">
-          <Link to="/signin">
-            <Button variant="primary">View Packages</Button>
-          </Link>
-        </div>
-        <div className="w-40">
           <Link to="/contact">
-            <Button variant="secondary">Contact Us</Button>
+            <Button variant="primary">Contact Us</Button>
           </Link>
         </div>
       </div>
