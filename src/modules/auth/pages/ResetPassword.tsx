@@ -9,6 +9,7 @@ import AuthLayout from '../layouts/AuthLayout'
 import TextField from '../components/TextField'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
+import { getFirebaseAuthErrorMessage } from '../utils/firebaseAuthErrorMessage'
 
 const schema = z
   .object({
@@ -77,8 +78,7 @@ export default function ResetPassword() {
       await confirmPasswordReset(auth, oobCode, values.password)
       setSuccess(true)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to reset password'
-      setSubmitError(message)
+      setSubmitError(getFirebaseAuthErrorMessage(err, 'accountAction'))
     } finally {
       setSubmitting(false)
     }
