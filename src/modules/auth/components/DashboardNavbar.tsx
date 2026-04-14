@@ -24,6 +24,15 @@ const writeCachedDisplayName = (uid: string, value: string) => {
   }
 }
 
+/** Call after CRM name changes so the navbar refetches display name. */
+export function clearDashboardDisplayNameCache(uid: string) {
+  try {
+    sessionStorage.removeItem(cacheKey(uid))
+  } catch {
+    // no-op
+  }
+}
+
 const navItems = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Subscriptions', to: '/dashboard/subscriptions' },
@@ -198,8 +207,16 @@ export default function DashboardNavbar() {
                 </button>
 
                 {accountMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg p-2 text-sm">
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-neutral-700 bg-neutral-800 shadow-lg p-2 text-sm">
+                    <Link
+                      to="/dashboard/edit-details"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="block w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition-colors text-white"
+                    >
+                      Edit details
+                    </Link>
                     <button
+                      type="button"
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
                     >
@@ -254,8 +271,18 @@ export default function DashboardNavbar() {
                   </Link>
                 </li>
               ))}
-              <li className="pt-2">
+              <li className="pt-2 border-t border-white/10 mt-2">
+                <Link
+                  to="/dashboard/edit-details"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-white/5 text-white"
+                >
+                  Edit details
+                </Link>
+              </li>
+              <li>
                 <button
+                  type="button"
                   onClick={handleLogout}
                   className="w-full text-left px-3 py-2.5 rounded-lg text-sm bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors"
                 >
