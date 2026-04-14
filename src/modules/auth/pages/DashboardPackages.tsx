@@ -16,6 +16,7 @@ type SimStatus = 'has-sim' | 'needs-sim' | null
 // Product ID mapping based on API responses
 // CRITICAL: SA = SIM in hand (already have SIM)
 //           SOA = Need SIM delivered (don't have SIM yet)
+// DO NOT CHANGES
 const PRODUCT_IDS = {
   // SA = SIM Already in hand (I have a SIM)
   PREPAID_SA: '7029225P',      // Prepaid - SIM in hand → Mobile Prepaid Package
