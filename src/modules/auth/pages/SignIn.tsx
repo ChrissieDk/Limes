@@ -9,6 +9,7 @@ import Checkbox from '../components/Checkbox'
 import Footer from '../components/Footer'
 import { useState } from 'react'
 import { firebaseAuthService } from '../services/firebaseAuthService'
+import { getFirebaseAuthErrorMessage } from '../utils/firebaseAuthErrorMessage'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -36,8 +37,7 @@ export default function SignIn() {
       localStorage.setItem('authToken', idToken)
       navigate('/dashboard/packages')
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to sign in'
-      setSubmitError(message)
+      setSubmitError(getFirebaseAuthErrorMessage(err, 'signIn'))
     } finally {
       setSubmitting(false)
     }
