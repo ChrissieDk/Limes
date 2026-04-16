@@ -1,4 +1,5 @@
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import RootLayout from './RootLayout'
 import SignUp from './modules/auth/pages/SignUp'
 import SignIn from './modules/auth/pages/SignIn'
 import Dashboard from './modules/auth/pages/Dashboard'
@@ -20,76 +21,81 @@ import './config/firebase'
 
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <Landing />,
-  },
-  {
-    path: '/faqs',
-    element: <Faqs />,
-  },
-  {
-    path: '/register',
-    element: <SignUp />,
-  },
-  {
-    path: '/signup',
-    element: <SignUp />,
-  },
-  {
-    path: '/signin',
-    element: <SignIn />,
-  },
-  {
-    path: '/forgot-password',
-    element: <ForgotPassword />,
-  },
-  {
-    path: '/auth/action',
-    element: <AuthAction />,
-  },
-  {
-    path: '/auth/verify-email',
-    element: <VerifyEmail />,
-  },
-  {
-    path: '/auth/reset-password',
-    element: <ResetPassword />,
-  },
-  {
-    path: '/dashboard',
-    element: <Dashboard />,
-  },
-  {
-    path: '/dashboard/packages',
-    element: <DashboardPackages />,
-  },
-  {
-    path: '/dashboard/payment-methods',
-    element: <PaymentMethods />,
-  },
-  {
-    path: '/dashboard/subscriptions',
-    element: <Subscriptions />,
-  },
-  {
-    path: '/dashboard/edit-details',
-    element: <AccountDetails />,
-  },
-  {
-    path: '/contact',
-    element: <Contact />,
-  },
-  {
-    path: '/terms-and-conditions',
-    element: <TermsAndConditions />,
-  },
-  {
-    path: '/terms',
-    element: <TermsAndConditions />,
-  },
-  {
-    path: '/fair-usage-policy',
-    element: <FairUsagePolicy />,
+    element: <RootLayout />,
+    children: [
+      {
+        path: '/',
+        element: <Landing />,
+      },
+      {
+        path: '/faqs',
+        element: <Faqs />,
+      },
+      {
+        path: '/register',
+        element: <SignUp />,
+      },
+      {
+        path: '/signup',
+        element: <SignUp />,
+      },
+      {
+        path: '/signin',
+        element: <SignIn />,
+      },
+      {
+        path: '/forgot-password',
+        element: <ForgotPassword />,
+      },
+      {
+        path: '/auth/action',
+        element: <AuthAction />,
+      },
+      {
+        path: '/auth/verify-email',
+        element: <VerifyEmail />,
+      },
+      {
+        path: '/auth/reset-password',
+        element: <ResetPassword />,
+      },
+      {
+        path: '/dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: '/dashboard/packages',
+        element: <DashboardPackages />,
+      },
+      {
+        path: '/dashboard/payment-methods',
+        element: <PaymentMethods />,
+      },
+      {
+        path: '/dashboard/subscriptions',
+        element: <Subscriptions />,
+      },
+      {
+        path: '/dashboard/edit-details',
+        element: <AccountDetails />,
+      },
+      {
+        path: '/contact',
+        element: <Contact />,
+      },
+      {
+        path: '/terms-and-conditions',
+        element: <TermsAndConditions />,
+      },
+      {
+        path: '/terms',
+        element: <TermsAndConditions />,
+      },
+      {
+        path: '/fair-usage-policy',
+        element: <FairUsagePolicy />,
+      },
+    ],
   },
 ], {
   basename: (import.meta.env.BASE_URL || '/').replace(/\/$/, ''),
