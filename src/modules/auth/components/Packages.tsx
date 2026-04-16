@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 
 export default function Packages() {
+  const buyPath = useAuthLandingCtaPath('/signup')
   const bulletSrc = `${import.meta.env.BASE_URL}images/plan_icon_small.svg`
   const bulletSrcYellow = `${import.meta.env.BASE_URL}images/plan_icon_yellow_small.svg`
 
@@ -127,7 +129,7 @@ export default function Packages() {
 
                 <div className="mt-auto pt-4">
                   <Link
-                    to="/signup"
+                    to={buyPath}
                     className="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
                   >
                     Buy now

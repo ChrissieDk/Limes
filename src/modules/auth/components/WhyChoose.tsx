@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 import { getServiceDisplayValue, isServiceAvailable } from '../../payment/utils/dynamicPricing'
 import type { ServiceType } from '../../payment/utils/dynamicPricing'
 import type { PackageType } from '../../payment/config/ratingTable'
 
 export default function WhyChoose() {
+  const ctaPath = useAuthLandingCtaPath('/signin')
   const packageType: PackageType = 'prepaid'
   const planTilesHeightLgPx = 528
 
@@ -257,7 +259,7 @@ export default function WhyChoose() {
 
           <div className="mt-auto pt-6">
             <Link
-              to="/signin"
+              to={ctaPath}
               className="inline-flex items-center justify-between w-full rounded-2xl bg-[#ABFF63] text-neutral-900 font-semibold px-5 py-3 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] border-2 border-black/70 hover:bg-[#ABFF63]/90 transition-colors"
             >
               <span>Squeeze &apos;em</span>
