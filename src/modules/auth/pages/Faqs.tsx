@@ -17,11 +17,11 @@ export default function Faqs() {
             Head to{' '}
             <a
               className="underline hover:text-white"
-              href="https://www.limesmobile.co.za"
+              href="https://www.limes.network"
               target="_blank"
               rel="noreferrer"
             >
-              www.limesmobile.co.za
+              www.limes.network
             </a>
             .
           </li>
