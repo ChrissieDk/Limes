@@ -5,6 +5,7 @@ import { auth } from '../../../config/firebase'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { userService } from '../services/userService'
 import { crmService } from '../../crm/services/crmService'
+import { userHasProvisionedSim } from '../utils/userProvisioning'
 
 const cacheKey = (uid: string) => `limes:display-name:${uid}`
 
@@ -40,7 +41,15 @@ const navItems = [
   { label: 'Add a SIM', to: '/dashboard/packages' },
   // { label: 'Address Book', to: '/dashboard/address-book' },
   // { label: 'Wallet', to: '/dashboard/wallet' },
-]
+] as const
+
+const PROVISIONED_ONLY_PATHS = new Set<string>([
+  '/dashboard',
+  '/dashboard/subscriptions',
+  '/dashboard/payment-methods',
+])
+
+const DISABLED_TAB_TITLE = 'Complete your plan and SIM setup first.'
 
 export default function DashboardNavbar() {
   const { pathname } = useLocation()
@@ -49,9 +58,13 @@ export default function DashboardNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const addSimColor = '#ABFF63'
   const [displayName, setDisplayName] = useState<string>('Account')
+  const [hasProvisionedSim, setHasProvisionedSim] = useState<boolean | null>(null)
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
 
   const isNavItemActive = (path: string) => pathname === path
+
+  const isTabLocked = (to: string) =>
+    PROVISIONED_ONLY_PATHS.has(to) && hasProvisionedSim !== true
 
   const avatarSeed = useMemo(() => displayName || 'user', [displayName])
 
@@ -135,6 +148,51 @@ export default function DashboardNavbar() {
     setAccountMenuOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    let cancelled = false
+
+    const loadProvisioned = async () => {
+      const firebaseUser = auth.currentUser
+      if (!firebaseUser) {
+        if (!cancelled) setHasProvisionedSim(null)
+        return
+      }
+      try {
+        const user = await userService.getCurrentUser()
+        if (!cancelled) setHasProvisionedSim(userHasProvisionedSim(user))
+      } catch {
+        if (!cancelled) setHasProvisionedSim(false)
+      }
+    }
+
+    const unsub = onAuthStateChanged(auth, () => {
+      void loadProvisioned()
+    })
+
+    void loadProvisioned()
+
+    return () => {
+      cancelled = true
+      unsub()
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    const onPaymentSuccess = () => {
+      void (async () => {
+        if (!auth.currentUser) return
+        try {
+          const user = await userService.getCurrentUser()
+          setHasProvisionedSim(userHasProvisionedSim(user))
+        } catch {
+          setHasProvisionedSim(false)
+        }
+      })()
+    }
+    window.addEventListener('limes:payment-success', onPaymentSuccess)
+    return () => window.removeEventListener('limes:payment-success', onPaymentSuccess)
+  }, [])
+
   const handleLogout = async () => {
     try {
       await signOut(auth)
@@ -150,7 +208,7 @@ export default function DashboardNavbar() {
           <div className="flex items-center justify-between px-4 py-3">
             {/* Logo */}
             <div className="flex items-center">
-              <Link to="/dashboard">
+              <Link to={hasProvisionedSim === true ? '/dashboard' : '/dashboard/packages'}>
                 <img src={`${import.meta.env.BASE_URL}images/limes_high_def_logo.svg`} alt="Limes" className="h-7" />
               </Link>
             </div>
@@ -160,28 +218,48 @@ export default function DashboardNavbar() {
               <ul className="flex items-center gap-7 text-sm whitespace-nowrap">
                 {navItems.map((item) => (
                   <li key={item.to}>
-                    <Link
-                      to={item.to}
-                      className="group inline-flex flex-col items-center gap-0.5 py-1"
-                    >
+                    {isTabLocked(item.to) ? (
                       <span
-                        className="font-medium transition-colors"
-                        style={{
-                          color: item.to === '/dashboard/packages'
-                            ? addSimColor
-                            : isNavItemActive(item.to)
-                            ? '#FFFFFF'
-                            : 'rgba(255,255,255,0.9)',
-                        }}
+                        role="link"
+                        aria-disabled
+                        title={DISABLED_TAB_TITLE}
+                        className="group inline-flex flex-col items-center gap-0.5 py-1 opacity-40 cursor-not-allowed select-none"
                       >
-                        {item.label}
+                        <span
+                          className="font-medium transition-colors text-white/50"
+                        >
+                          {item.label}
+                        </span>
+                        <span
+                          className={`size-1.5 rounded-full transition-opacity ${
+                            isNavItemActive(item.to) ? 'opacity-100 bg-white/50' : 'opacity-0'
+                          }`}
+                        />
                       </span>
-                      <span
-                        className={`size-1.5 rounded-full transition-opacity ${
-                          isNavItemActive(item.to) ? 'opacity-100 bg-white' : 'opacity-0'
-                        }`}
-                      />
-                    </Link>
+                    ) : (
+                      <Link
+                        to={item.to}
+                        className="group inline-flex flex-col items-center gap-0.5 py-1"
+                      >
+                        <span
+                          className="font-medium transition-colors"
+                          style={{
+                            color: item.to === '/dashboard/packages'
+                              ? addSimColor
+                              : isNavItemActive(item.to)
+                              ? '#FFFFFF'
+                              : 'rgba(255,255,255,0.9)',
+                          }}
+                        >
+                          {item.label}
+                        </span>
+                        <span
+                          className={`size-1.5 rounded-full transition-opacity ${
+                            isNavItemActive(item.to) ? 'opacity-100 bg-white' : 'opacity-0'
+                          }`}
+                        />
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -246,29 +324,45 @@ export default function DashboardNavbar() {
             <ul className="px-4 pb-4 space-y-1">
               {navItems.map((item) => (
                 <li key={item.to}>
-                  <Link
-                    to={item.to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-white/5"
-                  >
+                  {isTabLocked(item.to) ? (
                     <span
-                      className="font-medium"
-                      style={{
-                        color: item.to === '/dashboard/packages'
-                          ? addSimColor
-                          : isNavItemActive(item.to)
-                          ? '#FFFFFF'
-                          : 'rgba(255,255,255,0.9)',
-                      }}
+                      role="link"
+                      aria-disabled
+                      title={DISABLED_TAB_TITLE}
+                      className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm opacity-40 cursor-not-allowed select-none"
                     >
-                      {item.label}
+                      <span className="font-medium text-white/50">{item.label}</span>
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          isNavItemActive(item.to) ? 'opacity-100 bg-white/50' : 'opacity-0'
+                        }`}
+                      />
                     </span>
-                    <span
-                      className={`size-1.5 rounded-full ${
-                        isNavItemActive(item.to) ? 'opacity-100 bg-white' : 'opacity-0'
-                      }`}
-                    />
-                  </Link>
+                  ) : (
+                    <Link
+                      to={item.to}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-white/5"
+                    >
+                      <span
+                        className="font-medium"
+                        style={{
+                          color: item.to === '/dashboard/packages'
+                            ? addSimColor
+                            : isNavItemActive(item.to)
+                            ? '#FFFFFF'
+                            : 'rgba(255,255,255,0.9)',
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          isNavItemActive(item.to) ? 'opacity-100 bg-white' : 'opacity-0'
+                        }`}
+                      />
+                    </Link>
+                  )}
                 </li>
               ))}
               <li className="pt-2 border-t border-white/10 mt-2">
