@@ -1,7 +1,89 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type React from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink } from 'lucide-react';
 import type { Transaction } from './dashboardTypes.ts';
+
+type TransactionSortKey = 'type' | 'status' | 'date' | 'amount';
+type SortDirection = 'asc' | 'desc';
+
+function getTransactionTypeLabel(transaction: Transaction): string {
+  if (transaction.channel === 'card') {
+    return 'Card Payment';
+  }
+  return 'Payment';
+}
+
+function sortTransactions(
+  items: Transaction[],
+  key: TransactionSortKey,
+  dir: SortDirection
+): Transaction[] {
+  const factor = dir === 'asc' ? 1 : -1;
+  return [...items].sort((a, b) => {
+    let cmp = 0;
+    switch (key) {
+      case 'type':
+        cmp = getTransactionTypeLabel(a).localeCompare(getTransactionTypeLabel(b));
+        break;
+      case 'status':
+        cmp = a.status.localeCompare(b.status);
+        break;
+      case 'date': {
+        const ta = new Date(a.paidAt || a.createdAt).getTime();
+        const tb = new Date(b.paidAt || b.createdAt).getTime();
+        cmp = ta - tb;
+        break;
+      }
+      case 'amount':
+        cmp = a.amountInRands - b.amountInRands;
+        break;
+    }
+    return cmp * factor;
+  });
+}
+
+interface SortableHeaderButtonProps {
+  label: string;
+  columnKey: TransactionSortKey;
+  activeKey: TransactionSortKey | null;
+  direction: SortDirection;
+  onSort: (key: TransactionSortKey) => void;
+}
+
+function SortableHeaderButton({
+  label,
+  columnKey,
+  activeKey,
+  direction,
+  onSort,
+}: SortableHeaderButtonProps) {
+  const active = activeKey === columnKey;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(columnKey)}
+      className={`group inline-flex cursor-pointer items-center gap-1.5 font-inherit text-sm select-none transition-colors ${
+        active ? 'text-neutral-200' : 'text-neutral-500 hover:text-neutral-300'
+      }`}
+    >
+      <span>{label}</span>
+      <span className="flex flex-col leading-none" aria-hidden>
+        {active ? (
+          direction === 'asc' ? (
+            <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+          )
+        ) : (
+          <span className="flex flex-col opacity-60 group-hover:opacity-90">
+            <ChevronUp className="w-3 h-3 -mb-1 shrink-0" />
+            <ChevronDown className="w-3 h-3 shrink-0" />
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
 
 interface StatusBadgeProps {
   status: Transaction['status'];
@@ -52,6 +134,23 @@ interface TransactionHistoryProps {
 }
 
 export function TransactionHistory({ transactions, loading, className, onOpenFullView }: TransactionHistoryProps) {
+  const [sortKey, setSortKey] = useState<TransactionSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
+
+  const handleSort = (key: TransactionSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedTransactions = useMemo(() => {
+    if (sortKey === null) return transactions;
+    return sortTransactions(transactions, sortKey, sortDir);
+  }, [transactions, sortKey, sortDir]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -59,14 +158,6 @@ export function TransactionHistory({ transactions, loading, className, onOpenFul
       month: 'short', 
       day: 'numeric' 
     });
-  };
-
-  const getTransactionType = (transaction: Transaction) => {
-    // Map payment channel to display type
-    if (transaction.channel === 'card') {
-      return `Card Payment`;
-    }
-    return 'Payment';
   };
 
   return (
@@ -105,49 +196,51 @@ export function TransactionHistory({ transactions, loading, className, onOpenFul
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-neutral-500 text-sm border-b border-neutral-700/60">
-                  <th className="text-left pb-3">
-                    <div className="flex items-center space-x-1">
-                      <span>Type</span>
-                      <div className="flex flex-col">
-                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                      </div>
-                    </div>
+                <tr className="text-sm border-b border-neutral-700/60">
+                  <th className="text-left pb-3 font-medium">
+                    <SortableHeaderButton
+                      label="Type"
+                      columnKey="type"
+                      activeKey={sortKey}
+                      direction={sortDir}
+                      onSort={handleSort}
+                    />
                   </th>
-                  <th className="text-left pb-3">
-                    <div className="flex items-center space-x-1">
-                      <span>Status</span>
-                      <div className="flex flex-col">
-                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                      </div>
-                    </div>
+                  <th className="text-left pb-3 font-medium">
+                    <SortableHeaderButton
+                      label="Status"
+                      columnKey="status"
+                      activeKey={sortKey}
+                      direction={sortDir}
+                      onSort={handleSort}
+                    />
                   </th>
-                  <th className="text-left pb-3">
-                    <div className="flex items-center space-x-1">
-                      <span>Date</span>
-                      <div className="flex flex-col">
-                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                      </div>
-                    </div>
+                  <th className="text-left pb-3 font-medium">
+                    <SortableHeaderButton
+                      label="Date"
+                      columnKey="date"
+                      activeKey={sortKey}
+                      direction={sortDir}
+                      onSort={handleSort}
+                    />
                   </th>
-                  <th className="text-right pb-3">
-                    <div className="flex items-center justify-end space-x-1">
-                      <span>Amount</span>
-                      <div className="flex flex-col">
-                        <ChevronLeft className="w-3 h-3 rotate-90 text-neutral-400" />
-                        <ChevronRight className="w-3 h-3 -rotate-90 text-neutral-400" />
-                      </div>
+                  <th className="text-right pb-3 font-medium">
+                    <div className="flex justify-end w-full">
+                      <SortableHeaderButton
+                        label="Amount"
+                        columnKey="amount"
+                        activeKey={sortKey}
+                        direction={sortDir}
+                        onSort={handleSort}
+                      />
                     </div>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {transactions.slice(0, 5).map((transaction, index) => (
+                {sortedTransactions.slice(0, 5).map((transaction, index) => (
                   <tr key={transaction.id} className={index > 0 ? 'border-t border-neutral-800' : ''}>
-                    <td className="py-3 text-white text-sm">{getTransactionType(transaction)}</td>
+                    <td className="py-3 text-white text-sm">{getTransactionTypeLabel(transaction)}</td>
                     <td className="py-3">
                       <StatusBadge status={transaction.status} />
                     </td>
@@ -163,13 +256,13 @@ export function TransactionHistory({ transactions, loading, className, onOpenFul
 
           {/* Mobile stacked view */}
           <div className="space-y-2 md:hidden">
-            {transactions.slice(0, 5).map((transaction) => (
+            {sortedTransactions.slice(0, 5).map((transaction) => (
               <div
                 key={transaction.id}
                 className="rounded-lg border border-neutral-700 bg-neutral-900/40 px-3 py-2.5 flex items-start justify-between gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white">{getTransactionType(transaction)}</div>
+                  <div className="text-sm font-medium text-white">{getTransactionTypeLabel(transaction)}</div>
                   <div className="mt-1 text-xs text-neutral-400">{formatDate(transaction.paidAt || transaction.createdAt)}</div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
@@ -195,11 +288,39 @@ interface TransactionsModalProps {
 
 export function TransactionsModal({ open, onClose, transactions }: TransactionsModalProps) {
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<TransactionSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const pageSize = 8;
-  const totalPages = Math.max(1, Math.ceil(transactions.length / pageSize));
+
+  const handleSort = (key: TransactionSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedTransactions = useMemo(() => {
+    if (sortKey === null) return transactions;
+    return sortTransactions(transactions, sortKey, sortDir);
+  }, [transactions, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedTransactions.length / pageSize));
 
   const startIndex = (page - 1) * pageSize;
-  const pageItems = transactions.slice(startIndex, startIndex + pageSize);
+  const pageItems = sortedTransactions.slice(startIndex, startIndex + pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [sortKey, sortDir]);
+
+  useEffect(() => {
+    setPage((p) => {
+      const maxPage = Math.max(1, Math.ceil(sortedTransactions.length / pageSize));
+      return Math.min(p, maxPage);
+    });
+  }, [sortedTransactions.length, pageSize]);
 
   if (!open) return null;
 
@@ -214,13 +335,6 @@ export function TransactionsModal({ open, onClose, transactions }: TransactionsM
       month: 'short', 
       day: 'numeric' 
     });
-  };
-
-  const getTransactionType = (transaction: Transaction) => {
-    if (transaction.channel === 'card') {
-      return `Card Payment`;
-    }
-    return 'Payment';
   };
 
   return (
@@ -251,17 +365,51 @@ export function TransactionsModal({ open, onClose, transactions }: TransactionsM
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-neutral-500 text-sm border-b border-neutral-800">
-                    <th className="text-left pb-3">Type</th>
-                    <th className="text-left pb-3">Status</th>
-                    <th className="text-left pb-3">Date</th>
-                    <th className="text-right pb-3">Amount</th>
+                  <tr className="text-sm border-b border-neutral-800">
+                    <th className="text-left pb-3 font-medium">
+                      <SortableHeaderButton
+                        label="Type"
+                        columnKey="type"
+                        activeKey={sortKey}
+                        direction={sortDir}
+                        onSort={handleSort}
+                      />
+                    </th>
+                    <th className="text-left pb-3 font-medium">
+                      <SortableHeaderButton
+                        label="Status"
+                        columnKey="status"
+                        activeKey={sortKey}
+                        direction={sortDir}
+                        onSort={handleSort}
+                      />
+                    </th>
+                    <th className="text-left pb-3 font-medium">
+                      <SortableHeaderButton
+                        label="Date"
+                        columnKey="date"
+                        activeKey={sortKey}
+                        direction={sortDir}
+                        onSort={handleSort}
+                      />
+                    </th>
+                    <th className="text-right pb-3 font-medium">
+                      <div className="flex justify-end w-full">
+                        <SortableHeaderButton
+                          label="Amount"
+                          columnKey="amount"
+                          activeKey={sortKey}
+                          direction={sortDir}
+                          onSort={handleSort}
+                        />
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageItems.map((transaction, index) => (
                     <tr key={transaction.id} className={index > 0 ? 'border-t border-neutral-800' : ''}>
-                      <td className="py-3 text-sm text-white">{getTransactionType(transaction)}</td>
+                      <td className="py-3 text-sm text-white">{getTransactionTypeLabel(transaction)}</td>
                       <td className="py-3">
                         <StatusBadge status={transaction.status} />
                       </td>
@@ -284,7 +432,7 @@ export function TransactionsModal({ open, onClose, transactions }: TransactionsM
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-white">{getTransactionType(transaction)}</span>
+                      <span className="text-sm font-medium text-white">{getTransactionTypeLabel(transaction)}</span>
                       <StatusBadge status={transaction.status} />
                     </div>
                     <div className="mt-1 text-xs text-neutral-400">{formatDate(transaction.paidAt || transaction.createdAt)}</div>

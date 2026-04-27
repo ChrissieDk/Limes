@@ -8,6 +8,7 @@ import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
 import PackageFlowBreadcrumbs from '../components/dashboard/PackageFlowBreadcrumbs'
 import { enrichComboPackages, type EnrichedComboPackage } from '../../catalog/utils/packageEnricher'
+import { inventoryService } from '../../inventory/services/inventoryService'
 
 type PackageType = 'contract' | 'prepaid' | null
 type SimStatus = 'has-sim' | 'needs-sim' | null
@@ -15,6 +16,7 @@ type SimStatus = 'has-sim' | 'needs-sim' | null
 // Product ID mapping based on API responses
 // CRITICAL: SA = SIM in hand (already have SIM)
 //           SOA = Need SIM delivered (don't have SIM yet)
+// DO NOT CHANGES
 const PRODUCT_IDS = {
   // SA = SIM Already in hand (I have a SIM)
   PREPAID_SA: '7029225P',      // Prepaid - SIM in hand → Mobile Prepaid Package
@@ -52,6 +54,8 @@ export default function DashboardPackages() {
   // ICCID for has-sim flow ONLY
   const [iccid, setIccid] = useState<string>('')
   const [iccidConfirmed, setIccidConfirmed] = useState(false)
+  const [iccidSubmitLoading, setIccidSubmitLoading] = useState(false)
+  const [iccidError, setIccidError] = useState<string | null>(null)
 
   // (UI only) Removed hover glow backdrop effect
 
@@ -212,12 +216,23 @@ export default function DashboardPackages() {
     setIccidConfirmed(false)
   }
   
-  const handleIccidSubmit = () => {
+  const handleIccidSubmit = async () => {
     if (iccid.trim().length < 15) {
-      alert('Please enter a valid ICCID (found on the back of your SIM card)')
+      setIccidError('Please enter a valid ICCID (found on the back of your SIM card)')
       return
     }
-    setIccidConfirmed(true)
+    setIccidError(null)
+    setIccidSubmitLoading(true)
+    try {
+      const exists = await inventoryService.simIsReserved(iccid)
+      if (exists) {
+        setIccidError('This SIM has already been activated. You cannot take out a new plan with an ICCID that is already in use.')
+        return
+      }
+      setIccidConfirmed(true)
+    } finally {
+      setIccidSubmitLoading(false)
+    }
   }
 
   const handleBundleCategorySelect = (categoryId: string) => {
@@ -320,6 +335,7 @@ export default function DashboardPackages() {
     setSimStatus(null)
     setIccid('')
     setIccidConfirmed(false)
+    setIccidError(null)
   }
 
   const handlePlanContinue = (allocation: PlanAllocation) => {
@@ -729,22 +745,24 @@ export default function DashboardPackages() {
                         id="iccid"
                         type="text"
                         value={iccid}
-                        onChange={(e) => setIccid(e.target.value)}
+                        onChange={(e) => { setIccid(e.target.value); setIccidError(null) }}
                         placeholder="e.g., 8927078220008762165"
-                        className="w-full px-4 py-3 rounded-xl bg-white text-neutral-900 font-mono text-lg border border-black/30 focus:outline-none focus:ring-2 focus:ring-black/30"
+                        className={`w-full px-4 py-3 rounded-xl bg-white text-neutral-900 font-mono text-lg border focus:outline-none focus:ring-2 ${iccidError ? 'border-red-500 focus:ring-red-400' : 'border-black/30 focus:ring-black/30'}`}
                         maxLength={22}
                       />
-                      <p className="text-neutral-900/70 text-sm mt-2">
-                        Usually 19-20 digits long
-                      </p>
+                      {iccidError ? (
+                        <p className="text-red-700 font-semibold text-sm mt-2">{iccidError}</p>
+                      ) : (
+                        <p className="text-neutral-900/70 text-sm mt-2">Usually 19-20 digits long</p>
+                      )}
                     </div>
 
                     <button
                       onClick={handleIccidSubmit}
-                      disabled={iccid.trim().length < 15}
+                      disabled={iccid.trim().length < 15 || iccidSubmitLoading}
                       className="w-full bg-neutral-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_18px_55px_rgba(0,0,0,0.25)]"
                     >
-                      Continue
+                      {iccidSubmitLoading ? 'Checking…' : 'Continue'}
                     </button>
                   </div>
                 </div>

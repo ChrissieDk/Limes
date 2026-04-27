@@ -10,6 +10,7 @@ import Footer from '../components/Footer'
 import { useState, useEffect } from 'react'
 import { firebaseAuthService } from '../services/firebaseAuthService'
 import { userService } from '../services/userService'
+import { getFirebaseAuthErrorMessage, isFirebaseAuthError } from '../utils/firebaseAuthErrorMessage'
 
 const schema = z
   .object({
@@ -67,6 +68,11 @@ export default function SignUp() {
       // The Cloud Function will automatically send verification email on user creation
       setShowVerificationMessage(true)
     } catch (err: unknown) {
+      if (isFirebaseAuthError(err)) {
+        setSubmitError(getFirebaseAuthErrorMessage(err, 'signUp'))
+        return
+      }
+
       let message = 'Failed to sign up'
       if (err && typeof err === 'object') {
         const anyErr = err as any

@@ -9,6 +9,7 @@ import Footer from '../components/Footer'
 import { useState } from 'react'
 import { httpsCallable } from 'firebase/functions'
 import { functions } from '../../../config/firebase'
+import { getFirebaseAuthErrorMessage } from '../utils/firebaseAuthErrorMessage'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -37,8 +38,7 @@ export default function ForgotPassword() {
       
       setSuccess(true)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to send reset email'
-      setSubmitError(message)
+      setSubmitError(getFirebaseAuthErrorMessage(err, 'passwordReset'))
     } finally {
       setSubmitting(false)
     }

@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
+import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 
 export default function HowToJoin() {
+  const ctaPath = useAuthLandingCtaPath('/signin')
+
   return (
     <section id="join" className="mx-auto max-w-6xl px-6 pb-16 scroll-mt-24">
       <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
@@ -27,7 +30,7 @@ export default function HowToJoin() {
 
           <div className="mt-4">
             <Link
-              to="/signin"
+              to={ctaPath}
               className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 hover:opacity-80 transition-opacity"
             >
               <span>Get a Limes SIM</span>
@@ -58,7 +61,7 @@ export default function HowToJoin() {
 
           <div className="mt-4">
             <Link
-              to="/signin"
+              to={ctaPath}
               className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 hover:opacity-80 transition-opacity"
             >
               <span>Switch my number to Limes</span>
@@ -70,7 +73,7 @@ export default function HowToJoin() {
 
       <div className="mt-6 flex items-center justify-center gap-3">
         <Link
-          to="/signin"
+          to={ctaPath}
           className="inline-flex items-center justify-center rounded-xl bg-[#ABFF63] text-neutral-900 font-semibold text-sm px-5 h-10 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] border-2 border-black/70 hover:bg-[#ABFF63]/90 transition-colors"
         >
           View packages

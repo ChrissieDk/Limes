@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import Button from './Button'
+import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 
 export default function Hero() {
+  const ctaPath = useAuthLandingCtaPath('/signin')
+
   return (
     <section
       id="hero"
@@ -45,12 +48,12 @@ export default function Hero() {
 
         <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
           <div className="w-full sm:w-44">
-            <Link to="/signin">
+            <Link to={ctaPath}>
               <Button variant="primary">View packages</Button>
             </Link>
           </div>
           <div className="w-full sm:w-44">
-            <Link to="/signin">
+            <Link to={ctaPath}>
               <Button variant="secondary">Switch to Limes</Button>
             </Link>
           </div>
