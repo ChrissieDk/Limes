@@ -1,4 +1,4 @@
-import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import { RouterProvider, createBrowserRouter, Outlet } from 'react-router-dom'
 import RootLayout from './RootLayout'
 import SignUp from './modules/auth/pages/SignUp'
 import SignIn from './modules/auth/pages/SignIn'
@@ -6,6 +6,7 @@ import Dashboard from './modules/auth/pages/Dashboard'
 import DashboardPackages from './modules/auth/pages/DashboardPackages'
 import PaymentMethods from './modules/payment/pages/PaymentMethods'
 import Subscriptions from './modules/auth/pages/Subscriptions'
+import ProvisionedUserRoute from './modules/auth/components/ProvisionedUserRoute'
 import AccountDetails from './modules/auth/pages/AccountDetails'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
@@ -60,24 +61,24 @@ const router = createBrowserRouter([
         element: <ResetPassword />,
       },
       {
-        path: '/dashboard',
-        element: <Dashboard />,
-      },
-      {
-        path: '/dashboard/packages',
-        element: <DashboardPackages />,
-      },
-      {
-        path: '/dashboard/payment-methods',
-        element: <PaymentMethods />,
-      },
-      {
-        path: '/dashboard/subscriptions',
-        element: <Subscriptions />,
-      },
-      {
-        path: '/dashboard/edit-details',
-        element: <AccountDetails />,
+        path: 'dashboard',
+        element: <Outlet />,
+        children: [
+          {
+            element: (
+              <ProvisionedUserRoute>
+                <Outlet />
+              </ProvisionedUserRoute>
+            ),
+            children: [
+              { index: true, element: <Dashboard /> },
+              { path: 'payment-methods', element: <PaymentMethods /> },
+              { path: 'subscriptions', element: <Subscriptions /> },
+            ],
+          },
+          { path: 'packages', element: <DashboardPackages /> },
+          { path: 'edit-details', element: <AccountDetails /> },
+        ],
       },
       {
         path: '/contact',
