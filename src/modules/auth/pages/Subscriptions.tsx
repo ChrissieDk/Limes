@@ -310,36 +310,36 @@ function Subscriptions() {
             <div className="space-y-6">
               {filteredSubscriptions.map((sub) => (
                 <div key={sub.id} className="max-w-6xl mx-auto rounded-[28px] bg-transparent ring-1 ring-white/10 p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <h3 className="text-xl font-semibold text-white mr-3">
-                          {getPlanName(sub)}
-                        </h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(sub.status)}`}>
-                          {sub.status}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-neutral-500 text-xs">
-                          Plan Code: {sub.paystackPlanCode}
-                        </p>
-                        <p className="text-neutral-400 text-sm">
-                          Subscription ID: {sub.paystackSubscriptionCode}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {sub.status.toLowerCase() === 'active' && !sub.cancelledAt && (
-                      <button
-                        onClick={() => setShowCancelModal(sub.id)}
-                        disabled={cancelling === sub.id}
-                        className="bg-white/10 ring-1 ring-white/10 text-white px-4 h-11 rounded-xl text-sm font-semibold hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                    <h3 className="min-w-0 flex-1 break-words text-xl font-semibold text-white sm:pr-2">
+                      {getPlanName(sub)}
+                    </h3>
+                    <div className="flex w-full flex-shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+                      <span
+                        className={`w-fit max-w-full rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(sub.status)}`}
                       >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Cancel
-                      </button>
-                    )}
+                        {sub.status}
+                      </span>
+                      {sub.status.toLowerCase() === 'active' && !sub.cancelledAt && (
+                        <button
+                          type="button"
+                          onClick={() => setShowCancelModal(sub.id)}
+                          disabled={cancelling === sub.id}
+                          className="flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white ring-1 ring-white/10 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:self-end"
+                        >
+                          <XCircle className="h-4 w-4 flex-shrink-0" />
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mb-6 space-y-1">
+                    <p className="text-xs text-neutral-500">
+                      Plan Code: {sub.paystackPlanCode}
+                    </p>
+                    <p className="text-sm text-neutral-400">
+                      Subscription ID: {sub.paystackSubscriptionCode}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

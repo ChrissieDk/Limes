@@ -465,6 +465,23 @@ export default function DashboardPackages() {
     })
   }
 
+  const prepaidBundleTypeStep =
+    packageType === 'prepaid' &&
+    (simStatus === 'needs-sim' || (simStatus === 'has-sim' && iccidConfirmed)) &&
+    !selectedBundleCategory &&
+    !showPackages
+
+  const showPrepaidBundleCategories =
+    prepaidBundleTypeStep && (loading || bundleCategories.length > 0 || Boolean(error))
+
+  const contractComboPackagesStep =
+    packageType === 'contract' &&
+    contractFlowType === 'combo' &&
+    (simStatus === 'needs-sim' || (simStatus === 'has-sim' && iccidConfirmed))
+
+  const showContractComboBundles =
+    contractComboPackagesStep && (loading || comboBundles.length > 0 || Boolean(error))
+
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
@@ -504,6 +521,10 @@ export default function DashboardPackages() {
                 ? 'Do you have a SIM?'
                 : simStatus === 'has-sim' && !iccidConfirmed
                 ? 'Enter your ICCID'
+                : contractComboPackagesStep && loading
+                ? 'Loading combo bundles'
+                : prepaidBundleTypeStep && loading
+                ? 'Loading bundle types'
                 : simStatus && !selectedBundleCategory && packageType === 'prepaid'
                 ? 'Choose your bundle type'
                 : comboBundles.length > 0
@@ -521,6 +542,10 @@ export default function DashboardPackages() {
                 ? 'Let us know if you already have a SIM card'
                 : simStatus === 'has-sim' && !iccidConfirmed
                 ? 'Found on the back of your SIM card'
+                : contractComboPackagesStep && loading
+                ? 'Fetching bundles from the catalog'
+                : prepaidBundleTypeStep && loading
+                ? 'Fetching bundle categories'
                 : simStatus && !selectedBundleCategory && packageType === 'prepaid'
                 ? 'Select the type of bundle you need'
                 : comboBundles.length > 0
@@ -769,7 +794,7 @@ export default function DashboardPackages() {
               )}
 
               {/* Step 3: Bundle Category Selection (PREPAID ONLY) */}
-              {packageType === 'prepaid' && bundleCategories.length > 0 && !selectedBundleCategory && !showPackages && (
+              {showPrepaidBundleCategories && (
                 <div className="max-w-7xl mx-auto">
                   <button
                     onClick={handleBackFromBundleCategories}
@@ -784,6 +809,21 @@ export default function DashboardPackages() {
                   {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto">
                       {[1, 2, 3, 4, 5, 6].map(i => <BundleCategorySkeleton key={i} />)}
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-12 max-w-2xl mx-auto">
+                      <p className="text-red-400 text-lg mb-4">{error}</p>
+                      <button
+                        type="button"
+                        onClick={handleBackFromBundleCategories}
+                        className="px-6 py-3 bg-lime-400 text-neutral-900 rounded-xl font-semibold hover:bg-lime-300 transition-colors"
+                      >
+                        Go back
+                      </button>
+                    </div>
+                  ) : bundleCategories.length === 0 ? (
+                    <div className="text-center py-12 text-neutral-400 max-w-2xl mx-auto">
+                      <p className="text-lg">No bundle types available right now.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto">
@@ -903,7 +943,7 @@ export default function DashboardPackages() {
               )}
 
               {/* NEW Step 3: Combo Bundles Display (CONTRACT ONLY - Combo Flow) */}
-              {packageType === 'contract' && contractFlowType === 'combo' && comboBundles.length > 0 && (
+              {showContractComboBundles && (
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <button
@@ -936,6 +976,10 @@ export default function DashboardPackages() {
                       >
                         Go Back
                       </button>
+                    </div>
+                  ) : comboBundles.length === 0 ? (
+                    <div className="text-center py-12 text-neutral-400 max-w-2xl mx-auto">
+                      <p className="text-lg">No combo bundles are available right now.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">

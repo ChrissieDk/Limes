@@ -37,6 +37,7 @@ export function clearDashboardDisplayNameCache(uid: string) {
 const navItems = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Subscriptions', to: '/dashboard/subscriptions' },
+  { label: 'SIM delivery', to: '/dashboard/shipping' },
   { label: 'Payment Methods', to: '/dashboard/payment-methods' },
   { label: 'Add a SIM', to: '/dashboard/packages' },
   // { label: 'Address Book', to: '/dashboard/address-book' },
@@ -46,6 +47,7 @@ const navItems = [
 const PROVISIONED_ONLY_PATHS = new Set<string>([
   '/dashboard',
   '/dashboard/subscriptions',
+  '/dashboard/shipping',
   '/dashboard/payment-methods',
 ])
 

@@ -6,6 +6,7 @@ import Dashboard from './modules/auth/pages/Dashboard'
 import DashboardPackages from './modules/auth/pages/DashboardPackages'
 import PaymentMethods from './modules/payment/pages/PaymentMethods'
 import Subscriptions from './modules/auth/pages/Subscriptions'
+import DashboardShipping from './modules/auth/pages/DashboardShipping'
 import ProvisionedUserRoute from './modules/auth/components/ProvisionedUserRoute'
 import AccountDetails from './modules/auth/pages/AccountDetails'
 import Landing from './modules/auth/pages/Landing'
@@ -74,6 +75,7 @@ const router = createBrowserRouter([
               { index: true, element: <Dashboard /> },
               { path: 'payment-methods', element: <PaymentMethods /> },
               { path: 'subscriptions', element: <Subscriptions /> },
+              { path: 'shipping', element: <DashboardShipping /> },
             ],
           },
           { path: 'packages', element: <DashboardPackages /> },
