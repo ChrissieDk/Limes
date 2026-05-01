@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { userService } from '../services/userService'
 import { userHasProvisionedSim } from '../utils/userProvisioning'
 
@@ -9,7 +9,11 @@ type Props = {
 
 export default function ProvisionedUserRoute({ children }: Props) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [allowed, setAllowed] = useState(false)
+
+  // Allow users mid-checkout to reach the dashboard modals even without a provisioned SIM.
+  const hasPendingPackage = Boolean((location.state as { selectedPackage?: unknown } | null)?.selectedPackage)
 
   useEffect(() => {
     let cancelled = false
@@ -18,7 +22,7 @@ export default function ProvisionedUserRoute({ children }: Props) {
       try {
         const user = await userService.getCurrentUser()
         if (cancelled) return
-        if (!userHasProvisionedSim(user)) {
+        if (!hasPendingPackage && !userHasProvisionedSim(user)) {
           navigate('/dashboard/packages', { replace: true })
           return
         }
