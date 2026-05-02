@@ -7,7 +7,7 @@ const isDev = import.meta.env.DEV
 const apiUrl = import.meta.env.VITE_API_URL
 
 if (!apiUrl && !isDev) {
-  throw new Error('VITE_API_URL environment variable is required for production builds')
+  console.error('VITE_API_URL environment variable is required for production builds. API calls will fail.')
 }
 
 // One-time cleanup: remove legacy localStorage token storage (security fix)
