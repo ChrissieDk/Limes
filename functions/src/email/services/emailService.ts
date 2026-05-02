@@ -1,10 +1,12 @@
 import { Resend } from 'resend'
 
 interface SendEmailOptions {
-  to: string
+  /** One or more recipient addresses (same message to all). */
+  to: string | string[]
   subject: string
   html: string
   from?: string
+  replyTo?: string
 }
 
 /**
@@ -30,6 +32,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
       to: options.to,
       subject: options.subject,
       html: options.html,
+      ...(options.replyTo ? { reply_to: options.replyTo } : {}),
     })
 
     if (error) {

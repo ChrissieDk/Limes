@@ -59,7 +59,7 @@ export default function VerifyEmail() {
         {status === 'success' && (
           <>
             <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-              <p className="text-green-400 text-sm text-center">
+              <p className="font-manrope text-green-400 text-sm text-center">
                 ✓ Your email has been verified successfully!
               </p>
             </div>

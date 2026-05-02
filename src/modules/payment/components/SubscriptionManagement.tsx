@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Calendar, AlertCircle, CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
 import { userService } from '../../auth/services/userService'
-// import { toCents } from '../utils/dynamicPricing' // Ready for combo bundle subscription feature
+import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import type { SubscriptionDetails, SavedCard } from '../../../types/payment'
 
 interface SubscriptionManagementProps {
@@ -61,8 +61,8 @@ export default function SubscriptionManagement({
     try {
       const data = await paymentService.getSubscription(id)
       setSubscription(data)
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to load subscription')
+    } catch (err) {
+      setError(getAxiosErrorMessage(err, 'Failed to load subscription'))
     } finally {
       setLoading(false)
     }
@@ -77,8 +77,8 @@ export default function SubscriptionManagement({
       if (data.length > 0) {
         setSelectedCardId(data[0].id)
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to load saved cards')
+    } catch (err) {
+      setError(getAxiosErrorMessage(err, 'Failed to load saved cards'))
     } finally {
       setLoading(false)
     }
@@ -119,38 +119,23 @@ export default function SubscriptionManagement({
       })
 
       if (response.success && response.subscription) {
-        setSubscription(response.subscription as any)
+        // NOTE: API returns a different shape than SubscriptionDetails.
+        // This feature is not yet wired up; the cast satisfies type checking.
+        setSubscription(response.subscription as unknown as SubscriptionDetails)
         setSuccessMessage('Subscription created successfully!')
         setTimeout(() => setSuccessMessage(null), 3000)
         if (onSubscriptionCreated) {
-          onSubscriptionCreated(response.subscription as any)
+          onSubscriptionCreated(response.subscription as unknown as SubscriptionDetails)
         }
       } else {
         setError(response.error || 'Failed to create subscription')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to create subscription')
+    } catch (err) {
+      setError(getAxiosErrorMessage(err, 'Failed to create subscription'))
     } finally {
       setIsCreating(false)
     }
   }
-
-  /**
-   * Create combo bundle recurring subscription
-   * NEW: For combo bundle subscriptions
-   * 
-   * READY FOR FUTURE USE: Uncomment when adding combo bundle subscription UI
-   * 
-   * Example usage:
-   * const handleComboSubscription = async (productId: string, amount: number) => {
-   *   const response = await paymentService.subscribeToComboBundle({
-   *     productId,
-   *     msisdn: userMsisdn,
-   *     paymentMethodId: selectedCardId,
-   *     amount: toCents(amount)
-   *   })
-   * }
-   */
 
   const handleCancelSubscription = async () => {
     if (!subscription) return
@@ -187,8 +172,8 @@ export default function SubscriptionManagement({
       } else {
         setError('Failed to cancel subscription')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to cancel subscription')
+    } catch (err) {
+      setError(getAxiosErrorMessage(err, 'Failed to cancel subscription'))
     } finally {
       setIsCancelling(false)
     }
@@ -238,7 +223,7 @@ export default function SubscriptionManagement({
       {subscription ? (
         <div className="border border-gray-700 bg-gray-900/50 rounded-lg p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">Subscription Details</h3>
+            <h3 className="font-grotesque text-lg font-semibold text-white">Subscription Details</h3>
             {getStatusBadge(subscription.status)}
           </div>
 
@@ -297,18 +282,18 @@ export default function SubscriptionManagement({
       ) : (
         /* Create New Subscription Form */
         <div className="border border-gray-700 bg-gray-900/50 rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold text-white">Create Subscription</h3>
+          <h3 className="font-grotesque text-lg font-semibold text-white">Create Subscription</h3>
 
           {savedCards.length === 0 ? (
             <div className="text-center py-6 text-gray-400">
               <p>You need to save a card first before creating a subscription.</p>
-              <p className="text-sm mt-2">Make a one-time payment and save your card.</p>
+              <p className="font-manrope text-sm mt-2">Make a one-time payment and save your card.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Select Card */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="font-manrope block text-sm font-medium text-gray-300 mb-2">
                   Select Card
                 </label>
                 <select
@@ -326,7 +311,7 @@ export default function SubscriptionManagement({
 
               {/* Plan Code */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="font-manrope block text-sm font-medium text-gray-300 mb-2">
                   Plan Code
                 </label>
                 <input
@@ -336,7 +321,7 @@ export default function SubscriptionManagement({
                   placeholder="e.g., PLN_monthly_lite"
                   className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="font-manrope text-xs text-gray-400 mt-1">
                   Get plan code from Paystack Dashboard → Plans
                 </p>
               </div>

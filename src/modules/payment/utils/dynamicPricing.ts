@@ -6,6 +6,7 @@
  * Like tax brackets: each tier applies only to the units within that tier's range.
  */
 
+import type { DynamicServicePaymentItem } from '../../../types/payment'
 import { 
   getPricingBrackets,
   type ServiceType as RatingServiceType, 
@@ -13,7 +14,6 @@ import {
   type PricingBracket 
 } from '../config/ratingTable'
 
-export type ServiceType = 'AIRTIME' | 'VOICE' | 'DATA' | 'SMS' | 'WHATSAPP' | 'MMS'
 
 /**
  * Calculate cost using progressive/incremental pricing
@@ -89,7 +89,7 @@ function calculateUnitsFromTiers(rands: number, tiers: PricingBracket[]): number
  * @returns Service value in API units (seconds for VOICE, bytes for DATA/WHATSAPP, messages for SMS/MMS, Rands for AIRTIME), or null if not available
  */
 export function convertRandsToServiceValue(
-  serviceType: ServiceType, 
+  serviceType: RatingServiceType, 
   rands: number, 
   _packageType: PackageType = 'prepaid'
 ): number | null {
@@ -126,7 +126,7 @@ export function convertRandsToServiceValue(
  * @returns Human-readable string (e.g., "500 MB", "25 min", "50 SMS", "R25 airtime"), or null if not available
  */
 export function getServiceDisplayValue(
-  serviceType: ServiceType, 
+  serviceType: RatingServiceType, 
   rands: number, 
   _packageType: PackageType = 'prepaid'
 ): string | null {
@@ -178,8 +178,8 @@ export function getDefaultExpiryDate(): string {
  * @param value - Service value in units
  * @returns true if valid, throws error if invalid
  */
-export function validateServiceValue(serviceType: ServiceType, value: number): boolean {
-  const limits: Record<ServiceType, { min: number; max: number; unit: string }> = {
+export function validateServiceValue(serviceType: RatingServiceType, value: number): boolean {
+  const limits: Record<RatingServiceType, { min: number; max: number; unit: string }> = {
     AIRTIME: { min: 0.01, max: 1000, unit: 'rands' },  // R0.01 to R1000
     VOICE: { min: 0.0001, max: 1200000, unit: 'seconds' },  // Up to 20,000 minutes
     SMS: { min: 0.0001, max: 2000, unit: 'messages' },
@@ -204,9 +204,39 @@ export function validateServiceValue(serviceType: ServiceType, value: number): b
  * @param packageType - Package type (contract or prepaid)
  * @returns true if the service is available
  */
-export function isServiceAvailable(serviceType: ServiceType, _packageType: PackageType): boolean {
+export function isServiceAvailable(serviceType: RatingServiceType, _packageType: PackageType): boolean {
   const tiers = getPricingBrackets(serviceType as RatingServiceType)
   return tiers !== null && tiers.length > 0
+}
+
+/**
+ * Build a services array from a plan allocation (in Rands).
+ * Used for contract dynamic plans and combo bundles.
+ */
+export function buildServicesFromAllocation(
+  planAllocation: { data: number; airtime: number; voice: number; sms: number; whatsapp?: number },
+  packageType: PackageType = 'prepaid'
+): DynamicServicePaymentItem[] {
+  const services: DynamicServicePaymentItem[] = []
+  const expiryDate = getDefaultExpiryDate()
+
+  const add = (type: RatingServiceType, rands: number, code: DynamicServicePaymentItem['definitionCode']) => {
+    if (rands <= 0) return
+    const value = convertRandsToServiceValue(type, rands, packageType)
+    if (value !== null) {
+      services.push({ value, definitionCode: code, expiryDate, priceInCents: rands * 100 })
+    }
+  }
+
+  add('DATA', planAllocation.data, 'DATA')
+  add('AIRTIME', planAllocation.airtime, 'GPA_CREDIT')
+  add('VOICE', planAllocation.voice, 'VOICE')
+  add('SMS', planAllocation.sms, 'SMS')
+  if (planAllocation.whatsapp && planAllocation.whatsapp > 0) {
+    add('WHATSAPP', planAllocation.whatsapp, 'WHATSAPP')
+  }
+
+  return services
 }
 
 /**

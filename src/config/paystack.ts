@@ -5,11 +5,12 @@
  * Get from: https://dashboard.paystack.com/settings/developer
  */
 
-export const paystackConfig = {
-  publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_a64167b519a4785577c679768f9b2927a835d714',
+const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY
+
+if (!publicKey) {
+  console.error('VITE_PAYSTACK_PUBLIC_KEY is not set in environment variables')
 }
 
-// Validate config on load
-if (!paystackConfig.publicKey) {
-  console.error('VITE_PAYSTACK_PUBLIC_KEY is not set in environment variables')
+export const paystackConfig = {
+  publicKey: publicKey || '',
 }

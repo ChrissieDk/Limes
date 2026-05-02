@@ -22,7 +22,7 @@ export default function Footer() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
         <div>
           <img src={`${base}images/limes_high_def_logo.svg`} alt="Limes" className="h-10" />
-          <p className="mt-5 text-sm text-neutral-300 max-w-[28ch]">
+          <p className="font-manrope mt-5 text-sm text-neutral-300 max-w-[28ch]">
             Stay connected. Earn cash
             <br />
             back. Own your money.
@@ -30,7 +30,7 @@ export default function Footer() {
         </div>
 
         <div className="md:justify-self-center">
-          <div className="text-sm text-neutral-400 font-semibold">Quick Links</div>
+          <div className="font-grotesque text-sm text-neutral-400 font-semibold">Quick Links</div>
           <nav className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-300">
             {links.map((l) => (
               <a key={l.href} href={l.href} className="hover:text-white transition-colors">
@@ -47,7 +47,7 @@ export default function Footer() {
         </div>
 
         <div className="md:justify-self-end">
-          <div className="text-sm text-neutral-400 font-semibold">Stay Connected</div>
+          <div className="font-grotesque text-sm text-neutral-400 font-semibold">Stay Connected</div>
           <div className="mt-6 flex items-center gap-5">
             {socials.map((s) => (
               s.enabled ? (
@@ -76,7 +76,7 @@ export default function Footer() {
       </div>
 
       <div className="mt-10 h-px w-full bg-white/20" />
-      <div className="mt-6 text-sm text-neutral-300">
+      <div className="font-manrope mt-6 text-sm text-neutral-300">
         Copyright © 2026 Limes. All rights reserved.
       </div>
     </footer>

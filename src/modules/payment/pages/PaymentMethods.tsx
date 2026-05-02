@@ -17,7 +17,7 @@ export default function PaymentMethodsPage() {
           <h1 className="text-center font-grotesque font-semibold text-white text-5xl sm:text-6xl md:text-7xl leading-[1.02] tracking-tight">
             Payment methods
           </h1>
-          <p className="mt-3 text-center text-neutral-400 text-sm">
+          <p className="font-manrope mt-3 text-center text-neutral-400 text-sm">
             Manage your saved cards
           </p>
         </div>
@@ -38,7 +38,7 @@ export default function PaymentMethodsPage() {
             <h2 className="text-white font-grotesque font-semibold text-xl sm:text-2xl mb-1">
               Your saved cards
             </h2>
-            <p className="text-neutral-400 text-sm">
+            <p className="font-manrope text-neutral-400 text-sm">
               Cards saved for quick one-click payments. Your card details are securely stored.
             </p>
           </div>
@@ -51,8 +51,8 @@ export default function PaymentMethodsPage() {
             <div className="flex items-start gap-3">
               <Lock className="w-4 h-4 text-[#ABFF63] mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-white mb-1">Secure &amp; Encrypted</h3>
-                <p className="text-sm text-neutral-400">
+                <h3 className="font-grotesque text-sm font-semibold text-white mb-1">Secure &amp; Encrypted</h3>
+                <p className="font-manrope text-sm text-neutral-400">
                   Your card details are never stored directly. We use secure tokens provided by Paystack.
                 </p>
               </div>
@@ -62,8 +62,8 @@ export default function PaymentMethodsPage() {
             <div className="flex items-start gap-3">
               <Zap className="w-4 h-4 text-[#ABFF63] mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-white mb-1">One-click payments</h3>
-                <p className="text-sm text-neutral-400">
+                <h3 className="font-grotesque text-sm font-semibold text-white mb-1">One-click payments</h3>
+                <p className="font-manrope text-sm text-neutral-400">
                   Use saved cards for instant payments without re-entering card details.
                 </p>
               </div>

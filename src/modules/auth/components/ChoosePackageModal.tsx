@@ -12,7 +12,9 @@ import {
   createCustomerFormSchema,
   type CreateCustomerFormValues,
 } from '../validation/createCustomerSchemas'
-import type { CreateAccountCustomerRequest, CatalogProduct } from '../../../types'
+import { buildAccountPayload } from '../utils/buildAccountPayload'
+import { getAxiosErrorMessage } from '../../../utils/errorMessage'
+import type { CatalogProduct } from '../../../types'
 import type { PlanAllocation } from './PlanBuilder'
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6
@@ -58,7 +60,6 @@ interface ChoosePackageModalProps {
 export default function ChoosePackageModal({ open, onClose, selectedPackage }: ChoosePackageModalProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
-  const isResidential = true
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accountCreated, setAccountCreated] = useState(false)
@@ -81,17 +82,6 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
   const [poaUploaded, setPoaUploaded] = useState(false)
   const [poaUploading, setPoaUploading] = useState(false)
   const [, setPoaSignedUrl] = useState<string | null>(null)
-
-  const hasDeposit = false
-  const creditLimit = 0
-  const taxSchemeId = 'VB8'
-  const collectionPlanId = 'STD9'
-  const contactType = 'MOBILE_NO' as const
-  const useParentAddressType = 'BILLING' as const
-  const isAccountOwner = true
-  const isServiceOwner = false
-  const custIsResidential = true
-  const requireSecurityQuestions = false
 
   // ESC key disabled - user must explicitly click X to close during RICA flow
   // useEffect(() => {
@@ -187,90 +177,19 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
     setIsSubmitting(true)
     setError(null)
 
-    const v = getValues()
-
     try {
-      const payload: CreateAccountCustomerRequest = {
-        isResidential,
-        detail: {
-          title: v.title,
-          firstname: v.firstname,
-          lastname: v.lastname,
-          creditLimit,
-          hasDeposit,
-          identification: {
-            idType: v.idType,
-            idNumber: v.idNumber,
-          },
-          billMedia: {
-            mediaType: 'EMAIL',
-            emailAddress: v.billEmail,
-            generationLevel: 'ACCOUNT',
-            language: v.billLanguage,
-          },
-        },
-        address: [
-          {
-            addressType: 'BILLING',
-            streetNo: v.streetNo,
-            streetName: v.streetName,
-            suburb: v.suburb,
-            city: v.city,
-            stateOrProvince: v.stateOrProvince,
-            postCode: v.postCode,
-            country: v.country,
-          },
-        ],
-        taxScheme: { id: taxSchemeId },
-        collectionPlan: { id: collectionPlanId },
-        phone: {
-          phoneNumber: v.phoneNumber,
-          contactType,
-        },
-        contact: {
-          useParentAddressType,
-          primaryContactRole: 'CUSTOMER',
-          isAccountOwner,
-          isServiceOwner,
-        },
-        customer: {
-          isResidential: custIsResidential,
-          detail: {
-            firstname: v.custFirstname,
-            lastname: v.custLastname,
-            requireSecurityQuestions,
-          },
-          address: [
-            {
-              addressType: 'POSTAL',
-              streetNo: v.custStreetNo,
-              streetName: v.custStreetName,
-              suburb: v.custSuburb,
-              city: v.custCity,
-              stateOrProvince: v.custStateOrProvince,
-              postCode: v.custPostCode,
-              country: v.custCountry,
-            },
-          ],
-        },
-      }
-
-      await crmService.createAccountCustomer(payload)
+      await crmService.createAccountCustomer(buildAccountPayload(getValues()))
 
       // If we got a response without an error, consider it successful
       setAccountCreated(true)
       setStep(5) // Move to ID upload step
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || ''
-      
-      // If account already exists, treat it as success and allow user to continue to uploads
+    } catch (err) {
+      const errorMessage = getAxiosErrorMessage(err, '')
       if (errorMessage.toLowerCase().includes('already exists') || errorMessage.toLowerCase().includes('duplicate')) {
-  
         setAccountCreated(true)
-        setStep(5) // Move to ID upload step
+        setStep(5)
       } else {
         setError(errorMessage || 'An error occurred while creating the account')
-        console.error('Account creation error:', err)
       }
     } finally {
       setIsSubmitting(false)
@@ -296,9 +215,8 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         setError('Upload completed but no path returned')
         setIdFile(null)
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'An error occurred while uploading the ID document')
-      console.error('ID upload error:', err)
+    } catch (err) {
+      setError(getAxiosErrorMessage(err, 'An error occurred while uploading the ID document'))
       setIdFile(null)
     } finally {
       setIdUploading(false)
@@ -324,8 +242,8 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         setError('Upload completed but no path returned')
         setPoaFile(null)
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'An error occurred while uploading the proof of address')
+    } catch (err) {
+      setError(getAxiosErrorMessage(err, 'An error occurred while uploading the proof of address'))
       setPoaFile(null)
     } finally {
       setPoaUploading(false)
@@ -345,6 +263,67 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
     navigate('/dashboard')
   }
 
+  const getShippingModalProps = () => {
+    const v = getValues()
+    const pkg = selectedPackage as CatalogProduct & {
+      priceInCents?: number
+      isComboBundle?: boolean
+      isDynamicPlan?: boolean
+      planAllocation?: PlanAllocation
+      comboDetails?: unknown
+      features?: { mobileData?: string }
+    }
+    return {
+      open: showShippingModal,
+      onClose: handleShippingClose,
+      selectedPackage: {
+        productId: pkg.productId || pkg.id,
+        simPackageProductId: pkg.simPackageProductId,
+        name: pkg.name,
+        price: pkg.price,
+        priceInCents: pkg.priceInCents,
+        packageType: pkg.packageType,
+        simStatus: pkg.simStatus,
+        planChargeType: pkg.planChargeType,
+        iccid: pkg.iccid,
+        isDynamicPlan: pkg.isDynamicPlan,
+        isComboBundle: pkg.isComboBundle,
+        planAllocation: pkg.planAllocation,
+        comboDetails: pkg.comboDetails,
+        features: { mobileData: pkg.description || pkg.features?.mobileData },
+      },
+      defaultAddress: {
+        streetNo: v.streetNo,
+        streetName: v.streetName,
+        suburb: v.suburb,
+        city: v.city,
+        stateOrProvince: v.stateOrProvince,
+        postCode: v.postCode,
+        country: v.country,
+      },
+      customerEmail: v.billEmail,
+      customerName: `${v.firstname} ${v.lastname}`,
+      customerPhone: v.phoneNumber,
+      ricaData: {
+        address: {
+          streetNo: v.streetNo,
+          streetName: v.streetName,
+          suburb: v.suburb || '',
+          city: v.city,
+          stateOrProvince: v.stateOrProvince,
+          postCode: v.postCode,
+          country: v.country,
+        },
+        customerInfo: {
+          firstname: v.firstname,
+          lastname: v.lastname,
+          billEmail: v.billEmail,
+          phoneNumber: v.phoneNumber,
+        },
+      },
+    }
+  }
+
   if (!open) return null
 
   return (
@@ -355,7 +334,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-2xl">
           <div>
             <div className="font-normal text-xl">Choose a package</div>
-            <div className="text-sm text-neutral-500">Provide details to create your account</div>
+            <div className="font-manrope text-sm text-neutral-500">Provide details to create your account</div>
           </div>
           <button aria-label="Close" className="size-10 grid place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 text-2xl" onClick={onClose}>×</button>
         </div>
@@ -378,7 +357,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
 
           {/* Error message */}
           {error && (
-            <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+            <div className="font-manrope mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
               {error}
             </div>
           )}
@@ -388,7 +367,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="grid gap-2">
-                  <span className="text-sm text-neutral-700">Title</span>
+                  <span className="font-manrope text-sm text-neutral-700">Title</span>
                   <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" {...register('title')}>
                     <option value="Mr">Mr</option>
                     <option value="Ms">Ms</option>
@@ -401,7 +380,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
               <TextField label="Last name" {...register('lastname')} error={errors.lastname?.message} />
               <div>
                 <label className="grid gap-2">
-                  <span className="text-sm text-neutral-700">ID type</span>
+                  <span className="font-manrope text-sm text-neutral-700">ID type</span>
                   <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" {...register('idType')}>
                     <option value="ID">ID</option>
                     <option value="PASSPORT">Passport</option>
@@ -412,7 +391,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
               <TextField label="Email for billing" type="email" {...register('billEmail')} error={errors.billEmail?.message} />
               <div>
                 <label className="grid gap-2">
-                  <span className="text-sm text-neutral-700">Bill language</span>
+                  <span className="font-manrope text-sm text-neutral-700">Bill language</span>
                   <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" {...register('billLanguage')} disabled>
                     <option value="en-gb">English (GB)</option>
                   </select>
@@ -438,7 +417,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
               <TextField label="Phone number" {...register('phoneNumber')} error={errors.phoneNumber?.message} />
               <div>
                 <label className="grid gap-2">
-                  <span className="text-sm text-neutral-700">Contact type</span>
+                  <span className="font-manrope text-sm text-neutral-700">Contact type</span>
                   <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" disabled>
                     <option value="MOBILE_NO">Mobile</option>
                   </select>
@@ -446,7 +425,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
               </div>
               <div>
                 <label className="grid gap-2">
-                  <span className="text-sm text-neutral-700">Use parent address type</span>
+                  <span className="font-manrope text-sm text-neutral-700">Use parent address type</span>
                   <select className="h-12 rounded-xl bg-white ring-1 ring-neutral-300 text-black px-3 text-sm" disabled>
                     <option value="BILLING">Billing</option>
                   </select>
@@ -472,13 +451,13 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
           {step === 5 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">Upload ID Document</h3>
-                <p className="text-sm text-neutral-600">Please upload a clear copy of your ID or passport</p>
+                <h3 className="font-grotesque text-xl font-bold text-neutral-900 mb-2">Upload ID Document</h3>
+                <p className="font-manrope text-sm text-neutral-600">Please upload a clear copy of your ID or passport</p>
               </div>
               {idUploading ? (
                 <div className="text-center py-12">
                   <div className="inline-block size-12 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
-                  <p className="mt-4 text-neutral-600">Uploading document...</p>
+                  <p className="font-manrope mt-4 text-neutral-600">Uploading document...</p>
                 </div>
               ) : (
                 <FileUpload
@@ -494,13 +473,13 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
           {step === 6 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">Upload Proof of Address</h3>
-                <p className="text-sm text-neutral-600">Please upload a recent utility bill or bank statement</p>
+                <h3 className="font-grotesque text-xl font-bold text-neutral-900 mb-2">Upload Proof of Address</h3>
+                <p className="font-manrope text-sm text-neutral-600">Please upload a recent utility bill or bank statement</p>
               </div>
               {poaUploading ? (
                 <div className="text-center py-12">
                   <div className="inline-block size-12 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
-                  <p className="mt-4 text-neutral-600">Uploading document...</p>
+                  <p className="font-manrope mt-4 text-neutral-600">Uploading document...</p>
                 </div>
               ) : (
                 <FileUpload
@@ -564,70 +543,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
       </div>
 
       {/* Shipping Modal - shown after RICA completion */}
-      {showShippingModal && selectedPackage && (() => {
-        const v = getValues()
-        const pkg = selectedPackage as CatalogProduct & {
-          priceInCents?: number
-          isComboBundle?: boolean
-          isDynamicPlan?: boolean
-          planAllocation?: PlanAllocation
-          comboDetails?: unknown
-          features?: { mobileData?: string }
-        }
-        return (
-          <ShippingModal
-            open={showShippingModal}
-            onClose={handleShippingClose}
-            selectedPackage={{
-              productId: pkg.productId || pkg.id,
-              simPackageProductId: pkg.simPackageProductId,
-              name: pkg.name,
-              price: pkg.price,
-              priceInCents: pkg.priceInCents,
-              packageType: pkg.packageType,
-              simStatus: pkg.simStatus,
-              planChargeType: pkg.planChargeType,
-              iccid: pkg.iccid,
-              isDynamicPlan: pkg.isDynamicPlan,
-              isComboBundle: pkg.isComboBundle,
-              planAllocation: pkg.planAllocation,
-              comboDetails: pkg.comboDetails,
-              features: {
-                mobileData: pkg.description || pkg.features?.mobileData,
-              }
-            }}
-            defaultAddress={{
-              streetNo: v.streetNo,
-              streetName: v.streetName,
-              suburb: v.suburb,
-              city: v.city,
-              stateOrProvince: v.stateOrProvince,
-              postCode: v.postCode,
-              country: v.country,
-            }}
-            customerEmail={v.billEmail}
-            customerName={`${v.firstname} ${v.lastname}`}
-            customerPhone={v.phoneNumber}
-            ricaData={{
-              address: {
-                streetNo: v.streetNo,
-                streetName: v.streetName,
-                suburb: v.suburb || '',
-                city: v.city,
-                stateOrProvince: v.stateOrProvince,
-                postCode: v.postCode,
-                country: v.country,
-              },
-              customerInfo: {
-                firstname: v.firstname,
-                lastname: v.lastname,
-                billEmail: v.billEmail,
-                phoneNumber: v.phoneNumber,
-              }
-            }}
-          />
-        )
-      })()}
+      {showShippingModal && selectedPackage && <ShippingModal {...getShippingModalProps()} />}
     </div>
   )
 }

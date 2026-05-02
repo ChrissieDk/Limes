@@ -49,7 +49,7 @@ export function SimSearchControls({
           </svg>
         </button>
 
-        <span className="min-w-[44px] text-center text-sm font-medium text-neutral-400">
+        <span className="font-manrope min-w-[44px] text-center text-sm font-medium text-neutral-400">
           {displayPosition} of {displayTotal}
         </span>
 

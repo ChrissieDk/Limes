@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { auth } from '../../../config/firebase'
 import { crmService } from '../../crm/services/crmService'
+import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import type { GetAccountCustomerResponse, RicaAddress } from '../../../types'
 import DashboardNavbar, { clearDashboardDisplayNameCache } from '../components/DashboardNavbar'
 import Footer from '../components/Footer'
@@ -25,20 +26,9 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-function ricaAddressTypeToNumber(t: RicaAddress['addressType'] | number | undefined): number {
-  if (typeof t === 'number' && !Number.isNaN(t)) return t
-  if (t === 'POSTAL') return 2
-  return 1
-}
-
 function pickPrimaryAddress(data: GetAccountCustomerResponse): RicaAddress | null {
-  const list =
-    data.customer?.address && data.customer.address.length > 0
-      ? data.customer.address
-      : data.address
-  if (!list?.length) return null
-  const billing = list.find((a) => a.addressType === 'BILLING')
-  return billing ?? list[0]
+  // The PATCH endpoint updates `customer.address`, so read that first.
+  return data.customer?.address?.[0] ?? data.address?.[0] ?? null
 }
 
 function mapResponseToFormDefaults(data: GetAccountCustomerResponse): FormValues {
@@ -62,7 +52,6 @@ export default function AccountDetails() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [addressType, setAddressType] = useState<number>(1)
   const countryRef = useRef<string>('ZA')
 
   const {
@@ -93,18 +82,11 @@ export default function AccountDetails() {
         const data = await crmService.getAccountCustomer()
         if (cancelled) return
         const addr = pickPrimaryAddress(data)
-        setAddressType(ricaAddressTypeToNumber(addr?.addressType))
         countryRef.current = addr?.country?.trim() || 'ZA'
         reset(mapResponseToFormDefaults(data))
       } catch (e: unknown) {
         if (!cancelled) {
-          const msg =
-            e && typeof e === 'object' && 'response' in e
-              ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message)
-              : e instanceof Error
-                ? e.message
-                : 'Could not load your details'
-          setLoadError(msg || 'Could not load your details')
+          setLoadError(getAxiosErrorMessage(e, 'Could not load your details'))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -130,7 +112,7 @@ export default function AccountDetails() {
         },
         address: [
           {
-            addressType: addressType,
+            addressType: 1,
             streetNo: values.streetNo.trim(),
             streetName: values.streetName.trim(),
             suburb: values.suburb.trim(),
@@ -145,13 +127,7 @@ export default function AccountDetails() {
       if (uid) clearDashboardDisplayNameCache(uid)
       setSuccess(true)
     } catch (e: unknown) {
-      const msg =
-        e && typeof e === 'object' && 'response' in e
-          ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message)
-          : e instanceof Error
-            ? e.message
-            : 'Save failed'
-      setSubmitError(msg || 'Save failed')
+      setSubmitError(getAxiosErrorMessage(e, 'Save failed'))
     } finally {
       setSubmitting(false)
     }
@@ -166,7 +142,7 @@ export default function AccountDetails() {
           <h1 className="text-center font-grotesque font-semibold text-white text-5xl sm:text-6xl md:text-7xl leading-[1.02] tracking-tight">
             Edit your details
           </h1>
-          <p className="mt-3 text-center text-neutral-400 text-sm">
+          <p className="font-manrope mt-3 text-center text-neutral-400 text-sm">
             Update your name and address on file
           </p>
         </div>
@@ -184,7 +160,7 @@ export default function AccountDetails() {
 
         <div className="max-w-4xl mx-auto mt-5 rounded-[28px] bg-white/5 ring-1 ring-white/10 p-8 sm:p-10">
           {loading && (
-            <p className="text-neutral-400 text-sm text-center py-8">Loading your details…</p>
+            <p className="font-manrope text-neutral-400 text-sm text-center py-8">Loading your details…</p>
           )}
           {!loading && loadError && (
             <p className="text-red-400 text-sm text-center py-4">{loadError}</p>
@@ -195,7 +171,7 @@ export default function AccountDetails() {
                 <h2 className="text-white font-grotesque font-semibold text-xl sm:text-2xl mb-1">
                   Personal
                 </h2>
-                <p className="text-neutral-400 text-sm mb-4">Name as it should appear on your account</p>
+                <p className="font-manrope text-neutral-400 text-sm mb-4">Name as it should appear on your account</p>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <TextField
                     label="First name"
@@ -216,7 +192,7 @@ export default function AccountDetails() {
                 <h2 className="text-white font-grotesque font-semibold text-xl sm:text-2xl mb-1">
                   Address
                 </h2>
-                <p className="text-neutral-400 text-sm mb-4">Primary billing / service address</p>
+                <p className="font-manrope text-neutral-400 text-sm mb-4">Primary billing / service address</p>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <TextField
                     label="Street number"
@@ -248,7 +224,7 @@ export default function AccountDetails() {
               </div>
 
               {submitError && <p className="text-sm text-red-400">{submitError}</p>}
-              {success && <p className="text-sm text-[#ABFF63]">Your details were saved.</p>}
+              {success && <p className="font-manrope text-sm text-[#ABFF63]">Your details were saved.</p>}
 
               <div className="max-w-xs">
                 <Button type="submit" disabled={submitting} fullWidth className="h-11 text-sm">

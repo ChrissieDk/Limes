@@ -34,11 +34,11 @@ export default function Hero() {
           </span>
         </h1>
 
-        <p className="mt-8 max-w-xl text-neutral-400 text-base md:text-lg">
+        <p className="font-manrope mt-8 max-w-xl text-neutral-400 text-base md:text-lg">
           Get a Limes SIM or keep your current number.
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-neutral-400">
+        <div className="font-manrope mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-neutral-400">
           <span>Prepaid or contract</span>
           <span className="size-1.5 rounded-full bg-yellow-400" />
           <span>Flexible plans</span>
