@@ -21,13 +21,10 @@ import type {
   GetSubscriptionsResponse,
   ComboSubscriptionRequest,
   ComboSubscriptionResponse,
+  RefundRequest,
 } from '../../../types/payment'
 
 export const paymentService = {
-  // ============================================
-  // ONCE-OFF PAYMENTS
-  // ============================================
-
   /**
    * Initialize a transaction (Step 1 - UNIFIED ENDPOINT)
    * Frontend provides amount in CENTS, backend creates Paystack transaction
@@ -43,8 +40,6 @@ export const paymentService = {
    * Used for contract plans where user selects service allocations
    */
   async initializeDynamicServicesPayment(payload: InitializeDynamicServicesPaymentRequest): Promise<InitializeDynamicServicesPaymentResponse> {
-    if (import.meta.env.DEV) {
-    }
     const response = await apiClient.post('/payment/dynamic-services/initialize', payload)
     return response.data
   },
@@ -58,10 +53,6 @@ export const paymentService = {
     const response = await apiClient.post('/payment/paystack/verify', payload)
     return response.data
   },
-
-  // ============================================
-  // SAVED CARDS (TOKENIZATION)
-  // ============================================
 
   /**
    * Get all saved cards for current user
@@ -96,18 +87,12 @@ export const paymentService = {
     return response.data
   },
 
-  // ============================================
-  // RECURRING SUBSCRIPTIONS
-  // ============================================
-
   /**
    * Create recurring dynamic services subscription (for ALL monthly plans)
    * Replaces the old /payment/paystack/subscribe endpoint
    * Requires a saved card
    */
   async createDynamicServicesRecurring(payload: CreateDynamicServicesRecurringRequest): Promise<CreateDynamicServicesRecurringResponse> {
-    if (import.meta.env.DEV) {
-    }
     const response = await apiClient.post('/payment/dynamic-services/recurring', payload)
     return response.data
   },
@@ -146,10 +131,6 @@ export const paymentService = {
     return response.data
   },
 
-  // ============================================
-  // TRANSACTION HISTORY (Optional)
-  // ============================================
-
   /**
    * Get payment/transaction history for the current user
    */
@@ -167,10 +148,6 @@ export const paymentService = {
     const response = await apiClient.get(`/payment/transactions/${reference}`)
     return response.data
   },
-
-  // ============================================
-  // TRANSACTION LINKING (New Backend Flow)
-  // ============================================
 
   /**
    * Link transaction to order
@@ -190,19 +167,11 @@ export const paymentService = {
     return response.data
   },
 
-  // ============================================
-  // REFUNDS
-  // ============================================
-
   /**
    * Request refund for failed transaction
    * Used when subscriber creation fails after successful payment
    */
-  async requestRefund(payload: {
-    transactionReference: string
-    amountInCents?: number | null
-    reason: string
-  }): Promise<{ success: boolean; message: string }> {
+  async requestRefund(payload: RefundRequest): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post('/payment/refund', payload)
     return response.data
   },

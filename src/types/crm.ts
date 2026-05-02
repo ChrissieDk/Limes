@@ -196,7 +196,7 @@ export interface CreateAccountCustomerRequest {
 export interface CreateAccountCustomerResponse {
   // API returns the account/customer object directly
   // Can include any fields - we just check if request succeeded
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // Get Account Customer Response (same structure as create request)

@@ -1,476 +1,183 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { type ReactNode } from 'react'
 import DashboardNavbar from '../components/DashboardNavbar'
 import Footer from '../components/Footer'
-import PlanBuilder, { type PlanAllocation } from '../components/PlanBuilder'
-import { catalogService } from '../../catalog/services/catalogService'
-import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
+import PlanBuilder from '../components/PlanBuilder'
+
 import { BundleCategorySkeleton, PackageCardSkeleton } from '../components/dashboard/PackageSkeletonLoaders.tsx'
 import PackageFlowBreadcrumbs from '../components/dashboard/PackageFlowBreadcrumbs'
-import { enrichComboPackages, type EnrichedComboPackage } from '../../catalog/utils/packageEnricher'
-import { inventoryService } from '../../inventory/services/inventoryService'
+import ComboBundleCard from '../components/dashboard/ComboBundleCard'
+import { usePackageSelection } from './usePackageSelection'
 
-type PackageType = 'contract' | 'prepaid' | null
-type SimStatus = 'has-sim' | 'needs-sim' | null
+const CATEGORY_COLORS = [
+  { bg: 'bg-[#CDA7FC]' },
+  { bg: 'bg-[#ABFF64]' },
+  { bg: 'bg-[#F8A1D9]' },
+]
 
-// Product ID mapping based on API responses
-// CRITICAL: SA = SIM in hand (already have SIM)
-//           SOA = Need SIM delivered (don't have SIM yet)
-// DO NOT CHANGES
-const PRODUCT_IDS = {
-  // SA = SIM Already in hand (I have a SIM)
-  PREPAID_SA: '7029225P',      // Prepaid - SIM in hand → Mobile Prepaid Package
-  CONTRACT_SA: '7027225P',     // Contract - SIM in hand → Mobile Contract Package
-  // SOA = SIM On Arrival (Need a SIM delivered)
-  PREPAID_SOA: '7025225P',     // Prepaid - Need SIM → Mobile Prepaid Package
-  CONTRACT_SOA: '7023225P',    // Contract - Need SIM → Mobile Contract Package
-  STAFF_SOA: '7024225P',       // Staff - Need SIM → Mobile Staff Package
-} as const
-
-export default function DashboardPackages() {
-  const navigate = useNavigate()
-  const [products, setProducts] = useState<CatalogProduct[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  
-  // New selection states
-  const [packageType, setPackageType] = useState<PackageType>(null)
-  const [simStatus, setSimStatus] = useState<SimStatus>(null)
-  const [bundleCategories, setBundleCategories] = useState<CatalogCategoryNode[]>([])
-  const [selectedBundleCategory, setSelectedBundleCategory] = useState<string | null>(null)
-  const [showPackages, setShowPackages] = useState(false)
-  
-  // Plan builder for CONTRACT only
-  const [showPlanBuilder, setShowPlanBuilder] = useState(false)
-  const [planAllocation, setPlanAllocation] = useState<PlanAllocation | null>(null)
-  
-  // NEW: Contract flow type - dynamic (build your own) or combo (bundles)
-  const [contractFlowType, setContractFlowType] = useState<'dynamic' | 'combo' | null>(null)
-  const [comboBundles, setComboBundles] = useState<EnrichedComboPackage[]>([])
-  
-  // Track the actual SIM package product ID (the parent product from SA/SOA categories)
-  const [simPackageProductId, setSimPackageProductId] = useState<string | null>(null)
-  
-  // ICCID for has-sim flow ONLY
-  const [iccid, setIccid] = useState<string>('')
-  const [iccidConfirmed, setIccidConfirmed] = useState(false)
-  const [iccidSubmitLoading, setIccidSubmitLoading] = useState(false)
-  const [iccidError, setIccidError] = useState<string | null>(null)
-
-  // (UI only) Removed hover glow backdrop effect
-
-  // Handle post-SIM-status flow: Plan builder for CONTRACT, Bundle categories for PREPAID
-  useEffect(() => {
-    if (simStatus === 'needs-sim' || (simStatus === 'has-sim' && iccidConfirmed)) {
-      // Determine SIM package product ID
-      let simPkgId = null
-      if (packageType === 'contract') {
-        simPkgId = simStatus === 'has-sim' ? PRODUCT_IDS.CONTRACT_SA : PRODUCT_IDS.CONTRACT_SOA
-        // For CONTRACT: Check which flow type was selected
-        if (contractFlowType === 'dynamic') {
-          // Build Your Own flow - Show plan builder
-          setShowPlanBuilder(true)
-
-        } else if (contractFlowType === 'combo') {
-          // Combo Bundles flow - Fetch m2m_combo products
-          fetchComboBundles()
-        }
-      } else if (packageType === 'prepaid') {
-        simPkgId = simStatus === 'has-sim' ? PRODUCT_IDS.PREPAID_SA : PRODUCT_IDS.PREPAID_SOA
-        // For PREPAID: Fetch bundle categories
-        fetchBundleCategoriesForPrepaid()
-      }
-      setSimPackageProductId(simPkgId)
-    }
-  }, [simStatus, iccidConfirmed, packageType, contractFlowType])
-
-  // Fetch bundle categories for PREPAID only
-  const fetchBundleCategoriesForPrepaid = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
-        
-        const channel = tree.find((node) => node.id === 'channels')
-        if (!channel) {
-          setError('Channel category not found')
-          console.error('[Catalog] Channel node not found in tree')
-          return
-        }
-        
-      const onceOffTopUp = channel.children?.find((node) => node.id === 'once_off_top_up')
-      if (!onceOffTopUp) {
-        setError('Top-up category not found')
-        console.error('[Catalog] once_off_top_up node not found under channel')
-          return
-        }
-        
-      if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
-        // Filter out FWA and airtime categories (provider returns airtime with R0)
-        const filteredCategories = onceOffTopUp.children.filter(category =>
-          !category.name?.toUpperCase().includes('FWA') &&
-          !category.id?.toUpperCase().includes('FWA') &&
-          !category.name?.toUpperCase().includes('AIRTIME') &&
-          !category.id?.toUpperCase().includes('AIRTIME')
-        )
-        setBundleCategories(filteredCategories)
-        } else {
-          setError('No bundle categories found')
-        console.error('[Catalog] No children found under once_off_top_up')
-        }
-      } catch (err) {
-        setError('Failed to load bundle categories. Please try again later.')
-        console.error('Error fetching bundle categories:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-  // NEW: Fetch combo bundles for CONTRACT combo flow
-  const fetchComboBundles = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await catalogService.searchCategoryProducts('m2m_combo', { 
-        page: 1, 
-        limit: 100 
-      })
-      
-      // Enrich packages with actual benefits and pricing
-      const enrichedBundles = enrichComboPackages(response.data)
-      setComboBundles(enrichedBundles)
-    
-    } catch (err) {
-      setError('Failed to load combo bundles. Please try again later.')
-      console.error('Error fetching combo bundles:', err)
-    } finally {
-      setLoading(false)
-    }
+const getCategoryStyle = (categoryId: string) => {
+  const styles: Record<string, { bg: string; hover: string; icon: ReactNode }> = {
+    data: {
+      bg: 'bg-[#ABFF63]',
+      hover: 'hover:brightness-95',
+      icon: <img src={`${import.meta.env.BASE_URL}images/plan_data.svg`} alt="" className="w-14 h-14" />,
+    },
+    voice: {
+      bg: 'bg-pink-300',
+      hover: 'hover:brightness-95',
+      icon: <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="w-14 h-14" />,
+    },
+    sms: {
+      bg: 'bg-[#629BFC]',
+      hover: 'hover:brightness-95',
+      icon: <img src={`${import.meta.env.BASE_URL}images/plan_sms.svg`} alt="" className="w-14 h-14" />,
+    },
+    whatsapp: {
+      bg: 'bg-[#5BFFD8]',
+      hover: 'hover:brightness-95',
+      icon: <img src={`${import.meta.env.BASE_URL}images/whatsapp_icon_small.svg`} alt="" className="w-14 h-14" />,
+    },
+    airtime: {
+      bg: 'bg-[#CDA7FC]',
+      hover: 'hover:brightness-95',
+      icon: <img src={`${import.meta.env.BASE_URL}images/plan_lime.svg`} alt="" className="w-14 h-14" />,
+    },
+    data_fwa: {
+      bg: 'bg-[#4A90E2]',
+      hover: 'hover:bg-[#3A80D2]',
+      icon: (
+        <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+        </svg>
+      ),
+    },
   }
 
-  // Fetch products from selected bundle category (PREPAID only)
-  useEffect(() => {
-    if (!selectedBundleCategory || packageType !== 'prepaid') return
-    
-    const fetchPackages = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const response = await catalogService.searchCategoryProducts(selectedBundleCategory, { 
-          page: 1, 
-          limit: 100 
-        })
-        
-        // Filter out FWA products
-        const filteredProducts = response.data.filter(product => 
-          !product.name?.toUpperCase().includes('FWA') && 
-          !product.description?.toUpperCase().includes('FWA')
-        )
-        
-        setProducts(filteredProducts)
-      } catch (err) {
-        setError('Failed to load packages. Please try again later.')
-        console.error('Error fetching packages:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPackages()
-  }, [selectedBundleCategory, packageType])
-
-  // Show all packages for the selected bundle category (UI decision)
-
-  const getPlanChargeType = (productId: string): 'once-off' | 'monthly' => {
-    const monthlyPlanIds = ['40021', '40022']
-    if (monthlyPlanIds.includes(productId)) {
-      return 'monthly'
-    }
-    return 'once-off'
-  }
-
-  const handlePackageTypeSelect = (type: PackageType) => {
-    setPackageType(type)
-    setSimStatus(null)
-    setShowPackages(false)
-    setProducts([])
-    setBundleCategories([])
-    setSelectedBundleCategory(null)
-    setSimPackageProductId(null)
-    setShowPlanBuilder(false)
-    // Reset new contract flow states
-    setContractFlowType(null)
-    setComboBundles([])
-  }
-
-  const handleSimStatusSelect = (status: SimStatus) => {
-    setSimStatus(status)
-    setSelectedBundleCategory(null)
-    setShowPackages(false)
-    setProducts([])
-    setBundleCategories([])
-    setSimPackageProductId(null)
-    setIccidConfirmed(false)
-  }
-  
-  const handleIccidSubmit = async () => {
-    if (iccid.trim().length < 15) {
-      setIccidError('Please enter a valid ICCID (found on the back of your SIM card)')
-      return
-    }
-    setIccidError(null)
-    setIccidSubmitLoading(true)
-    try {
-      const exists = await inventoryService.simIsReserved(iccid)
-      if (exists) {
-        setIccidError('This SIM has already been activated. You cannot take out a new plan with an ICCID that is already in use.')
-        return
-      }
-      setIccidConfirmed(true)
-    } finally {
-      setIccidSubmitLoading(false)
-    }
-  }
-
-  const handleBundleCategorySelect = (categoryId: string) => {
-    setSelectedBundleCategory(categoryId)
-    setShowPackages(true)
-  }
-
-  // Helper to get category styling and icon
-  const getCategoryStyle = (categoryId: string) => {
-    const styles: Record<string, { bg: string, hover: string, icon: ReactNode }> = {
-      'data': {
-        bg: 'bg-[#ABFF63]',
-        hover: 'hover:brightness-95',
-        icon: (
-          <img src={`${import.meta.env.BASE_URL}images/plan_data.svg`} alt="" className="w-14 h-14" />
-        )
-      },
-      'voice': {
-        bg: 'bg-pink-300',
-        hover: 'hover:brightness-95',
-        icon: (
-          <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="w-14 h-14" />
-        )
-      },
-      'sms': {
-        bg: 'bg-[#629BFC]',
-        hover: 'hover:brightness-95',
-        icon: (
-          <img src={`${import.meta.env.BASE_URL}images/plan_sms.svg`} alt="" className="w-14 h-14" />
-        )
-      },
-      'whatsapp': {
-        bg: 'bg-[#5BFFD8]',
-        hover: 'hover:brightness-95',
-        icon: (
-          <img src={`${import.meta.env.BASE_URL}images/whatsapp_icon_small.svg`} alt="" className="w-14 h-14" />
-        )
-      },
-      'airtime': {
-        bg: 'bg-[#CDA7FC]',
-        hover: 'hover:brightness-95',
-        icon: (
-          <img src={`${import.meta.env.BASE_URL}images/plan_lime.svg`} alt="" className="w-14 h-14" />
-        )
-      },
-      'data_fwa': {
-        bg: 'bg-[#4A90E2]',
-        hover: 'hover:bg-[#3A80D2]',
-        icon: (
-          <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
-          </svg>
-        )
-      }
-    }
-
-    // Default combo bundles style
-    return styles[categoryId] || {
+  return (
+    styles[categoryId] || {
       bg: 'bg-[#7B9FF5]',
       hover: 'hover:bg-[#6B8FE5]',
       icon: (
         <svg className="w-8 h-8 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-      )
+      ),
     }
-  }
+  )
+}
 
-  const handleBackFromBundleCategories = () => {
-    if (simStatus === 'has-sim') {
-      setIccidConfirmed(false)
-    } else {
-      setSimStatus(null)
-    }
-    setBundleCategories([])
-    setSelectedBundleCategory(null)
-    setShowPackages(false)
-    setProducts([])
-  }
+function BackButton({ onClick, label = 'Back' }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mb-6 px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      </svg>
+      {label}
+    </button>
+  )
+}
 
-  const handleBackFromPackages = () => {
-    setSelectedBundleCategory(null)
-    setShowPackages(false)
-    setProducts([])
-  }
+function PageHeader({
+  packageType,
+  contractFlowType,
+  simStatus,
+  iccidConfirmed,
+  selectedBundleCategory,
+  comboBundleCount,
+}: {
+  packageType: string | null
+  contractFlowType: string | null
+  simStatus: string | null
+  iccidConfirmed: boolean
+  selectedBundleCategory: string | null
+  comboBundleCount: number
+}) {
+  const title = !packageType
+    ? 'Choose your package type'
+    : packageType === 'contract' && !contractFlowType
+      ? 'Choose your plan type'
+      : packageType === 'prepaid' && !simStatus
+        ? 'Do you have a SIM?'
+        : packageType === 'contract' && contractFlowType && !simStatus
+          ? 'Do you have a SIM?'
+          : simStatus === 'has-sim' && !iccidConfirmed
+            ? 'Enter your ICCID'
+            : simStatus && !selectedBundleCategory && packageType === 'prepaid'
+              ? 'Choose your bundle type'
+              : comboBundleCount > 0
+                ? 'Choose your combo bundle'
+                : 'Your packages'
 
-  const handleBackFromPlanBuilder = () => {
-    // Go back to ICCID input if has-sim, otherwise to SIM status selection
-    if (simStatus === 'has-sim') {
-      setIccidConfirmed(false)
-      setShowPlanBuilder(false)
-    } else {
-      setSimStatus(null)
-      setShowPlanBuilder(false)
-    }
-    setPlanAllocation(null)
-  }
-  
-  const handleBackFromIccidInput = () => {
-    setSimStatus(null)
-    setIccid('')
-    setIccidConfirmed(false)
-    setIccidError(null)
-  }
+  const subtitle = !packageType
+    ? 'Select between contract or prepaid options'
+    : packageType === 'contract' && !contractFlowType
+      ? 'Build your own plan or choose a combo bundle'
+      : packageType === 'prepaid' && !simStatus
+        ? 'Let us know if you already have a SIM card'
+        : packageType === 'contract' && contractFlowType && !simStatus
+          ? 'Let us know if you already have a SIM card'
+          : simStatus === 'has-sim' && !iccidConfirmed
+            ? 'Found on the back of your SIM card'
+            : simStatus && !selectedBundleCategory && packageType === 'prepaid'
+              ? 'Select the type of bundle you need'
+              : comboBundleCount > 0
+                ? `${comboBundleCount} combo bundles available`
+                : `Showing ${selectedBundleCategory || packageType} packages`
 
-  const handlePlanContinue = (allocation: PlanAllocation) => {
-    setPlanAllocation(allocation)
-    
-    // Calculate total price
-    const totalPriceInRands = allocation.data + allocation.airtime + allocation.sms + allocation.voice + allocation.whatsapp
-    const totalPriceInCents = totalPriceInRands * 100 // For Paystack payment
-    
-    // Navigate to dashboard with contract plan details
-    navigate('/dashboard', {
-      state: {
-        selectedPackage: {
-          productId: 'dynamic-plan',
-          simPackageProductId: simPackageProductId,
-          name: 'Custom Plan',
-          price: totalPriceInRands, // Display price in Rands
-          priceInCents: totalPriceInCents, // For Paystack payment
-          packageType: 'contract',
-          simStatus: simStatus,
-          planChargeType: 'monthly',
-          iccid: simStatus === 'has-sim' ? iccid : undefined,
-          isDynamicPlan: true,
-          planAllocation: allocation,
-          features: {
-            description: [
-              allocation.data > 0 && `Data: R${allocation.data}`,
-              allocation.airtime > 0 && `Airtime: R${allocation.airtime}`,
-              allocation.sms > 0 && `SMS: R${allocation.sms}`,
-              allocation.voice > 0 && `Voice: R${allocation.voice}`,
-              allocation.whatsapp > 0 && `WhatsApp: R${allocation.whatsapp}`,
-            ].filter(Boolean).join(', ') || 'Custom plan'
-          }
-        }
-      }
-    })
-  }
+  return (
+    <>
+      <h2 className="mt-3 text-center font-grotesque font-extrabold text-white text-4xl sm:text-[40px] md:text-[48px] leading-[1.05]">
+        {title}
+      </h2>
+      <p className="font-manrope mt-2 text-center text-neutral-400">{subtitle}</p>
+    </>
+  )
+}
 
-  const handleReset = () => {
-    setPackageType(null)
-    setSimStatus(null)
-    setShowPackages(false)
-    setProducts([])
-    setBundleCategories([])
-    setSelectedBundleCategory(null)
-    setSimPackageProductId(null)
-    setShowPlanBuilder(false)
-    setPlanAllocation(null)
-    setIccid('')
-    setIccidConfirmed(false)
-    setError(null)
-    // Reset new contract flow states
-    setContractFlowType(null)
-    setComboBundles([])
-  }
-
-  // NEW: Handle contract flow type selection (Build Your Own vs Bundles)
-  const handleContractFlowTypeSelect = (flowType: 'dynamic' | 'combo') => {
-    setContractFlowType(flowType)
-  }
-
-  // NEW: Handle back from contract flow choice screen
-  const handleBackFromContractFlowChoice = () => {
-    setContractFlowType(null)
-    setComboBundles([])
-    setPackageType(null)
-  }
-
-  // NEW: Handle back from combo bundles display
-  const handleBackFromComboBundles = () => {
-    if (simStatus === 'has-sim') {
-      setIccidConfirmed(false)
-    } else {
-      setSimStatus(null)
-    }
-    setComboBundles([])
-  }
-
-  // NEW: Handle combo bundle selection
-  const handleComboBundleSelect = (product: EnrichedComboPackage) => {
-    
-    // Navigate to dashboard with contract combo bundle details
-    navigate('/dashboard', {
-      state: {
-        selectedPackage: {
-          productId: product.id, // Keep original product ID for backend
-          simPackageProductId: simPackageProductId,
-          name: product.name,
-          price: product.actualPrice, // Use actual price in Rands
-          priceInCents: product.actualPriceCents, // Use actual price in cents for Paystack
-          packageType: 'contract',
-          simStatus: simStatus,
-          planChargeType: 'monthly', // Combo bundles are monthly subscriptions
-          iccid: simStatus === 'has-sim' ? iccid : undefined,
-          isComboBundle: true, // Flag to identify combo bundle vs dynamic plan
-          comboDetails: product.comboDetails, // Include full combo details
-          features: {
-            mobileData: product.description
-          }
-        }
-      }
-    })
-  }
-
-  const handleBuyNow = (product: CatalogProduct) => {
-    const chargeType = getPlanChargeType(product.id)
-    
-    // Navigate to dashboard with prepaid package details
-    // Dashboard will check ricaComplete and open appropriate modal
-    navigate('/dashboard', {
-      state: {
-        selectedPackage: {
-          productId: product.id,
-          simPackageProductId: simPackageProductId,
-          name: product.name,
-          price: product.price, // Display price in Rands
-          priceInCents: product.price * 100, // For Paystack payment (convert to cents)
-          packageType: 'prepaid',
-          simStatus: simStatus,
-          planChargeType: chargeType,
-          iccid: simStatus === 'has-sim' ? iccid : undefined,
-          features: {
-            mobileData: product.description
-          }
-        }
-      }
-    })
-  }
+export default function DashboardPackages() {
+  const {
+    products,
+    loading,
+    error,
+    packageType,
+    simStatus,
+    bundleCategories,
+    selectedBundleCategory,
+    showPackages,
+    showPlanBuilder,
+    planAllocation,
+    contractFlowType,
+    comboBundles,
+    iccid,
+    iccidConfirmed,
+    iccidSubmitLoading,
+    iccidError,
+    handlePackageTypeSelect,
+    handleSimStatusSelect,
+    handleIccidSubmit,
+    handleBundleCategorySelect,
+    handleBackFromBundleCategories,
+    handleBackFromPackages,
+    handleBackFromPlanBuilder,
+    handleBackFromIccidInput,
+    handlePlanContinue,
+    handleReset,
+    handleContractFlowTypeSelect,
+    handleBackFromContractFlowChoice,
+    handleBackFromComboBundles,
+    handleComboBundleSelect,
+    handleBuyNow,
+    setIccid,
+    setIccidError,
+  } = usePackageSelection()
 
   return (
     <div className="min-h-screen bg-neutral-900">
       <DashboardNavbar />
       <main className="px-4 sm:px-6 pb-6 max-w-6xl mx-auto">
         <section className="relative bg-neutral-900">
-          {/* Breadcrumbs: same horizontal frame as max-w-4xl choice cards (left edges line up) */}
           <div className="mx-auto max-w-5xl px-2 sm:px-6 lg:px-8 pt-6 sm:pt-10">
             <div className="max-w-4xl mx-auto w-full">
               <PackageFlowBreadcrumbs
@@ -490,48 +197,22 @@ export default function DashboardPackages() {
             </div>
           </div>
           <div className="mx-auto max-w-6xl px-2 sm:px-6 pt-4 sm:pt-6">
-            <div className="flex items-center justify-center text-sm text-neutral-400">
+            <div className="font-manrope flex items-center justify-center text-sm text-neutral-400">
               <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Packages
             </div>
-            <h2 className="mt-3 text-center font-grotesque font-extrabold text-white text-4xl sm:text-[40px] md:text-[48px] leading-[1.05]">
-              {!packageType 
-                ? 'Choose your package type' 
-                : packageType === 'contract' && !contractFlowType
-                ? 'Choose your plan type'
-                : packageType === 'prepaid' && !simStatus 
-                ? 'Do you have a SIM?' 
-                : (packageType === 'contract' && contractFlowType && !simStatus)
-                ? 'Do you have a SIM?'
-                : simStatus === 'has-sim' && !iccidConfirmed
-                ? 'Enter your ICCID'
-                : simStatus && !selectedBundleCategory && packageType === 'prepaid'
-                ? 'Choose your bundle type'
-                : comboBundles.length > 0
-                ? 'Choose your combo bundle'
-                : 'Your packages'}
-            </h2>
-            <p className="mt-2 text-center text-neutral-400">
-              {!packageType 
-                ? 'Select between contract or prepaid options' 
-                : packageType === 'contract' && !contractFlowType
-                ? 'Build your own plan or choose a combo bundle'
-                : packageType === 'prepaid' && !simStatus 
-                ? 'Let us know if you already have a SIM card' 
-                : (packageType === 'contract' && contractFlowType && !simStatus)
-                ? 'Let us know if you already have a SIM card'
-                : simStatus === 'has-sim' && !iccidConfirmed
-                ? 'Found on the back of your SIM card'
-                : simStatus && !selectedBundleCategory && packageType === 'prepaid'
-                ? 'Select the type of bundle you need'
-                : comboBundles.length > 0
-                ? `${comboBundles.length} combo bundles available`
-                : `Showing ${selectedBundleCategory || packageType} packages`}
-            </p>
+            <PageHeader
+              packageType={packageType}
+              contractFlowType={contractFlowType}
+              simStatus={simStatus}
+              iccidConfirmed={iccidConfirmed}
+              selectedBundleCategory={selectedBundleCategory}
+              comboBundleCount={comboBundles.length}
+            />
           </div>
 
           <div className="mt-6">
             <div className="mx-auto max-w-5xl px-2 sm:px-6 lg:px-8 py-6 sm:py-10">
-              {/* Step 1: Choose Package Type */}
+              {/* Step 1: Package Type */}
               {!packageType && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 max-w-4xl mx-auto">
                   <button
@@ -539,19 +220,10 @@ export default function DashboardPackages() {
                     className="group rounded-[28px] bg-[#FDDA36] shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
                   >
                     <div className="mb-4">
-                      <img
-                        src={`${import.meta.env.BASE_URL}images/house.png`}
-                        alt=""
-                        aria-hidden="true"
-                        className="h-11 w-11 select-none"
-                      />
+                      <img src={`${import.meta.env.BASE_URL}images/house.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
                     </div>
-                    <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
-                      Contract
-                    </h3>
-                    <p className="mt-1.5 text-neutral-900/80 text-base md:text-lg">
-                      Long-term plans with SIM delivery.
-                    </p>
+                    <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Contract</h3>
+                    <p className="font-manrope mt-1.5 text-neutral-900/80 text-base md:text-lg">Long-term plans with SIM delivery.</p>
                     <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
                       <span>I want a Contract</span>
                       <span aria-hidden="true">→</span>
@@ -563,19 +235,10 @@ export default function DashboardPackages() {
                     className="group rounded-[28px] bg-[#ABFF63] shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
                   >
                     <div className="mb-4">
-                      <img
-                        src={`${import.meta.env.BASE_URL}images/zblock.png`}
-                        alt=""
-                        aria-hidden="true"
-                        className="h-11 w-11 select-none"
-                      />
+                      <img src={`${import.meta.env.BASE_URL}images/zblock.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
                     </div>
-                    <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
-                      Prepaid
-                    </h3>
-                    <p className="mt-1.5 text-neutral-900/80 text-base md:text-lg">
-                      Pay-as-you-go options.
-                    </p>
+                    <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Prepaid</h3>
+                    <p className="font-manrope mt-1.5 text-neutral-900/80 text-base md:text-lg">Pay-as-you-go options.</p>
                     <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
                       <span>I want Prepaid</span>
                       <span aria-hidden="true">→</span>
@@ -584,36 +247,20 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* NEW Step 1.5: Contract Flow Type Selection (CONTRACT ONLY) */}
+              {/* Step 1.5: Contract Flow Type */}
               {packageType === 'contract' && !contractFlowType && (
                 <div className="max-w-4xl mx-auto">
-                  <button
-                    onClick={handleBackFromContractFlowChoice}
-                    className="mb-6 px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back
-                  </button>
-
+                  <BackButton onClick={handleBackFromContractFlowChoice} />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     <button
                       onClick={() => handleContractFlowTypeSelect('dynamic')}
                       className="group rounded-[28px] bg-[#F8A1D9] hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
                     >
                       <div className="mb-4">
-                        <img
-                          src={`${import.meta.env.BASE_URL}images/house.png`}
-                          alt=""
-                          aria-hidden="true"
-                          className="h-11 w-11 select-none"
-                        />
+                        <img src={`${import.meta.env.BASE_URL}images/house.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
                       </div>
-                      <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
-                        Build your own
-                      </h3>
-                      <p className="mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
+                      <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Build your own</h3>
+                      <p className="font-manrope mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
                         <span>Customise your perfect plan</span>
                         <span aria-hidden="true">→</span>
                       </p>
@@ -624,17 +271,10 @@ export default function DashboardPackages() {
                       className="group rounded-[28px] bg-[#629CFC] hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
                     >
                       <div className="mb-4">
-                        <img
-                          src={`${import.meta.env.BASE_URL}images/zblock.png`}
-                          alt=""
-                          aria-hidden="true"
-                          className="h-11 w-11 select-none"
-                        />
+                        <img src={`${import.meta.env.BASE_URL}images/zblock.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
                       </div>
-                      <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
-                        Combo bundles
-                      </h3>
-                      <p className="mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
+                      <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Combo bundles</h3>
+                      <p className="font-manrope mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
                         <span>Choose from our bundles</span>
                         <span aria-hidden="true">→</span>
                       </p>
@@ -643,100 +283,60 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 2: SIM Status (for both contract and prepaid) */}
-              {((packageType === 'prepaid' && !simStatus) || (packageType === 'contract' && contractFlowType && !simStatus)) && !selectedBundleCategory && (
-                <div className="max-w-4xl mx-auto">
-                  <button
-                    onClick={handleReset}
-                    className="mb-6 px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back
-                  </button>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                    <button
-                      onClick={() => handleSimStatusSelect('has-sim')}
-                      className="group rounded-[28px] bg-[#D8B0FF] hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
-                    >
-                      <div className="mb-4">
-                        <img
-                          src={`${import.meta.env.BASE_URL}images/checkmark.png`}
-                          alt=""
-                          aria-hidden="true"
-                          className="h-11 w-11 select-none"
-                        />
-                      </div>
-                      <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
-                        I have a SIM
-                      </h3>
-                      <p className="mt-1.5 text-neutral-900/80 text-base md:text-lg">
-                        SIM card already in hand
-                      </p>
-                      <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
-                        <span>Continue</span>
-                        <span aria-hidden="true">→</span>
-                      </div>
-                    </button>
+              {/* Step 2: SIM Status */}
+              {((packageType === 'prepaid' && !simStatus) ||
+                (packageType === 'contract' && contractFlowType && !simStatus)) &&
+                !selectedBundleCategory && (
+                  <div className="max-w-4xl mx-auto">
+                    <BackButton onClick={handleReset} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                      <button
+                        onClick={() => handleSimStatusSelect('has-sim')}
+                        className="group rounded-[28px] bg-[#D8B0FF] hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
+                      >
+                        <div className="mb-4">
+                          <img src={`${import.meta.env.BASE_URL}images/checkmark.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
+                        </div>
+                        <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">I have a SIM</h3>
+                        <p className="font-manrope mt-1.5 text-neutral-900/80 text-base md:text-lg">SIM card already in hand</p>
+                        <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
+                          <span>Continue</span>
+                          <span aria-hidden="true">→</span>
+                        </div>
+                      </button>
 
-                    <button
-                      onClick={() => handleSimStatusSelect('needs-sim')}
-                      className="group rounded-[28px] bg-pink-300 hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
-                    >
-                      <div className="mb-4">
-                        <img
-                          src={`${import.meta.env.BASE_URL}images/plan_logo.png`}
-                          alt=""
-                          aria-hidden="true"
-                          className="h-11 w-11 select-none"
-                        />
-                      </div>
-                      <h3 className="text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">
-                        I need a SIM
-                      </h3>
-                      <p className="mt-1.5 text-neutral-900/80 text-base md:text-lg">
-                        SIM will be delivered to you
-                      </p>
-                      <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
-                        <span>Continue</span>
-                        <span aria-hidden="true">→</span>
-                      </div>
-                    </button>
+                      <button
+                        onClick={() => handleSimStatusSelect('needs-sim')}
+                        className="group rounded-[28px] bg-pink-300 hover:brightness-95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all min-h-[210px] px-8 py-8 md:px-10 md:py-9 flex flex-col items-center justify-center text-center"
+                      >
+                        <div className="mb-4">
+                          <img src={`${import.meta.env.BASE_URL}images/plan_logo.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
+                        </div>
+                        <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">I need a SIM</h3>
+                        <p className="font-manrope mt-1.5 text-neutral-900/80 text-base md:text-lg">SIM will be delivered to you</p>
+                        <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
+                          <span>Continue</span>
+                          <span aria-hidden="true">→</span>
+                        </div>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Step 2.5: ICCID Input (ONLY for has-sim flow) */}
+              {/* Step 2.5: ICCID Input */}
               {simStatus === 'has-sim' && !iccidConfirmed && (
                 <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
-                  <button
-                    onClick={handleBackFromIccidInput}
-                    className="mb-6 px-4 py-2 rounded-lg bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back
-                  </button>
-
+                  <BackButton onClick={handleBackFromIccidInput} />
                   <div className="rounded-[28px] p-7 md:p-10 bg-[#629BFC] shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
                     <div className="flex items-center justify-center mb-4">
-                      <img
-                        src={`${import.meta.env.BASE_URL}images/star.png`}
-                        alt=""
-                        className="h-10 w-10 select-none"
-                      />
+                      <img src={`${import.meta.env.BASE_URL}images/star.png`} alt="" className="h-10 w-10 select-none" />
                     </div>
-
-                    <h3 className="text-neutral-900 font-semibold text-[34px] md:text-[40px] mb-2 text-center leading-[1.05]">
+                    <h3 className="font-grotesque text-neutral-900 font-semibold text-[34px] md:text-[40px] mb-2 text-center leading-[1.05]">
                       Enter your ICCID
                     </h3>
-                    <p className="text-neutral-900/80 text-base md:text-lg mb-7 text-center">
+                    <p className="font-manrope text-neutral-900/80 text-base md:text-lg mb-7 text-center">
                       Your ICCID is printed on the back of your SIM card
                     </p>
-
                     <div className="bg-white/25 rounded-2xl p-5 md:p-6 mb-7">
                       <label htmlFor="iccid" className="block text-neutral-900 font-semibold mb-2">
                         ICCID Number
@@ -753,10 +353,9 @@ export default function DashboardPackages() {
                       {iccidError ? (
                         <p className="text-red-700 font-semibold text-sm mt-2">{iccidError}</p>
                       ) : (
-                        <p className="text-neutral-900/70 text-sm mt-2">Usually 19-20 digits long</p>
+                        <p className="font-manrope text-neutral-900/70 text-sm mt-2">Usually 19-20 digits long</p>
                       )}
                     </div>
-
                     <button
                       onClick={handleIccidSubmit}
                       disabled={iccid.trim().length < 15 || iccidSubmitLoading}
@@ -768,22 +367,15 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 3: Bundle Category Selection (PREPAID ONLY) */}
-              {packageType === 'prepaid' && bundleCategories.length > 0 && !selectedBundleCategory && !showPackages && (
+              {/* Step 3: Bundle Categories (PREPAID) */}
+              {packageType === 'prepaid' && !selectedBundleCategory && !showPackages && (loading || bundleCategories.length > 0) && (
                 <div className="max-w-7xl mx-auto">
-                  <button
-                    onClick={handleBackFromBundleCategories}
-                    className="mb-6 px-6 py-3 rounded-xl bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back
-                  </button>
-                  
+                  <BackButton onClick={handleBackFromBundleCategories} />
                   {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto">
-                      {[1, 2, 3, 4, 5, 6].map(i => <BundleCategorySkeleton key={i} />)}
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <BundleCategorySkeleton key={i} />
+                      ))}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto">
@@ -796,10 +388,10 @@ export default function DashboardPackages() {
                             className={`group rounded-[24px] px-8 py-8 ${style.bg} ${style.hover} transition-all min-h-[200px] flex flex-col items-center justify-center text-center`}
                           >
                             <div className="mb-4 text-neutral-900">{style.icon}</div>
-                            <h3 className="text-neutral-900 font-bold text-[28px] md:text-[30px] leading-[1.05]">
+                            <h3 className="font-grotesque text-neutral-900 font-bold text-[28px] md:text-[30px] leading-[1.05]">
                               {category.name}
                             </h3>
-                            <div className="mt-3 inline-flex items-center justify-center rounded-full bg-black/35 text-white px-4 py-1.5 text-sm font-semibold">
+                            <div className="font-manrope mt-3 inline-flex items-center justify-center rounded-full bg-black/35 text-white px-4 py-1.5 text-sm font-semibold">
                               {category.productCount} {category.productCount === 1 ? 'option' : 'options'}
                             </div>
                           </button>
@@ -810,19 +402,11 @@ export default function DashboardPackages() {
                 </div>
               )}
 
-              {/* Step 4: Show Packages (PREPAID ONLY) */}
+              {/* Step 4: Packages (PREPAID) */}
               {packageType === 'prepaid' && showPackages && selectedBundleCategory && (
                 <div>
                   <div className="flex items-center gap-4 mb-6">
-                    <button
-                      onClick={handleBackFromPackages}
-                      className="px-6 py-3 rounded-xl bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Back to bundles
-                    </button>
+                    <BackButton onClick={handleBackFromPackages} label="Back to bundles" />
                     <button
                       onClick={handleReset}
                       className="px-6 py-3 rounded-xl bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
@@ -833,88 +417,66 @@ export default function DashboardPackages() {
 
                   {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                      {[1, 2, 3, 4, 5, 6].map(i => <PackageCardSkeleton key={i} />)}
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <PackageCardSkeleton key={i} />
+                      ))}
                     </div>
                   ) : error ? (
                     <div className="text-center py-12">
                       <p className="text-red-400 text-lg mb-4">{error}</p>
-                    <button
+                      <button
                         onClick={handleBackFromPackages}
                         className="px-6 py-3 bg-lime-400 text-neutral-900 rounded-xl font-semibold hover:bg-lime-300 transition-colors"
-                    >
+                      >
                         Go Back
-                    </button>
-                  </div>
+                      </button>
+                    </div>
                   ) : products.length > 0 ? (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                        {products.map((pkg, idx) => {
-                          // Cycle through colors for the 3-column layout
-                          const colors = [
-                            { bg: 'bg-[#CDA7FC]' }, // left column
-                            { bg: 'bg-[#ABFF64]' }, // middle column
-                            { bg: 'bg-[#F8A1D9]' }, // right column
-                          ]
-                          const colorScheme = colors[idx % colors.length]
-                          
-                          return (
-                            <div
-                              key={pkg.id}
-                              className={`rounded-[28px] p-8 ${colorScheme.bg} shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all group relative overflow-hidden min-h-[230px] flex flex-col`}
-                            >
-                              <div className="text-neutral-900 font-bold text-[32px] md:text-[34px] leading-[1.05] tracking-tight">
-                                {pkg.name}
-                              </div>
-                              <div className="mt-4 h-[2px] w-full bg-neutral-900/30" />
-
-                              <div className="mt-6 text-neutral-900 font-bold text-[44px] md:text-[48px] leading-none tracking-tight">
-                                R{pkg.price.toFixed(2)}
-                              </div>
-
-                              <div className="mt-6">
-                                <button
-                                  onClick={() => handleBuyNow(pkg)}
-                                  className="inline-flex items-center justify-center h-10 px-6 rounded-[12px] bg-white text-neutral-900 text-sm font-semibold border border-neutral-900/50 hover:bg-neutral-50 transition-colors"
-                                >
-                                  Buy now
-                                </button>
-                              </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                      {products.map((pkg, idx) => {
+                        const colorScheme = CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+                        return (
+                          <div
+                            key={pkg.id}
+                            className={`rounded-[28px] p-8 ${colorScheme.bg} shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all group relative overflow-hidden min-h-[230px] flex flex-col`}
+                          >
+                            <div className="font-grotesque text-neutral-900 font-bold text-[32px] md:text-[34px] leading-[1.05] tracking-tight">
+                              {pkg.name}
                             </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Intentionally showing all packages; no "Show all" toggle */}
-                    </>
+                            <div className="mt-4 h-[2px] w-full bg-neutral-900/30" />
+                            <div className="font-grotesque mt-6 text-neutral-900 font-bold text-[44px] md:text-[48px] leading-none tracking-tight">
+                              R{pkg.price.toFixed(2)}
+                            </div>
+                            <div className="mt-6">
+                              <button
+                                onClick={() => handleBuyNow(pkg)}
+                                className="inline-flex items-center justify-center h-10 px-6 rounded-[12px] bg-white text-neutral-900 text-sm font-semibold border border-neutral-900/50 hover:bg-neutral-50 transition-colors"
+                              >
+                                Buy now
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   ) : (
                     <div className="text-center py-12 text-neutral-400">
-                      <p className="text-lg">No packages available in this category.</p>
+                      <p className="font-manrope text-lg">No packages available in this category.</p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Step 3: Plan Builder (CONTRACT ONLY - Dynamic Flow) */}
+              {/* Step 3: Plan Builder (CONTRACT dynamic) */}
               {packageType === 'contract' && showPlanBuilder && !planAllocation && (
-                <PlanBuilder
-                  onContinue={handlePlanContinue}
-                  onBack={handleBackFromPlanBuilder}
-                />
+                <PlanBuilder onContinue={handlePlanContinue} onBack={handleBackFromPlanBuilder} />
               )}
 
-              {/* NEW Step 3: Combo Bundles Display (CONTRACT ONLY - Combo Flow) */}
-              {packageType === 'contract' && contractFlowType === 'combo' && comboBundles.length > 0 && (
+              {/* Step 3: Combo Bundles (CONTRACT combo) */}
+              {packageType === 'contract' && contractFlowType === 'combo' && (loading || comboBundles.length > 0) && (
                 <div>
                   <div className="flex items-center gap-4 mb-6">
-                    <button
-                      onClick={handleBackFromComboBundles}
-                      className="px-6 py-3 rounded-xl bg-neutral-800 text-white font-semibold hover:bg-neutral-700 transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Back
-                    </button>
+                    <BackButton onClick={handleBackFromComboBundles} />
                     <button
                       onClick={handleReset}
                       className="px-6 py-3 rounded-xl bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
@@ -925,7 +487,9 @@ export default function DashboardPackages() {
 
                   {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                      {[1, 2, 3, 4, 5, 6].map(i => <PackageCardSkeleton key={i} />)}
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <PackageCardSkeleton key={i} />
+                      ))}
                     </div>
                   ) : error ? (
                     <div className="text-center py-12">
@@ -940,135 +504,20 @@ export default function DashboardPackages() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                       {comboBundles.map((bundle, idx) => {
-                        // Match the 3-column visual pattern from the flow
-                        const colors = [
-                          { bg: 'bg-[#CDA7FC]' }, // left column
-                          { bg: 'bg-[#ABFF64]' }, // middle column
-                          { bg: 'bg-[#F8A1D9]' }, // right column
-                        ]
-                        const colorScheme = colors[idx % colors.length]
-
-                        const benefits = bundle.comboDetails?.benefits ?? []
-                        const includedRows: Array<{ key: string; label: string; value: string; meta?: string }> = []
-
-                        // Show key value-prop details in a consistent order.
-                        // We intentionally keep this compact but comprehensive enough for comparison.
-                        const pick = (type: typeof benefits[number]['type']) => benefits.find(b => b.type === type)
-
-                        const standardData = pick('data')
-                        const promoData = pick('promo_data')
-                        const zeroRatedData = pick('zero_rated_data')
-                        const whatsapp = pick('whatsapp')
-                        const voice = pick('voice')
-                        const sms = pick('sms')
-                        const airtime = pick('gpa_credit')
-
-                        if (standardData) {
-                          includedRows.push({
-                            key: 'data',
-                            label: 'Data',
-                            value: standardData.formattedValue,
-                            meta: standardData.validity,
-                          })
-                        }
-                        if (promoData) {
-                          includedRows.push({
-                            key: 'promo_data',
-                            label: 'Bonus data',
-                            value: promoData.formattedValue,
-                            meta: promoData.validity,
-                          })
-                        }
-                        if (zeroRatedData) {
-                          includedRows.push({
-                            key: 'zero_rated_data',
-                            label: 'Zero-rated',
-                            value: zeroRatedData.formattedValue,
-                            meta: zeroRatedData.validity,
-                          })
-                        }
-                        if (whatsapp) {
-                          includedRows.push({
-                            key: 'whatsapp',
-                            label: 'WhatsApp',
-                            value: whatsapp.formattedValue,
-                            meta: whatsapp.validity,
-                          })
-                        }
-                        if (voice) {
-                          includedRows.push({
-                            key: 'voice',
-                            label: 'Voice',
-                            value: voice.formattedValue,
-                            meta: voice.validity,
-                          })
-                        }
-                        if (sms) {
-                          includedRows.push({
-                            key: 'sms',
-                            label: 'SMS',
-                            value: sms.formattedValue,
-                            meta: sms.validity,
-                          })
-                        }
-                        if (airtime) {
-                          includedRows.push({
-                            key: 'gpa_credit',
-                            label: 'Airtime',
-                            value: airtime.formattedValue,
-                            meta: airtime.validity,
-                          })
-                        }
-
+                        const colorScheme = CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
                         return (
-                          <div
+                          <ComboBundleCard
                             key={bundle.id}
-                            className={`rounded-[28px] p-8 ${colorScheme.bg} shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all group relative overflow-hidden min-h-[230px] flex flex-col`}
-                          >
-                            <div className="text-neutral-900 font-bold text-[24px] md:text-[26px] leading-[1.1] tracking-tight">
-                              {bundle.name}
-                            </div>
-                            <div className="mt-4 h-[2px] w-full bg-neutral-900/30" />
-
-                            <div className="mt-5 flex-1">
-                              {includedRows.length > 0 ? (
-                                <div className="space-y-1.5">
-                                  {includedRows.map(row => (
-                                    <div key={row.key} className="flex items-baseline justify-between gap-4">
-                                      <span className="text-neutral-900/80 text-sm font-semibold whitespace-nowrap">
-                                        {row.label}
-                                        {row.meta ? <span className="text-neutral-900/60 font-semibold"> ({row.meta})</span> : null}
-                                      </span>
-                                      <span className="text-neutral-900 text-sm font-bold whitespace-nowrap">{row.value}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : bundle.comboDetails?.shortSummary ? (
-                                <p className="text-neutral-900/80 text-sm font-semibold">{bundle.comboDetails.shortSummary}</p>
-                              ) : null}
-                            </div>
-
-                            <div className="mt-auto pt-6">
-                              <div className="text-neutral-900 font-bold text-[34px] md:text-[38px] leading-none tracking-tight">
-                                R{bundle.actualPrice.toFixed(2)}
-                              </div>
-                              <div className="mt-5">
-                                <button
-                                  onClick={() => handleComboBundleSelect(bundle)}
-                                  className="inline-flex items-center justify-center h-10 px-6 rounded-[12px] bg-white text-neutral-900 text-sm font-semibold border border-neutral-900/50 hover:bg-neutral-50 transition-colors"
-                                >
-                                  Buy now
-                                </button>
-                              </div>
-                            </div>
-                          </div>
+                            bundle={bundle}
+                            colorClass={colorScheme.bg}
+                            onSelect={handleComboBundleSelect}
+                          />
                         )
                       })}
                     </div>
                   )}
                 </div>
               )}
-
             </div>
           </div>
         </section>
@@ -1077,5 +526,3 @@ export default function DashboardPackages() {
     </div>
   )
 }
-
-

@@ -54,7 +54,7 @@ export default function ForgotPassword() {
       {success ? (
         <div className="grid gap-4">
           <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-            <p className="text-green-400 text-sm text-center">
+            <p className="font-manrope text-green-400 text-sm text-center">
               Check your email! We've sent a password reset link to your inbox.
             </p>
           </div>
@@ -85,10 +85,10 @@ export default function ForgotPassword() {
           </Button>
 
           {submitError && (
-            <div className="text-sm text-red-400 text-center">{submitError}</div>
+            <div className="font-manrope text-sm text-red-400 text-center">{submitError}</div>
           )}
 
-          <div className="pt-2 text-sm text-neutral-500 text-center">
+          <div className="font-manrope pt-2 text-sm text-neutral-500 text-center">
             Remember your password?{' '}
             <Link to="/signin" className="text-[#ABFF63] hover:text-[#ABFF63]/90 transition-colors">
               Sign in

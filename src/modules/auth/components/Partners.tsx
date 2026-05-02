@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import Button from './Button'
 
@@ -7,7 +8,7 @@ type PartnerCard = {
   description: string
   bgClass: string
   textClass: string
-  icon: React.ReactNode
+  icon: ReactNode
 }
 
 export default function Partners() {
@@ -98,7 +99,7 @@ export default function Partners() {
         </h2>
       </div>
 
-      <p className="mt-4 text-center text-neutral-400 text-base md:text-lg max-w-3xl mx-auto">
+      <p className="font-manrope mt-4 text-center text-neutral-400 text-base md:text-lg max-w-3xl mx-auto">
         Partner with Limes to offer mobile connectivity without building your own network.
       </p>
 

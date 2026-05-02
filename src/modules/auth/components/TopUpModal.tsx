@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { catalogService } from '../../catalog/services/catalogService'
 import { paymentService } from '../../payment/services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
 import { dynamicServicesPaymentService } from '../../payment/services/dynamicServicesPaymentService'
 import { getServiceDisplayValue, convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../../payment/utils/dynamicPricing'
-import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
-import type { ServiceType } from '../../payment/utils/dynamicPricing'
+import type { CatalogProduct } from '../../../types'
+import type { ServiceType } from '../../payment/config/ratingTable'
 import { Loader2 } from 'lucide-react'
+import { getAxiosErrorMessage } from '../../../utils/errorMessage'
+import { useTopUpData } from './useTopUpData'
+import BundleCategoryGrid from './BundleCategoryGrid'
 
 // Paystack Popup
 declare const PaystackPop: any
@@ -21,66 +23,161 @@ interface TopUpModalProps {
   phoneNumbers?: string[]
 }
 
-const renderProductList = (products: CatalogProduct[], selectedProduct: CatalogProduct | null, onSelect: (product: CatalogProduct) => void, categoryId: string | null) => {
-  // Map category to color
-  const getCategoryColor = (catId: string | null) => {
-    const colorMap: Record<string, string> = {
-      'data': 'bg-[#ABFF63]/20',      // Green for Data
-      'voice': 'bg-pink-300/60',       // Pink for Voice
-      'sms': 'bg-[#629BFC]/20',        // Blue for SMS
-      'whatsapp': 'bg-[#FF9F66]/20',   // Orange for WhatsApp
-    }
-    return colorMap[catId || ''] || 'bg-neutral-200'
+interface ProductListProps {
+  products: CatalogProduct[]
+  selectedProduct: CatalogProduct | null
+  onSelect: (product: CatalogProduct) => void
+  categoryId: string | null
+}
+
+function getCategoryColor(catId: string | null): string {
+  const colorMap: Record<string, string> = {
+    data: 'bg-[#ABFF63]/20',
+    voice: 'bg-pink-300/60',
+    sms: 'bg-[#629BFC]/20',
+    whatsapp: 'bg-[#FF9F66]/20',
   }
-  
+  return colorMap[catId || ''] || 'bg-neutral-200'
+}
+
+function ProductList({ products, selectedProduct, onSelect, categoryId }: ProductListProps) {
   const priceBgColor = getCategoryColor(categoryId)
-  
-  return products.map((product) => (
-    <button
-      key={product.id}
-      onClick={() => onSelect(product)}
-      className={`w-full rounded-2xl border-2 ${
-        selectedProduct?.id === product.id
-          ? 'border-neutral-900 bg-neutral-50'
-          : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
-      } p-5 text-left transition-all active:scale-[0.98]`}
-    >
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-neutral-900 text-base">{product.name}</div>
-          <div className="text-sm text-neutral-600 mt-1.5 line-clamp-1">{product.description}</div>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <div className={`inline-block px-3 py-1.5 rounded-lg ${priceBgColor}`}>
-            <div className="font-bold text-lg text-neutral-900">R{product.price.toFixed(2)}</div>
+  return (
+    <>
+      {products.map((product) => (
+        <button
+          key={product.id}
+          onClick={() => onSelect(product)}
+          className={`w-full rounded-2xl border-2 ${
+            selectedProduct?.id === product.id
+              ? 'border-neutral-900 bg-neutral-50'
+              : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
+          } p-5 text-left transition-all active:scale-[0.98]`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="font-grotesque font-bold text-neutral-900 text-base">{product.name}</div>
+              <div className="font-manrope text-sm text-neutral-600 mt-1.5 line-clamp-1">{product.description}</div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <div className={`inline-block px-3 py-1.5 rounded-lg ${priceBgColor}`}>
+                <div className="font-bold text-lg text-neutral-900">R{product.price.toFixed(2)}</div>
+              </div>
+              <div className="font-manrope text-xs text-neutral-500 font-medium mt-1">once-off</div>
+            </div>
           </div>
-          <div className="text-xs text-neutral-500 font-medium mt-1">once-off</div>
+        </button>
+      ))}
+    </>
+  )
+}
+
+function PriceInput({ price, onChange, onAdjust }: { price: number; onChange: (v: number) => void; onAdjust: (delta: number) => void }) {
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '')
+    if (value === '') {
+      onChange(1)
+    } else {
+      onChange(Math.max(1, Math.min(1000, parseInt(value, 10))))
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-5">
+      <button
+        className="size-12 grid place-items-center rounded-xl ring-2 ring-neutral-200 hover:bg-neutral-50 active:scale-95 transition-all text-xl font-bold text-neutral-700"
+        onClick={() => onAdjust(-5)}
+      >
+        −
+      </button>
+      <div className="flex items-center justify-center gap-1">
+        <span className="font-grotesque font-extrabold text-6xl tracking-tight text-neutral-900">R</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={price}
+          onChange={handleInput}
+          className="w-32 text-center font-grotesque font-extrabold text-6xl tracking-tight bg-transparent border-0 outline-none focus:ring-0 p-0 text-neutral-900"
+          style={{ appearance: 'none' }}
+        />
+      </div>
+      <button
+        className="size-12 grid place-items-center rounded-xl ring-2 ring-neutral-200 hover:bg-neutral-50 active:scale-95 transition-all text-xl font-bold text-neutral-700"
+        onClick={() => onAdjust(5)}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
+function PaymentSummary({ label, amount, onPurchase, isProcessing, isSuccess }: {
+  label: string
+  amount: string
+  onPurchase: () => void
+  isProcessing: boolean
+  isSuccess: boolean
+}) {
+  return (
+    <div className="space-y-3 pt-2">
+      <div className="rounded-2xl bg-neutral-50 p-5 space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-neutral-600 font-medium">{label}</span>
+          <span className="font-semibold text-neutral-900">{label === 'Bundle' ? amount : 'Airtime'}</span>
+        </div>
+        <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
+          <span className="font-grotesque font-bold text-neutral-900 text-base">Total</span>
+          <span className="font-grotesque font-bold text-3xl text-neutral-900">{amount}</span>
         </div>
       </div>
-    </button>
-  ))
+
+      <button
+        onClick={onPurchase}
+        disabled={isProcessing || isSuccess}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#ABFF63] text-neutral-900 font-bold px-6 py-3.5 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed text-base"
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Processing...</span>
+          </>
+        ) : isSuccess ? (
+          <span>✓ Success</span>
+        ) : (
+          <>
+            <span>Purchase {label}</span>
+            <span>→</span>
+          </>
+        )}
+      </button>
+    </div>
+  )
 }
 
 export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }: TopUpModalProps) {
   const [kind, setKind] = useState<TopUpKind>('bundles')
   const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false)
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string>(phoneNumber ?? (phoneNumbers?.[0] ?? ''))
-  
-  // Bundle categories and products from catalog
-  const [bundleCategories, setBundleCategories] = useState<CatalogCategoryNode[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [products, setProducts] = useState<CatalogProduct[]>([])
-  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-  
+
   // Price input for voice/data/sms/whatsapp (cost-based only)
   const [price, setPrice] = useState(50)
-  
+
   // Payment states
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
+
+  const {
+    bundleCategories,
+    selectedCategory,
+    products,
+    selectedProduct,
+    loading,
+    error,
+    setSelectedCategory,
+    setSelectedProduct,
+    handleBackToCategories,
+  } = useTopUpData(open, kind)
 
   useEffect(() => {
     if (!open) return
@@ -99,98 +196,19 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setPrice((prev) => Math.max(1, Math.min(1000, prev + delta)))
   }
 
-  const handlePriceInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '')
-    if (value === '') {
-      setPrice(1)
-    } else {
-      const numValue = parseInt(value, 10)
-      setPrice(Math.max(1, Math.min(1000, numValue)))
-    }
-  }
-
   const formattedPrice = `R${price}`
 
-  // Fetch bundle categories when modal opens and bundles tab is active
-  useEffect(() => {
-    if (!open || kind !== 'bundles') return
-    
-    const fetchBundleCategories = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const tree = await catalogService.getCategoryTree({ groupCode: 123, groupOnly: true })
-        
-        const channel = tree.find((node) => node.id === 'channels')
-        if (!channel) {
-          setError('Channel category not found')
-          console.error('[TopUp] Channel node not found in tree')
-          return
-        }
-        
-        const onceOffTopUp = channel.children?.find((node) => node.id === 'once_off_top_up')
-        if (!onceOffTopUp) {
-          setError('Top-up category not found')
-          console.error('[TopUp] once_off_top_up node not found under channel')
-          return
-        }
-        
-        if (onceOffTopUp.children && onceOffTopUp.children.length > 0) {
-          // Filter out FWA and Airtime categories
-          const filteredCategories = onceOffTopUp.children.filter(category => 
-            !category.name?.toUpperCase().includes('FWA') && 
-            !category.id?.toUpperCase().includes('FWA') &&
-            !category.name?.toUpperCase().includes('AIRTIME') && 
-            !category.id?.toUpperCase().includes('AIRTIME')
-          )
-          setBundleCategories(filteredCategories)
-        } else {
-          setError('No bundle categories found')
-          console.error('[TopUp] No children found under once_off_top_up')
-        }
-      } catch (err) {
-        setError('Failed to load bundle categories')
-        console.error('Error fetching bundle categories:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchBundleCategories()
-  }, [open, kind])
-
-  // Fetch products when category is selected
-  useEffect(() => {
-    if (!selectedCategory) return
-    
-    const fetchProducts = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const response = await catalogService.searchCategoryProducts(selectedCategory, { 
-          page: 1, 
-          limit: 100 
-        })
-        
-        // Filter out FWA products
-        const filteredProducts = response.data.filter(product => 
-          !product.name?.toUpperCase().includes('FWA') && 
-          !product.description?.toUpperCase().includes('FWA')
-        )
-        
-        setProducts(filteredProducts)
-      } catch (err) {
-        setError('Failed to load products')
-        console.error('Error fetching products:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchProducts()
-  }, [selectedCategory])
+  const resetPayment = () => {
+    setPaymentSuccess(true)
+    window.dispatchEvent(new CustomEvent('limes:payment-success'))
+    setTimeout(() => {
+      setPaymentSuccess(false)
+      setSelectedCategory(null)
+      setSelectedProduct(null)
+      setPrice(50)
+      onClose()
+    }, 2000)
+  }
 
   // Handle bundle purchase
   const handlePurchaseBundle = async () => {
@@ -203,19 +221,18 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setPaymentError(null)
 
     try {
-      
       if (!selectedProduct.price) {
         setPaymentError('Price is missing for bundle')
-        console.error('[TopUp] ❌ Price is missing from selectedProduct')
+        console.error('[TopUp] Price is missing from selectedProduct')
         return
       }
-      
+
       const payload = {
         productId: String(selectedProduct.id),
         msisdn: String(selectedPhoneNumber),
-        amount: toCents(selectedProduct.price)  // Convert R150 → 15000 cents
+        amount: toCents(selectedProduct.price),
       }
-      
+
       const initResponse = await paymentService.initializeTransaction(payload)
 
       if (!initResponse.success || !initResponse.data) {
@@ -223,71 +240,49 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         return
       }
 
-      // Use Paystack Popup
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
-        onSuccess: async (transaction: any) => {
-          
+        onSuccess: async (transaction: Record<string, unknown>) => {
           try {
-            // STEP 1: Verify payment
+            const reference = String(transaction.reference || initResponse.data?.reference || '')
             const verificationResponse = await paymentService.verifyPayment({
-              reference: transaction.reference || initResponse.data?.reference || '',
-              saveCard: false, // Once-off top-up, don't save card
+              reference,
+              saveCard: false,
             })
 
             if (!verificationResponse.success) {
               throw new Error(verificationResponse.error || 'Payment verification failed')
             }
-            
-            // STEP 2: Create order (NO subscriber creation - already exists)
+
             const orderResponse = await subscriptionService.createOrder({
               products: [{ id: selectedProduct.id, amount: selectedProduct.price }],
-              msisdn: selectedPhoneNumber
+              msisdn: selectedPhoneNumber,
             })
-            
+
             if (orderResponse.orderId) {
-              // Order created immediately - link transaction
-              
-              // STEP 3: Link transaction to order
               await paymentService.linkTransactionToOrder({
-                transactionReference: transaction.reference || initResponse.data?.reference || '',
-                orderId: orderResponse.orderId
+                transactionReference: reference,
+                orderId: orderResponse.orderId,
               })
-            } else if (orderResponse.message) {
-              // Order queued/pending
-            } else {
+            } else if (!orderResponse.message) {
               throw new Error('Order creation failed - no orderId or message in response')
             }
-            
-            setPaymentSuccess(true)
-            // Notify Dashboard to refresh data after successful payment
-            window.dispatchEvent(new CustomEvent('limes:payment-success'))
-            setTimeout(() => {
-              setPaymentSuccess(false)
-              setSelectedCategory(null)
-              setSelectedProduct(null)
-              onClose()
-            }, 2000)
-          } catch (err: any) {
-            setPaymentError(err.response?.data?.message || err.message || 'Payment processing failed')
+
+            resetPayment()
+          } catch (err) {
+            setPaymentError(getAxiosErrorMessage(err, 'Payment processing failed'))
           }
         },
         onCancel: () => {
           setPaymentError(null)
-        }
+        },
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[TopUp] Payment error:', error)
-      setPaymentError(error.response?.data?.message || error.message || 'Failed to process payment')
+      setPaymentError(getAxiosErrorMessage(error, 'Failed to process payment'))
     } finally {
       setIsPaymentProcessing(false)
     }
-  }
-
-  const handleBackToCategories = () => {
-    setSelectedCategory(null)
-    setSelectedProduct(null)
-    setProducts([])
   }
 
   // Handle dynamic service purchase (Voice, Data, SMS, WhatsApp)
@@ -303,17 +298,14 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     try {
       const serviceType = kind.toUpperCase() as ServiceType
       const serviceValue = convertRandsToServiceValue(serviceType, price, 'prepaid')
-      
-      // Check if service is available for prepaid
+
       if (serviceValue === null) {
         setPaymentError(`${kind} service is not available for prepaid packages`)
         return
       }
-      
+
       const expiryDate = getDefaultExpiryDate()
       const priceInCents = price * 100
-      
-      // Map AIRTIME to GPA_CREDIT for backend
       const definitionCode = serviceType === 'AIRTIME' ? 'GPA_CREDIT' : serviceType
 
       const payload = {
@@ -321,7 +313,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         services: [
           {
             value: serviceValue,
-            definitionCode: definitionCode as any, // Backend expects GPA_CREDIT
+            definitionCode: definitionCode as 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT',
             expiryDate,
             priceInCents,
           },
@@ -335,75 +327,52 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         return
       }
 
-      // Use Paystack Popup
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
-        onSuccess: async (transaction: any) => {
-
+        onSuccess: async (transaction: Record<string, unknown>) => {
           try {
-            // STEP 1: Verify payment
+            const reference = String(transaction.reference || initResponse.data?.reference || '')
             const verificationResponse = await paymentService.verifyPayment({
-              reference: transaction.reference || initResponse.data?.reference || '',
+              reference,
               saveCard: false,
             })
 
             if (!verificationResponse.success) {
               throw new Error(verificationResponse.error || 'Payment verification failed')
             }
-            
-            // STEP 2: Create dynamic services (NO subscriber creation - already exists)
-            const serviceValue = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
-            
-            if (serviceValue === null) {
+
+            const sv = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
+            if (sv === null) {
               throw new Error(`${kind} service is not available for prepaid packages`)
             }
-            
-            const definitionCode = kind.toUpperCase() === 'AIRTIME' ? 'GPA_CREDIT' : kind.toUpperCase()
-            
-            const servicesResponse = await subscriptionService.createDynamicServices(
-              selectedPhoneNumber,
-              {
-                services: [{
-                  value: serviceValue,
-                  definitionCode: definitionCode as any,
-                  expiryDate: getDefaultExpiryDate()
-                }]
-              }
-            )
-            
-            const serviceIds = servicesResponse.results
-              .filter(r => r.success && r.id)
-              .map(r => r.id!)
-            
+
+            const dc = (kind.toUpperCase() === 'AIRTIME' ? 'GPA_CREDIT' : kind.toUpperCase()) as 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
+            const servicesResponse = await subscriptionService.createDynamicServices(selectedPhoneNumber, {
+              services: [{ value: sv, definitionCode: dc, expiryDate: getDefaultExpiryDate() }],
+            })
+
+            const serviceIds = servicesResponse.results.filter((r) => r.success && r.id).map((r) => r.id!)
             if (serviceIds.length === 0) {
               throw new Error('No services created')
             }
-            
-            // STEP 3: Link transaction to services
+
             await paymentService.linkTransactionToServices({
-              transactionReference: transaction.reference || initResponse.data?.reference || '',
-              serviceIds: serviceIds
+              transactionReference: reference,
+              serviceIds,
             })
-            
-            setPaymentSuccess(true)
-            // Notify Dashboard to refresh data after successful payment
-            window.dispatchEvent(new CustomEvent('limes:payment-success'))
-            setTimeout(() => {
-              setPaymentSuccess(false)
-              setPrice(50) // Reset to default
-              onClose()
-            }, 2000)
-          } catch (err: any) {
-            setPaymentError(err.response?.data?.message || err.message || 'Payment processing failed')
+
+            resetPayment()
+          } catch (err) {
+            setPaymentError(getAxiosErrorMessage(err, 'Payment processing failed'))
           }
         },
         onCancel: () => {
           setPaymentError(null)
         },
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('[TopUp] Dynamic service payment error:', error)
-      setPaymentError(error.response?.data?.message || error.message || 'Failed to process payment')
+      setPaymentError(getAxiosErrorMessage(error, 'Failed to process payment'))
     } finally {
       setIsPaymentProcessing(false)
     }
@@ -417,284 +386,162 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       <div className="relative w-full max-w-lg sm:max-w-xl mx-0 sm:mx-4 rounded-3xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-3xl">
           <div>
-            <div className="font-bold text-xl text-neutral-900">Top-up</div>
-            <div className="text-sm text-neutral-500 mt-0.5">Enter the details below to top-up</div>
+            <div className="font-grotesque font-bold text-xl text-neutral-900">Top-up</div>
+            <div className="font-manrope text-sm text-neutral-500 mt-0.5">Enter the details below to top-up</div>
           </div>
           <button aria-label="Close" className="size-10 grid place-items-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 text-2xl transition-colors" onClick={onClose}>×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           <div className="px-6 pt-5 pb-6 space-y-5">
-          {/* Tab Selection */}
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <button 
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                kind === 'airtime' 
-                  ? 'bg-neutral-900 text-white shadow-md' 
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-              }`} 
-              onClick={() => setKind('airtime')}
-            >
-              Airtime
-            </button>
-            <button 
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                kind === 'bundles' 
-                  ? 'bg-neutral-900 text-white shadow-md' 
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-              }`} 
-              onClick={() => setKind('bundles')}
-            >
-              Bundles
-            </button>
-          </div>
-
-          {/* Price Entry UI for Airtime */}
-          {kind !== 'bundles' && (
-            <div className="flex items-center justify-center gap-5">
-              <button 
-                className="size-12 grid place-items-center rounded-xl ring-2 ring-neutral-200 hover:bg-neutral-50 active:scale-95 transition-all text-xl font-bold text-neutral-700" 
-                onClick={() => adjustPrice(-5)}
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <button
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  kind === 'airtime'
+                    ? 'bg-neutral-900 text-white shadow-md'
+                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                }`}
+                onClick={() => setKind('airtime')}
               >
-                −
+                Airtime
               </button>
-              <div className="flex items-center justify-center gap-1">
-                <span className="font-grotesque font-extrabold text-6xl tracking-tight text-neutral-900">R</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={price}
-                  onChange={handlePriceInput}
-                  className="w-32 text-center font-grotesque font-extrabold text-6xl tracking-tight bg-transparent border-0 outline-none focus:ring-0 p-0 text-neutral-900"
-                  style={{ appearance: 'none' }}
-                />
-              </div>
-              <button 
-                className="size-12 grid place-items-center rounded-xl ring-2 ring-neutral-200 hover:bg-neutral-50 active:scale-95 transition-all text-xl font-bold text-neutral-700" 
-                onClick={() => adjustPrice(5)}
+              <button
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  kind === 'bundles'
+                    ? 'bg-neutral-900 text-white shadow-md'
+                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                }`}
+                onClick={() => setKind('bundles')}
               >
-                +
+                Bundles
               </button>
             </div>
-          )}
 
-          {/* Display what user will get for their money */}
-          {kind !== 'bundles' && (
-            <div className="flex items-center justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#ABFF63]/20 px-4 py-2.5">
-                <span className="text-sm text-neutral-700">You'll get:</span>
-                <span className="text-sm font-bold text-neutral-900">
-                  {getServiceDisplayValue(kind.toUpperCase() as ServiceType, price)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Bundles - Show Categories or Products */}
-          {kind === 'bundles' && !selectedCategory && (
-            <div className="space-y-4">
-              <h3 className="text-neutral-900 font-semibold text-base">Choose Bundle Type</h3>
-              
-              {loading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="animate-pulse rounded-2xl border border-neutral-200 p-4 h-28 bg-neutral-50" />
-                  ))}
-                </div>
-              )}
-              
-              {error && (
-                <div className="text-center py-8">
-                  <div className="inline-block rounded-xl bg-red-50 border-2 border-red-200 px-6 py-4">
-                    <p className="text-sm font-medium text-red-700">{error}</p>
+            {kind !== 'bundles' && (
+              <>
+                <PriceInput price={price} onChange={setPrice} onAdjust={adjustPrice} />
+                <div className="flex items-center justify-center">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[#ABFF63]/20 px-4 py-2.5">
+                    <span className="font-manrope text-sm text-neutral-700">You'll get:</span>
+                    <span className="font-grotesque text-sm font-bold text-neutral-900">
+                      {getServiceDisplayValue(kind.toUpperCase() as ServiceType, price)}
+                    </span>
                   </div>
                 </div>
-              )}
-              
-              {!loading && !error && bundleCategories.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {bundleCategories.map((category) => {
-                    const getCategoryStyle = (id: string) => {
-                      const styles: Record<string, { bg: string; icon: string }> = {
-                        'data': { bg: 'bg-[#ABFF63]', icon: 'plan_data.svg' },
-                        'voice': { bg: 'bg-pink-300', icon: 'plan_phone.svg' },
-                        'sms': { bg: 'bg-[#629BFC]', icon: 'plan_sms.svg' },
-                        'whatsapp': { bg: 'bg-[#FF9F66]', icon: 'whatsapp_icon_small.svg' },
-                      }
-                      return styles[id] || { bg: 'bg-neutral-200', icon: 'plan_data.svg' }
-                    }
-                    
-                    const style = getCategoryStyle(category.id)
-                    
-                    return (
-                      <button
-                        key={category.id}
-                        onClick={() => setSelectedCategory(category.id)}
-                        className={`rounded-2xl ${style.bg} p-4 text-left transition-all hover:brightness-95 active:scale-[0.98] flex items-center gap-4`}
-                      >
-                        <img src={`${import.meta.env.BASE_URL}images/${style.icon}`} alt="" className="w-10 h-10 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-neutral-900 text-lg">{category.name}</div>
-                          <div className="text-sm text-neutral-700 font-medium">
-                            {category.productCount} {category.productCount === 1 ? 'option' : 'options'}
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+              </>
+            )}
 
-          {/* Show Products when category is selected */}
-          {kind === 'bundles' && selectedCategory && !selectedProduct && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-neutral-900 font-semibold text-base">Select a Bundle</h3>
-                <button
-                  onClick={handleBackToCategories}
-                  className="text-sm text-neutral-600 hover:text-neutral-900 font-semibold transition-colors inline-flex items-center gap-1"
-                >
-                  <span>←</span>
-                  <span>Back</span>
-                </button>
-              </div>
-              
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse rounded-2xl border border-neutral-200 p-5 h-24 bg-neutral-50" />
-                  ))}
-                </div>
-              ) : products.length > 0 ? (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {renderProductList(products, selectedProduct, setSelectedProduct, selectedCategory)}
-                </div>
-              ) : null}
-            </div>
-          )}
+            {kind === 'bundles' && !selectedCategory && (
+              <div className="space-y-4">
+                <h3 className="font-grotesque text-neutral-900 font-semibold text-base">Choose Bundle Type</h3>
 
-          {/* Phone Number Selection - Show for bundles when product selected, or always for data/airtime */}
-          {(selectedProduct || kind !== 'bundles') && (
-            <div className="space-y-2">
-              <div className="text-neutral-700 text-sm font-semibold">Phone number to top-up</div>
-              <div className="relative">
-                <button className="w-full flex items-center gap-3 rounded-xl ring-1 ring-neutral-300 px-4 py-3 bg-white text-left hover:ring-neutral-400 transition-all" onClick={() => setIsPhoneMenuOpen((v) => !v)}>
-                  <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="h-6 w-6" />
-                  <span className="flex-1 text-neutral-900 font-medium">{selectedPhoneNumber || 'Select a SIM'}</span>
-                  <span className={`text-neutral-400 transition-transform text-xl leading-none ${isPhoneMenuOpen ? 'rotate-180' : ''}`}>▾</span>
-                </button>
-                {isPhoneMenuOpen && (
-                  <div className="absolute left-0 right-0 mt-2 z-10 rounded-xl bg-white ring-1 ring-neutral-200 shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                    {(phoneNumbers && phoneNumbers.length > 0 ? phoneNumbers : [selectedPhoneNumber]).filter(Boolean).map((num) => (
-                      <button key={num} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 text-left transition-colors" onClick={() => { setSelectedPhoneNumber(num); setIsPhoneMenuOpen(false) }}>
-                        <span className="inline-flex items-center justify-center size-6 rounded bg-[#ABFF63] text-neutral-900 text-xs font-bold">SIM</span>
-                        <span className="text-neutral-900 font-medium">{num}</span>
-                      </button>
+                {loading && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="animate-pulse rounded-2xl border border-neutral-200 p-4 h-28 bg-neutral-50" />
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
-          )}
 
-          {/* Payment Status Messages */}
-          {paymentError && (
-            <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4">
-              <p className="text-sm font-medium text-red-700">{paymentError}</p>
-            </div>
-          )}
-
-          {paymentSuccess && (
-            <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 flex items-center gap-3">
-              <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
-              <p className="text-sm font-medium text-green-700">Payment successful! Closing...</p>
-            </div>
-          )}
-
-          {/* Purchase Button for Voice/Data/SMS/WhatsApp */}
-          {kind !== 'bundles' && selectedPhoneNumber && (
-            <div className="space-y-3 pt-2">
-              <div className="rounded-2xl bg-neutral-50 p-5 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-600 font-medium">Type</span>
-                  <span className="font-semibold text-neutral-900 capitalize">{kind}</span>
-                </div>
-                <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
-                  <span className="font-bold text-neutral-900 text-base">Total</span>
-                  <span className="font-bold text-3xl text-neutral-900">{formattedPrice}</span>
-                </div>
-              </div>
-
-              <button
-                onClick={handlePurchaseDynamicService}
-                disabled={isPaymentProcessing || paymentSuccess}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#ABFF63] text-neutral-900 font-bold px-6 py-3.5 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed text-base"
-              >
-                {isPaymentProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : paymentSuccess ? (
-                  <span>✓ Success</span>
-                ) : (
-                  <>
-                    <span>Purchase Airtime</span>
-                    <span>→</span>
-                  </>
+                {error && (
+                  <div className="text-center py-8">
+                    <div className="inline-block rounded-xl bg-red-50 border-2 border-red-200 px-6 py-4">
+                      <p className="text-sm font-medium text-red-700">{error}</p>
+                    </div>
+                  </div>
                 )}
-              </button>
-            </div>
-          )}
 
-          {/* Purchase Button - Only show when product is selected for bundles */}
-          {kind === 'bundles' && selectedProduct && (
-            <div className="space-y-3 pt-2">
-              <div className="rounded-2xl bg-neutral-50 p-5 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-600 font-medium">Bundle</span>
-                  <span className="font-semibold text-neutral-900">{selectedProduct.name}</span>
+                {!loading && !error && bundleCategories.length > 0 && (
+                  <BundleCategoryGrid categories={bundleCategories} onSelect={setSelectedCategory} />
+                )}
+              </div>
+            )}
+
+            {kind === 'bundles' && selectedCategory && !selectedProduct && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-grotesque text-neutral-900 font-semibold text-base">Select a Bundle</h3>
+                  <button
+                    onClick={handleBackToCategories}
+                    className="text-sm text-neutral-600 hover:text-neutral-900 font-semibold transition-colors inline-flex items-center gap-1"
+                  >
+                    <span>←</span>
+                    <span>Back</span>
+                  </button>
                 </div>
-                <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
-                  <span className="font-bold text-neutral-900 text-base">Total</span>
-                  <span className="font-bold text-3xl text-neutral-900">R{selectedProduct.price.toFixed(2)}</span>
+
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse rounded-2xl border border-neutral-200 p-5 h-24 bg-neutral-50" />
+                    ))}
+                  </div>
+                ) : products.length > 0 ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    <ProductList products={products} selectedProduct={selectedProduct} onSelect={setSelectedProduct} categoryId={selectedCategory} />
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {(selectedProduct || kind !== 'bundles') && (
+              <div className="space-y-2">
+                <div className="font-grotesque text-neutral-700 text-sm font-semibold">Phone number to top-up</div>
+                <div className="relative">
+                  <button className="w-full flex items-center gap-3 rounded-xl ring-1 ring-neutral-300 px-4 py-3 bg-white text-left hover:ring-neutral-400 transition-all" onClick={() => setIsPhoneMenuOpen((v) => !v)}>
+                    <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="h-6 w-6" />
+                    <span className="flex-1 text-neutral-900 font-medium">{selectedPhoneNumber || 'Select a SIM'}</span>
+                    <span className={`text-neutral-400 transition-transform text-xl leading-none ${isPhoneMenuOpen ? 'rotate-180' : ''}`}>▾</span>
+                  </button>
+                  {isPhoneMenuOpen && (
+                    <div className="absolute left-0 right-0 mt-2 z-10 rounded-xl bg-white ring-1 ring-neutral-200 shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                      {(phoneNumbers && phoneNumbers.length > 0 ? phoneNumbers : [selectedPhoneNumber]).filter(Boolean).map((num) => (
+                        <button key={num} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 text-left transition-colors" onClick={() => { setSelectedPhoneNumber(num); setIsPhoneMenuOpen(false) }}>
+                          <span className="font-manrope inline-flex items-center justify-center size-6 rounded bg-[#ABFF63] text-neutral-900 text-xs font-bold">SIM</span>
+                          <span className="text-neutral-900 font-medium">{num}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+            )}
 
-              {selectedPhoneNumber ? (
-                <button
-                  onClick={handlePurchaseBundle}
-                  disabled={isPaymentProcessing || paymentSuccess}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#ABFF63] text-neutral-900 font-bold px-6 py-3.5 hover:brightness-95 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed text-base"
-                >
-                  {isPaymentProcessing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Processing...</span>
-                    </>
-                  ) : paymentSuccess ? (
-                    <span>✓ Success</span>
-                  ) : (
-                    <>
-                      <span>Purchase Bundle</span>
-                      <span>→</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <div className="text-center py-3">
-                  <p className="text-sm text-neutral-600">Please select a phone number above</p>
-                </div>
-              )}
-            </div>
-          )}
+            {paymentError && (
+              <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4">
+                <p className="text-sm font-medium text-red-700">{paymentError}</p>
+              </div>
+            )}
+
+            {paymentSuccess && (
+              <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 flex items-center gap-3">
+                <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
+                <p className="font-manrope text-sm font-medium text-green-700">Payment successful! Closing...</p>
+              </div>
+            )}
+
+            {kind !== 'bundles' && selectedPhoneNumber && (
+              <PaymentSummary
+                label="Type"
+                amount={formattedPrice}
+                onPurchase={handlePurchaseDynamicService}
+                isProcessing={isPaymentProcessing}
+                isSuccess={paymentSuccess}
+              />
+            )}
+
+            {kind === 'bundles' && selectedProduct && (
+              <PaymentSummary
+                label="Bundle"
+                amount={`R${selectedProduct.price.toFixed(2)}`}
+                onPurchase={handlePurchaseBundle}
+                isProcessing={isPaymentProcessing}
+                isSuccess={paymentSuccess}
+              />
+            )}
           </div>
         </div>
       </div>
     </div>
   )
 }
-
-

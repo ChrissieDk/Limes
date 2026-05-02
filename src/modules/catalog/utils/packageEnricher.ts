@@ -8,16 +8,6 @@ import type { CatalogProduct } from '../../../types'
 import { COMBO_PACKAGES_MAP, type ComboPackageDetails } from '../config/comboPackagesMapping'
 
 export interface EnrichedComboPackage extends CatalogProduct {
-  // Original fields from API
-  id: string
-  sku: string
-  name: string
-  description: string // Will always be set after enrichment
-  price: number
-  brand: string
-  displayOrder: number
-  isAdHoc: boolean
-  
   // Enriched fields from mapping
   isEnriched: boolean
   actualPrice: number // The real price in Rands

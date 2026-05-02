@@ -38,15 +38,15 @@ const navItems = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Subscriptions', to: '/dashboard/subscriptions' },
   { label: 'Payment Methods', to: '/dashboard/payment-methods' },
+  { label: 'Delivery Tracking', to: '/dashboard/delivery-tracking' },
   { label: 'Add a SIM', to: '/dashboard/packages' },
-  // { label: 'Address Book', to: '/dashboard/address-book' },
-  // { label: 'Wallet', to: '/dashboard/wallet' },
 ] as const
 
 const PROVISIONED_ONLY_PATHS = new Set<string>([
   '/dashboard',
   '/dashboard/subscriptions',
   '/dashboard/payment-methods',
+  '/dashboard/delivery-tracking',
 ])
 
 const DISABLED_TAB_TITLE = 'Complete your plan and SIM setup first.'
@@ -206,14 +206,12 @@ export default function DashboardNavbar() {
       <div className="mx-auto max-w-7xl px-6">
         <nav className="w-full rounded-xl bg-neutral-800 text-white border border-neutral-700">
           <div className="flex items-center justify-between px-4 py-3">
-            {/* Logo */}
             <div className="flex items-center">
               <Link to={hasProvisionedSim === true ? '/dashboard' : '/dashboard/packages'}>
                 <img src={`${import.meta.env.BASE_URL}images/limes_high_def_logo.svg`} alt="Limes" className="h-7" />
               </Link>
             </div>
 
-            {/* Desktop Nav - Single line with adjusted spacing */}
             <div className="hidden lg:flex items-center justify-center flex-1 px-4">
               <ul className="flex items-center gap-7 text-sm whitespace-nowrap">
                 {navItems.map((item) => (
@@ -226,7 +224,7 @@ export default function DashboardNavbar() {
                         className="group inline-flex flex-col items-center gap-0.5 py-1 opacity-40 cursor-not-allowed select-none"
                       >
                         <span
-                          className="font-medium transition-colors text-white/50"
+                          className="font-manrope font-medium transition-colors text-white/50"
                         >
                           {item.label}
                         </span>
@@ -242,7 +240,7 @@ export default function DashboardNavbar() {
                         className="group inline-flex flex-col items-center gap-0.5 py-1"
                       >
                         <span
-                          className="font-medium transition-colors"
+                          className="font-manrope font-medium transition-colors"
                           style={{
                             color: item.to === '/dashboard/packages'
                               ? addSimColor
@@ -265,7 +263,6 @@ export default function DashboardNavbar() {
               </ul>
             </div>
 
-            {/* Desktop Account Menu */}
             <div className="hidden lg:flex items-center justify-end">
               <div ref={accountMenuRef} className="relative">
                 <button
@@ -279,7 +276,7 @@ export default function DashboardNavbar() {
                       aria-hidden="true"
                       className="w-7 h-7 rounded-full flex-shrink-0"
                     />
-                    <span className="text-white text-[13px] font-semibold truncate">{displayName}</span>
+                    <span className="font-grotesque text-white text-[15px] font-semibold truncate">{displayName}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-white/80 flex-shrink-0" />
                 </button>
@@ -291,21 +288,20 @@ export default function DashboardNavbar() {
                       onClick={() => setAccountMenuOpen(false)}
                       className="block w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition-colors text-white"
                     >
-                      Edit details
+                      <span className="font-manrope">Edit details</span>
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
                     >
-                      Logout
+                      <span className="font-manrope">Logout</span>
                     </button>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Mobile Burger Menu Button */}
             <button 
               aria-label="Menu" 
               className="lg:hidden inline-flex items-center justify-center size-10 rounded-lg border border-white/10 hover:bg-white/5 transition" 
@@ -319,7 +315,6 @@ export default function DashboardNavbar() {
             </button>
           </div>
 
-          {/* Mobile Menu */}
           <div className={`lg:hidden overflow-hidden transition-[max-height] duration-300 ${mobileMenuOpen ? 'max-h-[500px]' : 'max-h-0'}`}>
             <ul className="px-4 pb-4 space-y-1">
               {navItems.map((item) => (
@@ -331,7 +326,7 @@ export default function DashboardNavbar() {
                       title={DISABLED_TAB_TITLE}
                       className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm opacity-40 cursor-not-allowed select-none"
                     >
-                      <span className="font-medium text-white/50">{item.label}</span>
+                      <span className="font-manrope font-medium text-white/50">{item.label}</span>
                       <span
                         className={`size-1.5 rounded-full ${
                           isNavItemActive(item.to) ? 'opacity-100 bg-white/50' : 'opacity-0'
@@ -345,7 +340,7 @@ export default function DashboardNavbar() {
                       className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-white/5"
                     >
                       <span
-                        className="font-medium"
+                        className="font-manrope font-medium"
                         style={{
                           color: item.to === '/dashboard/packages'
                             ? addSimColor

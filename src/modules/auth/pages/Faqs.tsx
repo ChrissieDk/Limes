@@ -37,7 +37,7 @@ export default function Faqs() {
     {
       title: 'How long is my contract?',
       content: (
-        <p className="text-sm text-neutral-300">
+        <p className="font-manrope text-sm text-neutral-300">
           Limes is month‑to‑month. No long-term lock in and you can cancel anytime.
         </p>
       ),
@@ -45,7 +45,7 @@ export default function Faqs() {
     {
       title: 'When can I change my plan?',
       content: (
-        <p className="text-sm text-neutral-300">
+        <p className="font-manrope text-sm text-neutral-300">
           You can upgrade or downgrade your plan at any time. Changes apply from your next billing cycle.
         </p>
       ),
@@ -53,7 +53,7 @@ export default function Faqs() {
     {
       title: 'Can I keep my number?',
       content: (
-        <p className="text-sm text-neutral-300">
+        <p className="font-manrope text-sm text-neutral-300">
           Yes. Port your existing number to Limes during signup or from your dashboard in a few steps.
         </p>
       ),
@@ -61,7 +61,7 @@ export default function Faqs() {
     {
       title: 'How will I be billed?',
       content: (
-        <p className="text-sm text-neutral-300">
+        <p className="font-manrope text-sm text-neutral-300">
           Billing happens monthly on your selected payment method. You’ll get an email invoice and
           can view it anytime in your dashboard.
         </p>
@@ -70,7 +70,7 @@ export default function Faqs() {
     {
       title: 'Do my unused minutes or data roll over?',
       content: (
-        <p className="text-sm text-neutral-300">
+        <p className="font-manrope text-sm text-neutral-300">
           Unused bundles don’t roll over by default. You can top up anytime and only pay for what you need.
         </p>
       ),
@@ -82,18 +82,16 @@ export default function Faqs() {
       <Navbar />
 
       <section className="mx-auto max-w-6xl px-6 pt-10 pb-16">
-        <div className="flex items-center justify-center text-sm text-neutral-400">
+        <div className="font-manrope flex items-center justify-center text-sm text-neutral-400">
           <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Frequently Asked Questions
         </div>
         <h1
           className="mt-4 font-grotesque font-bold text-center leading-[1.05]"
-          style={{ fontWeight: 700 }}
         >
           <span className="block text-[36px] sm:text-[48px] md:text-[64px]">We’ve got the answers</span>
         </h1>
 
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
-          {/* FAQ list */}
           <div className="space-y-4">
             {faqs.map((f, idx) => (
               <Accordion key={idx} title={f.title}>
@@ -102,7 +100,6 @@ export default function Faqs() {
             ))}
           </div>
 
-          {/* Side visual */}
           <div className="relative w-full rounded-3xl overflow-hidden border border-neutral-700/60 min-h-[360px]">
             <img
               src={`${import.meta.env.BASE_URL}images/faqs.png`}
@@ -118,7 +115,7 @@ export default function Faqs() {
   )
 }
 
-function Accordion(props: { title: string; children: React.ReactNode }) {
+function Accordion(props: { title: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -128,7 +125,7 @@ function Accordion(props: { title: string; children: React.ReactNode }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span className="text-sm md:text-base font-medium text-neutral-200">{props.title}</span>
+        <span className="font-manrope text-sm md:text-base font-medium text-neutral-200">{props.title}</span>
         <span
           className={`inline-flex size-6 items-center justify-center rounded-full ring-1 ring-neutral-700/60 text-neutral-300 transition-transform ${
             open ? 'rotate-180' : ''

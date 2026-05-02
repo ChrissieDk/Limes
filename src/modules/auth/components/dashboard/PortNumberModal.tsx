@@ -74,8 +74,8 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
       <div className="relative w-full max-w-3xl mx-0 sm:mx-4 rounded-[28px] bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
         <div className="flex items-start justify-between px-6 py-5 border-b border-neutral-200 bg-white">
           <div>
-            <div className="text-[22px] font-semibold leading-[1.1]">Port your number</div>
-            <div className="text-sm text-neutral-500 mt-1">
+            <div className="font-grotesque text-[22px] font-semibold leading-[1.1]">Port your number</div>
+            <div className="font-manrope text-sm text-neutral-500 mt-1">
               Enter your Limes number (destination), then the number you&apos;re porting from another provider.
             </div>
           </div>
@@ -92,8 +92,8 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
 
         {isSuccess ? (
           <div className="px-6 pt-6 pb-7 text-center">
-            <div className="text-[28px] font-semibold text-neutral-900">Success!</div>
-            <div className="mt-3 text-sm text-neutral-600 leading-relaxed">
+            <div className="font-grotesque text-[28px] font-semibold text-neutral-900">Success!</div>
+            <div className="font-manrope mt-3 text-sm text-neutral-600 leading-relaxed">
               Your porting request has been submitted successfully.
               <br />
               Porting can take between 24 and 48 hours
@@ -112,7 +112,7 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
         ) : (
           <div className="px-6 pt-6 pb-7 space-y-5">
             <div>
-              <label htmlFor="port-limes-msisdn" className="block text-sm text-neutral-700 font-medium mb-2">
+              <label htmlFor="port-limes-msisdn" className="font-manrope block text-sm text-neutral-700 font-medium mb-2">
                 1. Limes number to port to (your current Limes SIM)
               </label>
               <input
@@ -127,7 +127,7 @@ export function PortNumberModal({ open, onClose, currentMsisdn, onConfirm }: Por
             </div>
 
             <div>
-              <label htmlFor="port-from-msisdn" className="block text-sm text-neutral-700 font-medium mb-2">
+              <label htmlFor="port-from-msisdn" className="font-manrope block text-sm text-neutral-700 font-medium mb-2">
                 2. Number you&apos;re porting from (your current number at another provider)
               </label>
               <input

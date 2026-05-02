@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CreditCard, Trash2, Loader2, AlertCircle, CheckCircle2, Star, FileText } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
+import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import { toCents } from '../utils/dynamicPricing'
 import type { SavedCard } from '../../../types/payment'
 
@@ -32,30 +33,21 @@ export default function SavedCards({
     setError(null)
     try {
       const data = await paymentService.getSavedCards()
-      // Deduplicate cards based on last4, expMonth, expYear, and bank
       const uniqueCards = deduplicateCards(data)
       setCards(uniqueCards)
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to load saved cards')
+    } catch (err: unknown) {
+      setError(getAxiosErrorMessage(err, 'Failed to load saved cards'))
     } finally {
       setLoading(false)
     }
   }
 
-  // Deduplicate cards - keep the one that's marked as default, or the most recent one
   const deduplicateCards = (cardList: SavedCard[]): SavedCard[] => {
     const cardMap = new Map<string, SavedCard>()
     
     cardList.forEach((card) => {
-      // Create a unique key based on card details
       const key = `${card.last4}-${card.expMonth}-${card.expYear}-${card.bank}`
-      
       const existing = cardMap.get(key)
-      
-      // Keep the card if:
-      // 1. No existing card with this key
-      // 2. This card is default and existing is not
-      // 3. This card has a more recent ID (assuming newer cards have higher IDs)
       if (!existing || card.isDefault || card.id > existing.id) {
         cardMap.set(key, card)
       }
@@ -70,15 +62,14 @@ export default function SavedCards({
     
     try {
       await paymentService.setDefaultCard(cardId)
-      // Update local state
       setCards(cards.map(c => ({
         ...c,
         isDefault: c.id === cardId
       })))
       setSuccessMessage('Default card updated successfully')
       setTimeout(() => setSuccessMessage(null), 3000)
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to set default card')
+    } catch (err: unknown) {
+      setError(getAxiosErrorMessage(err, 'Failed to set default card'))
     } finally {
       setSettingDefaultId(null)
     }
@@ -97,8 +88,8 @@ export default function SavedCards({
       setCards(cards.filter(c => c.id !== cardId))
       setSuccessMessage('Card deleted successfully')
       setTimeout(() => setSuccessMessage(null), 3000)
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to delete card')
+    } catch (err: unknown) {
+      setError(getAxiosErrorMessage(err, 'Failed to delete card'))
     } finally {
       setDeletingCardId(null)
     }
@@ -113,7 +104,7 @@ export default function SavedCards({
     try {
       const response = await paymentService.chargeSavedCard({
         paymentMethodId: cardId,
-        amount: toCents(chargeAmount),  // Convert rands to cents for API
+        amount: toCents(chargeAmount),
       })
 
       if (response.success) {
@@ -125,8 +116,8 @@ export default function SavedCards({
       } else {
         setError(response.error || 'Payment failed')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to charge card')
+    } catch (err: unknown) {
+      setError(getAxiosErrorMessage(err, 'Failed to charge card'))
     } finally {
       setChargingCardId(null)
     }
@@ -143,7 +134,6 @@ export default function SavedCards({
 
   return (
     <div className="space-y-4">
-      {/* Success Message */}
       {successMessage && (
         <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-900/40 to-green-800/20 border border-green-700/50 rounded-xl text-green-400">
           <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
@@ -151,7 +141,6 @@ export default function SavedCards({
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
         <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-red-900/40 to-red-800/20 border border-red-700/50 rounded-xl text-red-400">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -159,12 +148,11 @@ export default function SavedCards({
         </div>
       )}
 
-      {/* Cards List */}
       {cards.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/20 bg-transparent px-6 py-14 text-center">
           <FileText className="w-7 h-7 text-white/80 mx-auto mb-4" />
           <div className="text-white font-semibold">No saved cards</div>
-          <div className="mt-1 text-sm text-neutral-500">
+          <div className="font-manrope mt-1 text-sm text-neutral-500">
             Save a card during your next payment for faster checkout
           </div>
         </div>
@@ -179,11 +167,9 @@ export default function SavedCards({
                   : 'bg-white/5 ring-1 ring-white/10 hover:bg-white/10'
               }`}
             >
-              {/* Subtle background gradient effect */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-lime-400/5 to-transparent rounded-full blur-2xl" />
               
               <div className="relative flex items-center justify-between">
-                {/* Card Info */}
                 <div className="flex items-center gap-4">
                   <div className={`p-3 rounded-xl ${card.isDefault ? 'bg-[#ABFF63]/15' : 'bg-white/5'} transition-colors ring-1 ring-white/10`}>
                     <CreditCard className={`w-6 h-6 ${card.isDefault ? 'text-[#ABFF63]' : 'text-neutral-300'}`} />
@@ -194,13 +180,13 @@ export default function SavedCards({
                         {card.cardType.toUpperCase()} •••• {card.last4}
                       </span>
                       {card.isDefault && (
-                        <span className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-[#ABFF63] text-neutral-900 rounded-full">
+                        <span className="font-manrope flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-[#ABFF63] text-neutral-900 rounded-full">
                           <Star className="w-3 h-3 fill-current" />
                           Default
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="font-manrope text-sm text-gray-400">
                       <span className="font-medium">Expires {card.expMonth}/{card.expYear}</span>
                       <span className="mx-2">•</span>
                       <span>{card.bank}</span>
@@ -208,9 +194,7 @@ export default function SavedCards({
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2">
-                  {/* Set as Default Button */}
                   {!card.isDefault && (
                     <button
                       onClick={() => handleSetDefaultCard(card.id)}
@@ -232,7 +216,6 @@ export default function SavedCards({
                     </button>
                   )}
 
-                  {/* Charge Button */}
                   {showChargeButton && chargeAmount && (
                     <button
                       onClick={() => handleChargeCard(card.id)}
@@ -250,7 +233,6 @@ export default function SavedCards({
                     </button>
                   )}
 
-                  {/* Delete Button */}
                   <button
                     onClick={() => handleDeleteCard(card.id)}
                     disabled={deletingCardId === card.id || card.isDefault}

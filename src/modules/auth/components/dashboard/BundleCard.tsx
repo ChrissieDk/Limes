@@ -44,7 +44,7 @@ export function BundleCard({ bundle }: BundleCardProps) {
       {/* Title */}
       <div className="flex items-center mb-4">
         <img src={titleIcon} alt="bundle icon" className="w-6 h-6 mr-2" />
-        <h4 className="text-neutral-900 font-extrabold text-2xl">{bundle.name}</h4>
+        <h4 className="font-grotesque text-neutral-900 font-extrabold text-2xl">{bundle.name}</h4>
       </div>
 
       {/* Bullet list */}
@@ -55,7 +55,7 @@ export function BundleCard({ bundle }: BundleCardProps) {
             alt="bullet"
             className="w-7 h-5 mr-3 mt-0.5"
           />
-          <span className="text-neutral-900 text-base leading-snug">{bundle.dayData}</span>
+          <span className="font-manrope text-neutral-900 text-base leading-snug">{bundle.dayData}</span>
         </div>
         {bundle.cashback && (
           <div className="flex items-start">
@@ -64,7 +64,7 @@ export function BundleCard({ bundle }: BundleCardProps) {
               alt="bullet"
               className="w-7 h-5 mr-3 mt-0.5"
             />
-            <span className="text-neutral-900 text-base leading-snug">{bundle.cashback}</span>
+            <span className="font-manrope text-neutral-900 text-base leading-snug">{bundle.cashback}</span>
           </div>
         )}
         {bundle.nightData && !bundle.cashback && (
@@ -74,7 +74,7 @@ export function BundleCard({ bundle }: BundleCardProps) {
               alt="bullet"
               className="w-7 h-5 mr-3 mt-0.5"
             />
-            <span className="text-neutral-900 text-base leading-snug">{bundle.nightData}</span>
+            <span className="font-manrope text-neutral-900 text-base leading-snug">{bundle.nightData}</span>
           </div>
         )}
       </div>

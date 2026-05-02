@@ -4,11 +4,11 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 
 const navItems = [
-  { href: '/#hero', label: 'Home', sub: 'Start' , dot: 'bg-indigo-400' },
-  { href: '/#why', label: 'Why Choose', sub: 'Benefits', dot: 'bg-purple-400' },
-  { href: '/#packages', label: 'Packages', sub: 'Plans', dot: 'bg-pink-400' },
-  { href: '/#partners', label: 'Partners', sub: 'Network', dot: 'bg-lime-400' },
-  { href: '/contact', label: 'Contact', sub: 'Help', dot: 'bg-yellow-400', isRoute: true },
+  { href: '/#hero', label: 'Home', dot: 'bg-indigo-400' },
+  { href: '/#why', label: 'Why Choose', dot: 'bg-purple-400' },
+  { href: '/#packages', label: 'Packages', dot: 'bg-pink-400' },
+  { href: '/#partners', label: 'Partners', dot: 'bg-lime-400' },
+  { href: '/contact', label: 'Contact', dot: 'bg-yellow-400', isRoute: true },
 ]
 
 export default function Navbar() {
@@ -44,12 +44,12 @@ export default function Navbar() {
               <li key={item.href}>
                 {item.isRoute ? (
                   <Link to={item.href} className="group inline-flex flex-col items-center">
-                    <span className="font-medium transition-colors duration-200 group-hover:text-white">{item.label}</span>
+                    <span className="font-manrope font-medium transition-colors duration-200 group-hover:text-white">{item.label}</span>
                     <span className={`mt-1 size-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${item.dot}`} />
                   </Link>
                 ) : (
                   <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group inline-flex flex-col items-center">
-                    <span className="font-medium transition-colors duration-200 group-hover:text-white">{item.label}</span>
+                    <span className="font-manrope font-medium transition-colors duration-200 group-hover:text-white">{item.label}</span>
                     <span className={`mt-1 size-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${item.dot}`} />
                   </a>
                 )}
@@ -66,13 +66,13 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {isLoggedIn ? (
               <Link to="/dashboard">
-                <button className="h-12 px-4 text-sm font-semibold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
+                <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
                   Dashboard
                 </button>
               </Link>
             ) : (
               <Link to="/signin">
-                <button className="h-12 px-4 text-sm font-semibold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
+                <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
                   Sign In
                 </button>
               </Link>
@@ -96,7 +96,7 @@ export default function Navbar() {
                   <Link to={item.href} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
                     <div className="flex items-center gap-3">
                       <span className={`size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${item.dot}`} />
-                      <span className="text-sm font-medium">{item.label}</span>
+                      <span className="font-manrope text-sm font-medium">{item.label}</span>
                     </div>
                     <span className="text-white/40">›</span>
                   </Link>
@@ -104,7 +104,7 @@ export default function Navbar() {
                   <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
                     <div className="flex items-center gap-3">
                       <span className={`size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${item.dot}`} />
-                      <span className="text-sm font-medium">{item.label}</span>
+                      <span className="font-manrope text-sm font-medium">{item.label}</span>
                     </div>
                     <span className="text-white/40">›</span>
                   </a>
@@ -115,7 +115,7 @@ export default function Navbar() {
               <Link to="/faqs" className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
                 <div className="flex items-center gap-3">
                   <span className="size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-purple-400" />
-                  <span className="text-sm font-medium">FAQs</span>
+                  <span className="font-manrope text-sm font-medium">FAQs</span>
                 </div>
                 <span className="text-white/40">›</span>
               </Link>
@@ -123,13 +123,13 @@ export default function Navbar() {
             <li className="pt-2 space-y-2">
               {isLoggedIn ? (
                 <Link to="/dashboard">
-                  <button className="w-full px-4 py-2.5 text-sm font-medium text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
+                  <button className="w-full px-4 py-2.5 text-base font-manrope font-bold text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
                     Dashboard
                   </button>
                 </Link>
               ) : (
                 <Link to="/signin">
-                  <button className="w-full px-4 py-2.5 text-sm font-medium text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
+                  <button className="w-full px-4 py-2.5 text-base font-manrope font-bold text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
                     Sign In
                   </button>
                 </Link>
