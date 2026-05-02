@@ -17,6 +17,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronDown,
+  RefreshCw,
   X,
   Signature,
   Camera,
@@ -97,6 +98,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
     color: 'text-red-400',
     bg: 'bg-red-400/10',
     icon: <AlertCircle className="w-4 h-4" />,
+  },
+  PAYMENT_RECEIVED: {
+    label: 'Payment Received',
+    color: 'text-lime-400',
+    bg: 'bg-lime-400/10',
+    icon: <CheckCircle2 className="w-4 h-4" />,
   },
 }
 
@@ -357,6 +364,15 @@ export default function DeliveryTracking() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  function isAxiosErrorWithStatus(err: unknown, status: number): boolean {
+    const e = err as { response?: { status?: number } } | undefined
+    return e?.response?.status === status
+  }
+
+  function isNoTrackingError(err: unknown): boolean {
+    return isAxiosErrorWithStatus(err, 403) || isAxiosErrorWithStatus(err, 404)
+  }
+
   function friendlyWarehouseError(err: unknown): string {
     const msg = getAxiosErrorMessage(err, '').toLowerCase()
     if (msg.includes('circuit')) {
@@ -375,6 +391,27 @@ export default function DeliveryTracking() {
       return "We're experiencing a technical issue with delivery tracking. Please try again shortly."
     }
     return 'Something went wrong while loading delivery tracking. Please try again.'
+  }
+
+  function createSyntheticPendingTracking(msisdn: string): TrackingResponseDTO {
+    return {
+      orderId: 'PENDING',
+      trackingNumber: '',
+      msisdn,
+      currentStatus: 'PAYMENT_RECEIVED',
+      estimatedDeliveryDate: undefined,
+      events: [
+        {
+          eventId: `pending-${msisdn}`,
+          timestamp: new Date().toISOString(),
+          status: 'PAYMENT_RECEIVED',
+          description: 'Your payment has been received. Your order will be processed shortly.',
+          location: 'Online',
+          locationCode: 'WEB',
+          eventType: 'INFO',
+        },
+      ],
+    }
   }
 
   const loadSimsWithTracking = async () => {
@@ -401,19 +438,30 @@ export default function DeliveryTracking() {
         })
       )
 
-      // Detect systemic API failure (all calls failed with the same type of error)
-      const failures = results.filter((r) => r.err !== null)
-      if (failures.length === results.length && results.length > 0) {
+      // Transform errors into synthetic tracking for new orders (403/404 = not yet in warehouse)
+      const processed = results.map((r) => {
+        if (r.tracking) return r
+        if (r.err && isNoTrackingError(r.err)) {
+          return { msisdn: r.msisdn, tracking: createSyntheticPendingTracking(r.msisdn), err: null }
+        }
+        return r
+      })
+
+      // Check for real systemic errors (401, 500, network) — only if NO SIMs have any tracking
+      const failures = processed.filter((r) => r.err !== null)
+      const hasAnyTracking = processed.some((r) => r.tracking !== null)
+      if (failures.length === processed.length && processed.length > 0 && !hasAnyTracking) {
         setError(friendlyWarehouseError(failures[0].err))
         setLoading(false)
         return
       }
 
-      const shippedSims: SimOption[] = results
+      const shippedSims: SimOption[] = processed
         .filter((r) => {
           if (!r.tracking) return false
           // Exclude SIMs where the only event is ORDER_CREATED — these are
           // typically has-sim (ICCID) activations where no physical shipment occurred.
+          // But KEEP synthetic PAYMENT_RECEIVED entries.
           const events = r.tracking.events
           if (events.length === 0) return false
           if (events.length === 1 && events[0].status === 'ORDER_CREATED') return false
@@ -464,11 +512,21 @@ export default function DeliveryTracking() {
           Back to Dashboard
         </button>
 
-        <div className="mb-8">
-          <h1 className="text-white font-grotesque font-extrabold text-3xl sm:text-4xl">
-            Delivery Tracking
-          </h1>
-          <p className="font-manrope text-neutral-400 mt-2">Track your SIM card deliveries in real-time.</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-white font-grotesque font-extrabold text-3xl sm:text-4xl">
+              Delivery Tracking
+            </h1>
+            <p className="font-manrope text-neutral-400 mt-2">Track your SIM card deliveries in real-time.</p>
+          </div>
+          <button
+            onClick={() => loadSimsWithTracking()}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm font-semibold px-4 py-2.5 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
         {loading ? (
@@ -621,6 +679,22 @@ export default function DeliveryTracking() {
 
                   {/* Timeline */}
                   <div className="p-5">
+                    {tracking.currentStatus === 'PAYMENT_RECEIVED' && (
+                      <div className="mb-5 rounded-xl bg-blue-400/10 border border-blue-400/20 p-4">
+                        <div className="flex items-start gap-3">
+                          <Package className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-manrope text-blue-400 text-sm font-medium">
+                              Your order is being processed
+                            </p>
+                            <p className="font-manrope text-blue-400/70 text-xs mt-1">
+                              Tracking details will appear here once your SIM is dispatched from our warehouse.
+                              Click Refresh to check for updates.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {tracking.events.length === 0 ? (
                       <p className="font-manrope text-neutral-500 text-sm text-center py-8">
                         No tracking events available yet.

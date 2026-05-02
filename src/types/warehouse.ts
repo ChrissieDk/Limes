@@ -46,6 +46,7 @@ export type TrackingStatus =
   | 'CANCELLED'
   | 'ON_HOLD'
   | 'EXCEPTION'
+  | 'PAYMENT_RECEIVED'
 
 export interface TrackingResponseDTO {
   orderId: string
