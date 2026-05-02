@@ -5,9 +5,13 @@ import { API_TIMEOUT_MS } from '../constants/api'
 
 const isDev = import.meta.env.DEV
 const apiUrl = import.meta.env.VITE_API_URL
+const STAGING_URL = 'https://limes-staging.up.railway.app'
 
+// Fallback to staging URL when VITE_API_URL is not set.
+// Production builds should set VITE_API_URL in the deployment platform (e.g. Vercel).
+const resolvedApiUrl = apiUrl || STAGING_URL
 if (!apiUrl && !isDev) {
-  console.error('VITE_API_URL environment variable is required for production builds. API calls will fail.')
+  console.warn('VITE_API_URL is not set. Falling back to staging URL:', STAGING_URL)
 }
 
 // One-time cleanup: remove legacy localStorage token storage (security fix)
@@ -18,7 +22,7 @@ try {
 }
 
 export const apiClient = axios.create({
-  baseURL: isDev ? '/api' : `${apiUrl}/api`,
+  baseURL: isDev ? '/api' : `${resolvedApiUrl}/api`,
   timeout: API_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
