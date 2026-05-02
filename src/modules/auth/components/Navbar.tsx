@@ -34,9 +34,9 @@ export default function Navbar() {
   return (
     <div className="sticky top-3 z-10 px-3 sm:px-0">
       <nav className="w-full mx-auto max-w-6xl rounded-xl bg-[#26252C] text-white shadow-sm ring-1 ring-white/10">
-        <div className="flex items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-8">
-            <img src={`${import.meta.env.BASE_URL}images/limes_high_def_logo.svg`} alt="Limes" className="h-8" />
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center px-5 py-3">
+          <div className="flex items-center gap-8 justify-self-start">
+            <img src={`${import.meta.env.BASE_URL}images/limes-mobile_horizontal.svg`} alt="Limes" className="h-8" />
           </div>
 
           <ul className="hidden md:flex gap-6 text-[15px]">
@@ -63,29 +63,31 @@ export default function Navbar() {
             </li>
           </ul>
 
-          <div className="hidden md:flex items-center gap-3">
-            {isLoggedIn ? (
-              <Link to="/dashboard">
-                <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
-                  Dashboard
-                </button>
-              </Link>
-            ) : (
-              <Link to="/signin">
-                <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
-                  Sign In
-                </button>
-              </Link>
-            )}
-          </div>
-
-          <button aria-label="Menu" className="md:hidden inline-flex items-center justify-center size-10 rounded-lg ring-1 ring-white/15 hover:bg-white/5 transition" onClick={() => setOpen((v) => !v)}>
-            <div className="relative w-5 h-5">
-              <span className={`absolute left-0 top-1 block h-0.5 w-5 bg-white transform transition-transform duration-300 ${open ? 'translate-y-2 rotate-45' : ''}`} />
-              <span className={`absolute left-0 top-2.5 block h-0.5 w-5 bg-white transition-opacity duration-300 ${open ? 'opacity-0' : 'opacity-100'}`} />
-              <span className={`absolute left-0 top-4 block h-0.5 w-5 bg-white transform transition-transform duration-300 ${open ? '-translate-y-2 -rotate-45' : ''}`} />
+          <div className="flex items-center gap-3 justify-self-end">
+            <div className="hidden md:flex items-center gap-3">
+              {isLoggedIn ? (
+                <Link to="/dashboard">
+                  <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
+                    Dashboard
+                  </button>
+                </Link>
+              ) : (
+                <Link to="/signin">
+                  <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
+                    Sign In
+                  </button>
+                </Link>
+              )}
             </div>
-          </button>
+
+            <button aria-label="Menu" className="md:hidden inline-flex items-center justify-center size-10 rounded-lg ring-1 ring-white/15 hover:bg-white/5 transition" onClick={() => setOpen((v) => !v)}>
+              <div className="relative w-5 h-5">
+                <span className={`absolute left-0 top-1 block h-0.5 w-5 bg-white transform transition-transform duration-300 ${open ? 'translate-y-2 rotate-45' : ''}`} />
+                <span className={`absolute left-0 top-2.5 block h-0.5 w-5 bg-white transition-opacity duration-300 ${open ? 'opacity-0' : 'opacity-100'}`} />
+                <span className={`absolute left-0 top-4 block h-0.5 w-5 bg-white transform transition-transform duration-300 ${open ? '-translate-y-2 -rotate-45' : ''}`} />
+              </div>
+            </button>
+          </div>
         </div>
 
           <div className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? 'max-h-[500px]' : 'max-h-0'}`}>

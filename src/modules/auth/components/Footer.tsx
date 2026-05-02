@@ -21,7 +21,7 @@ export default function Footer() {
     <footer className="mx-auto max-w-6xl px-6 pt-16 pb-10">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-start">
         <div>
-          <img src={`${base}images/limes_high_def_logo.svg`} alt="Limes" className="h-10" />
+          <img src={`${base}images/limes-mobile_horizontal.svg`} alt="Limes" className="h-10" />
           <p className="font-manrope mt-5 text-sm text-neutral-300 max-w-[28ch]">
             Stay connected. Earn cash
             <br />
