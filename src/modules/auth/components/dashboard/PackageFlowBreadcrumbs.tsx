@@ -105,7 +105,7 @@ type PackageFlowBreadcrumbsProps = {
 export default function PackageFlowBreadcrumbs({ state }: PackageFlowBreadcrumbsProps) {
   const items = getPackageFlowBreadcrumbItems(state)
 
-  const grayLogoSrc = `${import.meta.env.BASE_URL}images/limes%20logo%20gray.svg`
+  const grayLogoSrc = `${import.meta.env.BASE_URL}images/limes-mobile_horizontal.svg`
 
   return (
     <nav aria-label="Breadcrumb" className="w-full mb-6 sm:mb-8">

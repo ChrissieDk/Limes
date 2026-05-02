@@ -208,7 +208,7 @@ export default function DashboardNavbar() {
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
               <Link to={hasProvisionedSim === true ? '/dashboard' : '/dashboard/packages'}>
-                <img src={`${import.meta.env.BASE_URL}images/limes_high_def_logo.svg`} alt="Limes" className="h-7" />
+                <img src={`${import.meta.env.BASE_URL}images/limes-mobile_horizontal.svg`} alt="Limes" className="h-7" />
               </Link>
             </div>
 
