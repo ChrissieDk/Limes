@@ -12,7 +12,6 @@ export default function HowToJoin() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2 md:gap-x-3 md:gap-y-3">
-        {/* Left card */}
         <div className="rounded-[28px] bg-yellow-300 text-neutral-900 p-5 md:p-6">
           <img
             src={`${import.meta.env.BASE_URL}images/zblock.svg`}
@@ -33,13 +32,12 @@ export default function HowToJoin() {
               to={ctaPath}
               className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 hover:opacity-80 transition-opacity"
             >
-              <span>Get a Limes SIM</span>
+              <span className="font-grotesque">Get a Limes SIM</span>
               <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
 
-        {/* Right card */}
         <div className="rounded-[28px] bg-pink-300 text-neutral-900 p-5 md:p-6">
           <img
             src={`${import.meta.env.BASE_URL}images/house_small.svg`}
@@ -64,7 +62,7 @@ export default function HowToJoin() {
               to={ctaPath}
               className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 hover:opacity-80 transition-opacity"
             >
-              <span>Switch my number to Limes</span>
+              <span className="font-grotesque">Switch my number to Limes</span>
               <span aria-hidden="true">→</span>
             </Link>
           </div>
@@ -76,13 +74,13 @@ export default function HowToJoin() {
           to={ctaPath}
           className="inline-flex items-center justify-center rounded-xl bg-[#ABFF63] text-neutral-900 font-semibold text-sm px-5 h-10 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] border-2 border-black/70 hover:bg-[#ABFF63]/90 transition-colors"
         >
-          View packages
+          <span className="font-manrope">View packages</span>
         </Link>
         <Link
           to="/contact"
           className="inline-flex items-center justify-center rounded-xl bg-neutral-800 text-white font-semibold text-sm px-5 h-10 border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] hover:bg-neutral-700 transition-colors"
         >
-          Contact us
+          <span className="font-manrope">Contact us</span>
         </Link>
       </div>
     </section>

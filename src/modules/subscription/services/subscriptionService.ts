@@ -1,4 +1,5 @@
 import { apiClient } from '../../../config/api'
+import { API_TIMEOUT_MS, API_TIMEOUT_SHORT_MS } from '../../../constants/api'
 import type { 
   CreateSubscriptionRequest, 
   CreateSubscriptionResponse,
@@ -12,62 +13,54 @@ import type {
 } from '../../../types'
 
 export const subscriptionService = {
-  // Create subscription (with extended timeout due to backend processing time)
   async createSubscription(payload: CreateSubscriptionRequest): Promise<CreateSubscriptionResponse> {
     const response = await apiClient.post('/subscriber/create', payload, {
-      timeout: 120000, // 2 minutes timeout for subscriber creation
+      timeout: API_TIMEOUT_MS
     })
     return response.data
   },
 
-  // Create order (with extended timeout for backend processing)
   async createOrder(payload: CreateOrderRequest): Promise<CreateOrderResponse> {
     const response = await apiClient.post('/order/create', payload, {
-      timeout: 120000, // 2 minutes timeout for order creation
+      timeout: API_TIMEOUT_MS
     })
     return response.data
   },
 
-  // Get subscriber balances
   async getBalances(msisdn: string): Promise<GetBalancesResponse> {
     const response = await apiClient.get(`/subscriber/${msisdn}/balance`)
     return response.data
   },
 
-  // Check if SIM is active
   async checkSimActive(msisdn: string): Promise<CheckSimActiveResponse> {
     const response = await apiClient.get(`/subscriber/${msisdn}/is-active`)
     return response.data
   },
 
-  // Process pending orders (retry order creation) - extended timeout for backend processing
   async processPendingOrders(msisdn: string): Promise<ProcessPendingOrdersResponse> {
     const response = await apiClient.post(`/order/pending/${msisdn}/process`, {}, {
-      timeout: 120000, // 2 minutes timeout for order processing
+      timeout: API_TIMEOUT_MS
     })
     return response.data
   },
 
-  // Process pending dynamic services - extended timeout for backend processing
   async processPendingDynamicServices(msisdn: string): Promise<ProcessPendingOrdersResponse> {
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic/pending/process`, {}, {
-      timeout: 120000, // 2 minutes timeout for dynamic service processing
+      timeout: API_TIMEOUT_MS
     })
     return response.data
   },
 
-  // Create dynamic services for a subscriber (with extended timeout)
   async createDynamicServices(msisdn: string, payload: CreateDynamicServicesRequest): Promise<CreateDynamicServicesResponse> {
     if (import.meta.env.DEV) {
       console.log('[Subscription] createDynamicServices request:', { msisdn, payload })
     }
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic`, payload, {
-      timeout: 120000, // 2 minutes timeout for dynamic service creation
+      timeout: API_TIMEOUT_MS
     })
     return response.data
   },
 
-  // Store pending order (when SIM is not yet active)
   async storePendingOrder(payload: {
     msisdn: string
     productId: string
@@ -75,23 +68,21 @@ export const subscriptionService = {
     paymentReference: string
   }): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post('/order/pending', payload, {
-      timeout: 120000, // 2 minutes timeout for storing pending order
+      timeout: API_TIMEOUT_MS
     })
     return response.data
   },
 
-  // Port number: swap current Limes MSISDN with the number to port (port-in)
   async portNumber(currentMsisdn: string, newMsisdn: string): Promise<void> {
     const encodedCurrent = encodeURIComponent(currentMsisdn)
     const encodedNew = encodeURIComponent(newMsisdn)
     await apiClient.post(
       `/subscriber/${encodedCurrent}/swap/msisdn/${encodedNew}?port=true`,
       {},
-      { timeout: 60000 }
+      { timeout: API_TIMEOUT_SHORT_MS }
     )
   },
 
-  // Store pending dynamic service (when SIM is not yet active)
   async storePendingDynamicService(msisdn: string, payload: {
     definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
     value: number
@@ -100,7 +91,7 @@ export const subscriptionService = {
     paymentReference: string
   }): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post(`/subscriber/${msisdn}/service/dynamic/pending`, payload, {
-      timeout: 120000, // 2 minutes timeout for storing pending dynamic service
+      timeout: API_TIMEOUT_MS
     })
     return response.data
   },

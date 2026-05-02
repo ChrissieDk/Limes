@@ -52,7 +52,7 @@ export default function FileUpload({ label, onFileSelect, accept = 'image/*,appl
 
   return (
     <div className="grid gap-2">
-      <label className="text-sm text-neutral-700">{label}</label>
+      <label className="font-manrope text-sm text-neutral-700">{label}</label>
       <div
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -82,8 +82,8 @@ export default function FileUpload({ label, onFileSelect, accept = 'image/*,appl
               aria-hidden="true"
               className="h-12 w-12 select-none"
             />
-            <div className="mt-4 font-semibold text-neutral-900 text-2xl">File uploaded</div>
-            <div className="mt-1 text-base text-neutral-500 break-all px-6">{uploadedFileName}</div>
+            <div className="font-grotesque mt-4 font-semibold text-neutral-900 text-2xl">File uploaded</div>
+            <div className="font-manrope mt-1 text-base text-neutral-500 break-all px-6">{uploadedFileName}</div>
           </div>
         ) : (
           <div className="flex flex-col items-center">
@@ -93,10 +93,10 @@ export default function FileUpload({ label, onFileSelect, accept = 'image/*,appl
               aria-hidden="true"
               className="h-12 w-12 select-none"
             />
-            <div className="mt-4 font-semibold text-neutral-900 text-2xl">
+            <div className="font-grotesque mt-4 font-semibold text-neutral-900 text-2xl">
               {isDragging ? 'Drop file here' : 'Click to upload or drag and drop'}
             </div>
-            <div className="mt-2 text-base text-neutral-400">PDF, JPG, PNG (Max 10MB)</div>
+            <div className="font-manrope mt-2 text-base text-neutral-400">PDF, JPG, PNG (Max 10MB)</div>
           </div>
         )}
       </div>

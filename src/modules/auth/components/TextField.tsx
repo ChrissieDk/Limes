@@ -19,7 +19,7 @@ const TextField = forwardRef<HTMLInputElement, Props>(
     return (
       <label className="grid gap-2">
         {label && (
-          <span className={`text-sm ${isDark ? 'text-neutral-400' : 'text-neutral-700'}`}>
+          <span className={`font-manrope text-sm ${isDark ? 'text-neutral-400' : 'text-neutral-700'}`}>
             {label}
           </span>
         )}
@@ -34,7 +34,7 @@ const TextField = forwardRef<HTMLInputElement, Props>(
         >
           {prefix && (
             <>
-              <span className={`px-3 text-sm select-none ${isDark ? 'text-neutral-400' : 'text-neutral-400'}`}>
+              <span className="font-manrope px-3 text-sm select-none text-neutral-400">
                 {prefix}
               </span>
               {isDark && <span className="h-6 w-px bg-white/10" />}
@@ -65,7 +65,7 @@ const TextField = forwardRef<HTMLInputElement, Props>(
             </button>
           )}
         </div>
-        {error && <span className="text-xs text-red-400">{error}</span>}
+        {error && <span className="font-manrope text-xs text-red-400">{error}</span>}
       </label>
     )
   },

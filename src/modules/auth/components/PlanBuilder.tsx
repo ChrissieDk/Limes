@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { getServiceDisplayValue, isServiceAvailable } from '../../payment/utils/dynamicPricing'
-import type { ServiceType } from '../../payment/utils/dynamicPricing'
+import type { ServiceType } from '../../payment/config/ratingTable'
 import type { PackageType } from '../../payment/config/ratingTable'
 
 export type PlanAllocation = {
@@ -175,7 +175,7 @@ export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
             <div className="mt-1 text-white/60 text-sm font-manrope">Review your selections and continue.</div>
           </div>
           <div className="text-right">
-            <div className="text-white/50 text-xs font-semibold uppercase tracking-wide">Total</div>
+            <div className="font-manrope text-white/50 text-xs font-semibold uppercase tracking-wide">Total</div>
             <div className="mt-1 font-grotesque font-bold text-white text-4xl tracking-tight">R{totalRands}</div>
           </div>
         </div>
@@ -189,10 +189,10 @@ export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
               key={item.key}
               className="rounded-2xl bg-white/6 border border-white/10 p-4"
             >
-              <div className="text-white/70 text-xs font-semibold">{item.label}</div>
+              <div className="font-manrope text-white/70 text-xs font-semibold">{item.label}</div>
               <div className="mt-1 flex flex-col gap-0.5">
                 <div className="text-white font-bold">{getDisplay(item.serviceType, allocation[item.key])}</div>
-                <div className="text-white/70 text-sm">R{allocation[item.key]}</div>
+                <div className="font-manrope text-white/70 text-sm">R{allocation[item.key]}</div>
               </div>
             </div>
           ))}

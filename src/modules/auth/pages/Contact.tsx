@@ -80,17 +80,17 @@ export default function Contact() {
     }
   }
 
-  const fieldHint = 'block text-sm text-neutral-400 mb-1'
+  const fieldHint = 'block font-manrope text-sm text-neutral-400 mb-1'
 
   return (
     <div className="min-h-screen text-white bg-[#0E0E12] bg-[radial-gradient(1000px_600px_at_15%_10%,rgba(255,255,255,0.06),transparent_55%),radial-gradient(900px_500px_at_85%_80%,rgba(255,255,255,0.04),transparent_60%)]">
       <Navbar />
 
       <section className="mx-auto max-w-6xl px-6 pt-10 pb-6">
-        <div className="flex items-center justify-center text-sm text-neutral-400">
+        <div className="font-manrope flex items-center justify-center text-sm text-neutral-400">
           <span className="size-1.5 rounded-full bg-yellow-400 mr-2" /> Contact Us
         </div>
-        <h1 className="mt-4 font-grotesque font-bold text-center leading-[1.05]" style={{fontWeight:700}}>
+        <h1 className="mt-4 font-grotesque font-bold text-center leading-[1.05]">
           <span className="block text-[36px] sm:text-[48px] md:text-[64px]">Ready to partner or</span>
           <span className="block text-[36px] sm:text-[48px] md:text-[64px]">learn more? Let&apos;s chat.</span>
         </h1>
@@ -99,7 +99,7 @@ export default function Contact() {
           {success ? (
             <div className="lg:self-center grid gap-4 content-start">
               <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
-                <p className="text-green-400 text-sm text-center">
+                <p className="font-manrope text-green-400 text-sm text-center">
                   Thanks — your message was sent. We&apos;ll get back to you soon.
                 </p>
               </div>
@@ -229,12 +229,11 @@ export default function Contact() {
               </div>
 
               {submitError && (
-                <div className="text-sm text-red-400">{submitError}</div>
+                <div className="font-manrope text-sm text-red-400">{submitError}</div>
               )}
             </form>
           )}
 
-          {/* Side visual */}
           <div className="w-full h-full rounded-3xl overflow-hidden flex items-center justify-center self-stretch min-h-[360px] lg:min-h-0">
             <img
               src={`${import.meta.env.BASE_URL}images/contact_us_hero.svg`}

@@ -68,8 +68,6 @@ export const dynamicServicesPaymentService = {
     payload: InitializeDynamicServicesPaymentRequest
   ): Promise<InitializeDynamicServicesPaymentResponse> {
     try {
-      if (import.meta.env.DEV) {
-      }
       const response = await apiClient.post<InitializeDynamicServicesPaymentResponse>(
         '/payment/dynamic-services/initialize',
         payload

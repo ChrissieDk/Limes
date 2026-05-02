@@ -20,7 +20,7 @@ export default function TelecomCta() {
                 to="/contact"
                 className="inline-flex items-center justify-center h-10 px-5 rounded-xl bg-white text-neutral-900 text-sm font-semibold border border-black/40 hover:bg-neutral-50 transition-colors"
               >
-                Contact Us
+                <span className="font-manrope">Contact Us</span>
               </Link>
             </div>
           </div>

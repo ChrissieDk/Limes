@@ -17,6 +17,8 @@ import ResetPassword from './modules/auth/pages/ResetPassword'
 import AuthAction from './modules/auth/pages/AuthAction'
 import TermsAndConditions from './modules/auth/pages/TermsAndConditions'
 import FairUsagePolicy from './modules/auth/pages/FairUsagePolicy'
+import DeliveryTracking from './modules/warehouse/pages/DeliveryTracking'
+import { useAuthState } from './modules/auth/hooks/useAuthState'
 
 import './config/firebase'
 
@@ -74,6 +76,7 @@ const router = createBrowserRouter([
               { index: true, element: <Dashboard /> },
               { path: 'payment-methods', element: <PaymentMethods /> },
               { path: 'subscriptions', element: <Subscriptions /> },
+              { path: 'delivery-tracking', element: <DeliveryTracking /> },
             ],
           },
           { path: 'packages', element: <DashboardPackages /> },
@@ -102,6 +105,19 @@ const router = createBrowserRouter([
   basename: (import.meta.env.BASE_URL || '/').replace(/\/$/, ''),
 })
 
+function AuthLoadingScreen() {
+  return (
+    <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
+      <div className="size-8 rounded-full border-2 border-white/20 border-t-white animate-spin" aria-hidden />
+      <span className="sr-only">Loading</span>
+    </div>
+  )
+}
+
 export default function App() {
+  const { ready } = useAuthState()
+  if (!ready) {
+    return <AuthLoadingScreen />
+  }
   return <RouterProvider router={router} />
 }

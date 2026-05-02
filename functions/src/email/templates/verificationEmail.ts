@@ -10,7 +10,7 @@
 export function getVerificationEmailHtml(
   userName: string,
   verificationLink: string,
-  _frontendUrl: string
+  _frontendUrl?: string
 ): string {
   const year = new Date().getFullYear()
   return `

@@ -32,9 +32,7 @@ export default function SignIn() {
     setSubmitError(null)
     setSubmitting(true)
     try {
-      const cred = await firebaseAuthService.signInWithEmailPassword(values)
-      const idToken = await cred.user.getIdToken(true)
-      localStorage.setItem('authToken', idToken)
+      await firebaseAuthService.signInWithEmailPassword(values)
       navigate('/dashboard/packages')
     } catch (err: unknown) {
       setSubmitError(getFirebaseAuthErrorMessage(err, 'signIn'))
@@ -101,10 +99,10 @@ export default function SignIn() {
           </Button>
 
           {submitError && (
-            <div className="text-sm text-red-400 text-center">{submitError}</div>
+            <div className="font-manrope text-sm text-red-400 text-center">{submitError}</div>
           )}
 
-          <div className="pt-2 text-sm text-neutral-500 text-center">
+          <div className="font-manrope pt-2 text-sm text-neutral-500 text-center">
             Don&apos;t have an account?{' '}
             <Link to="/signup" className="text-[#ABFF63] hover:text-[#ABFF63]/90 transition-colors">
               Sign up now

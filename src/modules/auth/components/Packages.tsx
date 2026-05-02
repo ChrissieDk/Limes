@@ -94,7 +94,7 @@ export default function Packages() {
           <br />
           connect
         </h2>
-        <p className="mt-4 text-center text-neutral-400 text-base md:text-lg">
+        <p className="font-manrope mt-4 text-center text-neutral-400 text-base md:text-lg">
           Choose prepaid or contract options with better value built in.
         </p>
 

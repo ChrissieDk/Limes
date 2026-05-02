@@ -138,7 +138,7 @@ export default function ResetPassword() {
       {success ? (
         <div className="grid gap-4">
           <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-            <p className="text-green-400 text-sm text-center">
+            <p className="font-manrope text-green-400 text-sm text-center">
               ✓ Your password has been reset successfully!
             </p>
           </div>
@@ -178,7 +178,7 @@ export default function ResetPassword() {
           </Button>
 
           {submitError && (
-            <div className="text-sm text-red-400 text-center">{submitError}</div>
+            <div className="font-manrope text-sm text-red-400 text-center">{submitError}</div>
           )}
         </form>
       )}

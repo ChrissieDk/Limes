@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 import { getServiceDisplayValue, isServiceAvailable } from '../../payment/utils/dynamicPricing'
-import type { ServiceType } from '../../payment/utils/dynamicPricing'
+import type { ServiceType } from '../../payment/config/ratingTable'
 import type { PackageType } from '../../payment/config/ratingTable'
 
 export default function WhyChoose() {
@@ -139,7 +139,6 @@ export default function WhyChoose() {
       </div>
 
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 lg:gap-8 items-stretch">
-        {/* Plan tiles */}
         <div
           className="grid grid-cols-1 sm:grid-cols-2 gap-2 lg:gap-2 content-start self-stretch lg:h-[var(--plan-tiles-height)] lg:grid-rows-[132px_190px_190px]"
           style={{ ['--plan-tiles-height' as never]: `${planTilesHeightLgPx}px` }}
@@ -226,7 +225,6 @@ export default function WhyChoose() {
           })}
         </div>
 
-        {/* Plan total */}
         <div
           className="rounded-[26px] bg-[#26252C] border border-white/10 p-7 shadow-[0_24px_70px_rgba(0,0,0,0.35)] flex flex-col self-stretch h-full lg:h-[var(--plan-tiles-height)]"
           style={{ ['--plan-tiles-height' as never]: `${planTilesHeightLgPx}px` }}
@@ -237,7 +235,7 @@ export default function WhyChoose() {
               <div className="mt-1 text-white/60 text-sm font-manrope">Review your selections and continue.</div>
             </div>
             <div className="text-right">
-              <div className="text-white/50 text-xs font-semibold uppercase tracking-wide">Total</div>
+              <div className="font-manrope text-white/50 text-xs font-semibold uppercase tracking-wide">Total</div>
               <div className="mt-1 font-grotesque font-bold text-white text-4xl tracking-tight">R{totalRands}</div>
             </div>
           </div>
@@ -248,10 +246,10 @@ export default function WhyChoose() {
                 key={item.key}
                 className={`rounded-2xl bg-white/6 border border-white/10 ${activeSummaryItems.length >= 4 ? 'p-3' : 'p-4'}`}
               >
-                <div className="text-white/70 text-xs font-semibold">{item.label}</div>
+                <div className="font-manrope text-white/70 text-xs font-semibold">{item.label}</div>
                 <div className="mt-1 flex items-end justify-between gap-3">
                   <div className="text-white font-bold">{getDisplay(item.serviceType, allocation[item.key])}</div>
-                  <div className="text-white/70 text-sm">R{allocation[item.key]}</div>
+                  <div className="font-manrope text-white/70 text-sm">R{allocation[item.key]}</div>
                 </div>
               </div>
             ))}

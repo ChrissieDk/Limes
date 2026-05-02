@@ -84,7 +84,7 @@ export default function AuthLayout({
                     className={
                       isDark
                         ? 'font-grotesque font-bold text-white text-center leading-[1.05] text-[40px] sm:text-[44px] md:text-[52px]'
-                        : 'text-2xl md:text-4xl font-bold leading-tight text-neutral-900 text-center'
+                        : 'font-grotesque text-2xl md:text-4xl font-bold leading-tight text-neutral-900 text-center'
                     }
                   >
                     {heading}
@@ -94,7 +94,7 @@ export default function AuthLayout({
                       className={
                         isDark
                           ? 'mt-3 text-center text-[12px] sm:text-sm text-neutral-500 max-w-[44ch] mx-auto font-manrope leading-relaxed'
-                          : 'mt-3 text-neutral-500 max-w-md text-sm text-center mx-auto'
+                          : 'mt-3 font-manrope text-neutral-500 max-w-md text-sm text-center mx-auto'
                       }
                     >
                       {subheading}

@@ -14,7 +14,6 @@ import { getFirebaseAuthErrorMessage, isFirebaseAuthError } from '../utils/fireb
 
 const schema = z
   .object({
-    phone: z.string().min(7, 'Enter a valid phone number'),
     email: z.string().email('Enter a valid email address'),
     password: z.string().min(8, 'Minimum 8 characters'),
     confirmPassword: z.string(),
@@ -50,9 +49,6 @@ export default function SignUp() {
     setSubmitting(true)
     try {
       const cred = await firebaseAuthService.signUpWithEmailPassword({ email: values.email, password: values.password })
-      const idToken = await cred.user.getIdToken(true)
-      localStorage.setItem('authToken', idToken)
-
       const displayName = cred.user.displayName?.trim() || ''
       const [firstNameFromDisplay, ...rest] = displayName.split(' ').filter(Boolean)
       const firstName = firstNameFromDisplay || values.email.split('@')[0]
@@ -127,11 +123,11 @@ export default function SignUp() {
       {showVerificationMessage ? (
         <div className="grid gap-4">
           <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-            <h3 className="text-green-400 font-semibold mb-2 text-center">Check your email!</h3>
-            <p className="text-green-400 text-sm text-center mb-4">
+            <h3 className="font-grotesque text-green-400 font-semibold mb-2 text-center">Check your email!</h3>
+            <p className="font-manrope text-green-400 text-sm text-center mb-4">
               We've sent a verification email to your inbox. Please click the link in the email to verify your account.
             </p>
-            <p className="text-neutral-400 text-xs text-center">
+            <p className="font-manrope text-neutral-400 text-xs text-center">
               Didn't receive the email? Check your spam folder or try signing up again.
             </p>
           </div>
@@ -144,15 +140,6 @@ export default function SignUp() {
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-        <TextField
-          variant="dark"
-          label="Phone number"
-          prefix={'+27'}
-          placeholder="Enter your mobile number"
-          {...register('phone')}
-          error={errors.phone?.message}
-        />
-
         <TextField
           variant="dark"
           label="Email address"
@@ -201,10 +188,10 @@ export default function SignUp() {
         </Button>
 
         {submitError && (
-          <div className="text-sm text-red-400 text-center">{submitError}</div>
+          <div className="font-manrope text-sm text-red-400 text-center">{submitError}</div>
         )}
 
-        <div className="pt-2 text-sm text-neutral-500 text-center">
+        <div className="font-manrope pt-2 text-sm text-neutral-500 text-center">
           Already have an account?{' '}
           <Link to="/signin" className="text-[#ABFF63] hover:text-[#ABFF63]/90 transition-colors">
             Login now

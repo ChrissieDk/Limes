@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import TextField from './TextField'
-import { paymentService } from '../../payment/services/paymentService'
-import { subscriptionService } from '../../subscription/services/subscriptionService'
-import { convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../../payment/utils/dynamicPricing'
-import type { DynamicServicePaymentItem } from '../../../types/payment'
-import { SHIPPING_COST_RANDS, SHIPPING_COST_CENTS } from '../../../constants/shipping'
+import { SHIPPING_COST_RANDS } from '../../../constants/shipping'
+import { useShippingPayment } from '../../payment/hooks/useShippingPayment'
 
 // Load Paystack Inline JS
 declare const PaystackPop: any
 
-interface Address {
+export interface Address {
   streetNo: string
   streetName: string
   suburb?: string
@@ -20,7 +17,7 @@ interface Address {
   country: string
 }
 
-interface SelectedPackage {
+export interface SelectedPackage {
   productId: string
   simPackageProductId?: string  // The actual SIM package product ID (7029225P, 7025225P, 7023225P)
   name: string
@@ -49,7 +46,7 @@ interface SelectedPackage {
   }
 }
 
-interface RicaData {
+export interface RicaData {
   address: {
     streetNo: string
     streetName: string
@@ -124,11 +121,14 @@ export default function ShippingModal({
   const [addresses, setAddresses] = useState<Address[]>([])
   
   // Payment states
-  const [isInitializing, setIsInitializing] = useState(false)
-  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false)
-  const [verificationError, setVerificationError] = useState<string | null>(null)
-  const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [refundRequested, setRefundRequested] = useState(false)
+  const {
+    isInitializing,
+    isVerifyingPayment,
+    verificationError,
+    paymentSuccess,
+    refundRequested,
+    initializePayment,
+  } = useShippingPayment(selectedPackage, ricaData, onPay, onClose)
 
   const formatAddress = (addr: Address) => {
     const parts = [
@@ -166,536 +166,9 @@ export default function ShippingModal({
     setPhone(customerPhone)
   }, [customerEmail, customerName, customerPhone]) 
 
-  // Initialize payment (SECURE - Backend controls amount and creates order)
   const handleInitializePayment = async () => {
-    if (!email || !name || !phone || !selectedPackage) {
-      return
-    }
-
-    setIsInitializing(true)
-    setVerificationError(null)
-
-    try {
-
-      let initResponse: { success: boolean; data?: { access_code: string; reference: string }; error?: string }
-
-      // CONTRACT DYNAMIC PLANS: Initialize with services (MSISDN allocated by backend after payment)
-      if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
-        
-        if (!ricaData) {
-          setVerificationError('RICA data is required for contract plans')
-          return
-        }
-
-        if (!selectedPackage.simPackageProductId) {
-          setVerificationError('SIM package product ID is required')
-          return
-        }
-
-        // Convert plan allocation (in Rands) to services array
-        const services: DynamicServicePaymentItem[] = []
-        const expiryDate = getDefaultExpiryDate()
-        
-        if (selectedPackage.planAllocation.data > 0) {
-          const dataValue = convertRandsToServiceValue('DATA', selectedPackage.planAllocation.data, selectedPackage.packageType || 'prepaid')
-          if (dataValue !== null) {
-            services.push({
-              value: dataValue,
-              definitionCode: 'DATA',
-              expiryDate,
-              priceInCents: selectedPackage.planAllocation.data * 100
-            })
-          }
-        }
-        
-        if (selectedPackage.planAllocation.airtime > 0) {
-          const airtimeValue = convertRandsToServiceValue('AIRTIME', selectedPackage.planAllocation.airtime, selectedPackage.packageType || 'prepaid')
-          if (airtimeValue !== null) {
-            services.push({
-              value: airtimeValue,
-              definitionCode: 'GPA_CREDIT',
-              expiryDate,
-              priceInCents: selectedPackage.planAllocation.airtime * 100
-            })
-          }
-        }
-        if (selectedPackage.planAllocation.voice > 0) {
-          const voiceValue = convertRandsToServiceValue('VOICE', selectedPackage.planAllocation.voice, selectedPackage.packageType || 'prepaid')
-          if (voiceValue !== null) {
-            services.push({
-              value: voiceValue,
-              definitionCode: 'VOICE',
-              expiryDate,
-              priceInCents: selectedPackage.planAllocation.voice * 100
-            })
-          }
-        }
-        if (selectedPackage.planAllocation.sms > 0) {
-          const smsValue = convertRandsToServiceValue('SMS', selectedPackage.planAllocation.sms, selectedPackage.packageType || 'prepaid')
-          if (smsValue !== null) {
-            services.push({
-              value: smsValue,
-              definitionCode: 'SMS',
-              expiryDate,
-              priceInCents: selectedPackage.planAllocation.sms * 100
-            })
-          }
-        }
-        if (selectedPackage.planAllocation.whatsapp > 0) {
-          const whatsappValue = convertRandsToServiceValue('WHATSAPP', selectedPackage.planAllocation.whatsapp, selectedPackage.packageType || 'prepaid')
-          if (whatsappValue !== null) {
-            services.push({
-              value: whatsappValue,
-              definitionCode: 'WHATSAPP',
-              expiryDate,
-              priceInCents: selectedPackage.planAllocation.whatsapp * 100
-            })
-          }
-        }
-
-        // Build payload with optional shipping cost (separate field, not in services array)
-        // MSISDN is null - backend will allocate after payment
-        const dynamicPayload: import('../../../types/payment').InitializeDynamicServicesPaymentRequest = {
-          msisdn: null as any,  // Backend allocates MSISDN after payment
-          services,
-          ...(selectedPackage.simStatus === 'needs-sim' && { shippingCostInCents: SHIPPING_COST_CENTS })
-        }
-        
-        initResponse = await paymentService.initializeDynamicServicesPayment(dynamicPayload)
-        
-      } else if (selectedPackage.isComboBundle) {
-        // COMBO BUNDLE FLOW: Use unified initialize endpoint
-        
-        if (!selectedPackage.productId) {
-          setVerificationError('Product ID is missing')
-          console.error('[Payment] ❌ Product ID is missing from selectedPackage')
-          return
-        }
-        
-        if (!selectedPackage.price) {
-          setVerificationError('Price is missing for combo bundle')
-          console.error('[Payment] ❌ Price is missing from combo bundle')
-          return
-        }
-        
-        const payload = {
-          productId: String(selectedPackage.productId),
-          amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0),
-          msisdn: null  // Payment-first, MSISDN allocated after payment
-        }
-        initResponse = await paymentService.initializeTransaction(payload)
-        
-      } else {
-        // PREPAID FLOW: Regular packages (payment first, then subscriber creation)
-        if (!selectedPackage.productId) {
-          setVerificationError('Product ID is missing')
-          console.error('[Payment] ❌ Product ID is missing from selectedPackage')
-          return
-        }
-        
-        if (!selectedPackage.price) {
-          setVerificationError('Price is missing for package')
-          console.error('[Payment] ❌ Price is missing from selectedPackage')
-          return
-        }
-        
-        const payload = {
-          productId: String(selectedPackage.productId),
-          msisdn: null,  // Payment-first, MSISDN allocated after payment
-          amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0)
-        }
-        initResponse = await paymentService.initializeTransaction(payload)
-      }
-
-      if (!initResponse.success || !initResponse.data) {
-        setVerificationError(initResponse.error || 'Failed to initialize payment')
-        return
-      }
-      // Use Paystack Popup with access_code
-      const popup = new PaystackPop()
-      popup.resumeTransaction(initResponse.data.access_code, {
-        onSuccess: (transaction: any) => {
-          handlePaymentVerification(transaction.reference || initResponse.data?.reference || '')
-        },
-        onCancel: () => {
-          setVerificationError(null)
-        }
-      })
-    } catch (error: any) {
-      console.error('[Payment] Initialization error:', error)
-      setVerificationError(
-        error.response?.data?.message || 
-        error.message || 
-        'Failed to initialize payment. Please try again.'
-      )
-    } finally {
-      setIsInitializing(false)
-    }
-  }
-
-  // Handle payment verification after Paystack success
-  // NEW FLOW: Verify → Create Subscriber → Create Order/Services → Link Transaction → Paystack Subscription
-  const handlePaymentVerification = async (reference: string) => {
-    setIsVerifyingPayment(true)
-    setVerificationError(null)
-    
-    try {
-      const isSubscription = selectedPackage?.planChargeType === 'monthly'
-      
-      // STEP 1: Verify payment (no longer creates order automatically)
-      const verifyResponse = await paymentService.verifyPayment({
-        reference: reference,
-        saveCard: isSubscription
-      })
-      
-      if (!verifyResponse.success) {
-        throw new Error(verifyResponse.error || 'Payment verification failed')
-      }
-      
-      // STEP 2: Create subscriber (get MSISDN) - ALL FLOWS create subscriber AFTER payment
-      let newMsisdn: string
-  
-      if (!ricaData) {
-        throw new Error('RICA data is required for subscriber creation')
-      }
-      
-      const subscriberPayload = {
-        productId: selectedPackage!.simPackageProductId!,  // SIM package ID ending with P (e.g., 7029225P)
-        ...(selectedPackage!.simStatus === 'has-sim' && selectedPackage!.iccid 
-          ? { iccid: selectedPackage!.iccid }
-          : {}),
-        eSim: false,
-        address: [{
-          referredType: 'SUBSCRIBER',
-          addressType: 'INSTALLATION',
-          ...ricaData.address,
-          oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`
-        }]
-      }
-      
-      
-      try {
-        const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
-        newMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
-        
-        if (!newMsisdn) {
-          throw new Error('Failed to allocate MSISDN - subscriber creation unsuccessful')
-        }
-      } catch (subscriberErr: any) {
-        // Subscriber creation failed - request refund
-        console.error('[Payment] ❌ Subscriber creation failed:', subscriberErr)
-        console.error('[Payment] Requesting refund for transaction:', reference)
-        
-        try {
-          await paymentService.requestRefund({
-            transactionReference: reference,
-            amountInCents: null, // Full refund
-            reason: 'MVNX subscriber creation failed'
-          })
-          setRefundRequested(true)
-        } catch (refundErr) {
-          console.error('[Payment] ❌ Refund request also failed:', refundErr)
-        }
-        
-        throw new Error('Subscriber creation failed. A refund has been requested and will be processed within 5-7 business days.')
-      }
-      
-      // Check if SIM is active
-      const simStatus = await subscriptionService.checkSimActive(newMsisdn)
-      
-      // STEP 3: Create order OR dynamic services (based on SIM active status)
-      if (selectedPackage!.isDynamicPlan && selectedPackage!.planAllocation) {
-        // Dynamic services flow
-        const planAllocation = selectedPackage!.planAllocation!
-        const expiryDate = getDefaultExpiryDate()
-        
-        if (!simStatus.isActive) {
-          // SIM not active - store pending dynamic services
-          
-          const pendingServices = []
-          if (planAllocation.data > 0) {
-            const dataValue = convertRandsToServiceValue('DATA', planAllocation.data, selectedPackage!.packageType || 'prepaid')
-            if (dataValue !== null) {
-              pendingServices.push({
-                definitionCode: 'DATA' as const,
-                value: dataValue,
-                priceInCents: planAllocation.data * 100,
-                expiryDate,
-                paymentReference: reference
-              })
-            }
-          }
-          if (planAllocation.airtime > 0) {
-            const airtimeValue = convertRandsToServiceValue('AIRTIME', planAllocation.airtime, selectedPackage!.packageType || 'prepaid')
-            if (airtimeValue !== null) {
-              pendingServices.push({
-                definitionCode: 'GPA_CREDIT' as const,
-                value: airtimeValue,
-                priceInCents: planAllocation.airtime * 100,
-                expiryDate,
-                paymentReference: reference
-              })
-            }
-          }
-          if (planAllocation.voice > 0) {
-            const voiceValue = convertRandsToServiceValue('VOICE', planAllocation.voice, selectedPackage!.packageType || 'prepaid')
-            if (voiceValue !== null) {
-              pendingServices.push({
-                definitionCode: 'VOICE' as const,
-                value: voiceValue,
-                priceInCents: planAllocation.voice * 100,
-                expiryDate,
-                paymentReference: reference
-              })
-            }
-          }
-          if (planAllocation.sms > 0) {
-            const smsValue = convertRandsToServiceValue('SMS', planAllocation.sms, selectedPackage!.packageType || 'prepaid')
-            if (smsValue !== null) {
-              pendingServices.push({
-                definitionCode: 'SMS' as const,
-                value: smsValue,
-                priceInCents: planAllocation.sms * 100,
-                expiryDate,
-                paymentReference: reference
-              })
-            }
-          }
-          if (planAllocation.whatsapp > 0) {
-            const whatsappValue = convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp, selectedPackage!.packageType || 'prepaid')
-            if (whatsappValue !== null) {
-              pendingServices.push({
-                definitionCode: 'WHATSAPP' as const,
-                value: whatsappValue,
-                priceInCents: planAllocation.whatsapp * 100,
-                expiryDate,
-                paymentReference: reference
-              })
-            }
-          }
-          
-          // Store each pending service
-          for (const service of pendingServices) {
-            await subscriptionService.storePendingDynamicService(newMsisdn, service)
-          }
-          
-        } else {
-          // SIM is active - create services immediately
-          const services = []
-          
-          if (planAllocation.data > 0) {
-            const dataValue = convertRandsToServiceValue('DATA', planAllocation.data, selectedPackage!.packageType || 'prepaid')
-            if (dataValue !== null) {
-              services.push({
-                value: dataValue,
-                definitionCode: 'DATA' as const,
-                expiryDate
-              })
-            }
-          }
-          if (planAllocation.airtime > 0) {
-            const airtimeValue = convertRandsToServiceValue('AIRTIME', planAllocation.airtime, selectedPackage!.packageType || 'prepaid')
-            if (airtimeValue !== null) {
-              services.push({
-                value: airtimeValue,
-                definitionCode: 'GPA_CREDIT' as const,
-                expiryDate
-              })
-            }
-          }
-          if (planAllocation.voice > 0) {
-            const voiceValue = convertRandsToServiceValue('VOICE', planAllocation.voice, selectedPackage!.packageType || 'prepaid')
-            if (voiceValue !== null) {
-              services.push({
-                value: voiceValue,
-                definitionCode: 'VOICE' as const,
-                expiryDate
-              })
-            }
-          }
-          if (planAllocation.sms > 0) {
-            const smsValue = convertRandsToServiceValue('SMS', planAllocation.sms, selectedPackage!.packageType || 'prepaid')
-            if (smsValue !== null) {
-              services.push({
-                value: smsValue,
-                definitionCode: 'SMS' as const,
-                expiryDate
-              })
-            }
-          }
-          if (planAllocation.whatsapp > 0) {
-            const whatsappValue = convertRandsToServiceValue('WHATSAPP', planAllocation.whatsapp, selectedPackage!.packageType || 'prepaid')
-            if (whatsappValue !== null) {
-              services.push({
-                value: whatsappValue,
-                definitionCode: 'WHATSAPP' as const,
-                expiryDate
-              })
-            }
-          }
-          
-          const servicesResponse = await subscriptionService.createDynamicServices(newMsisdn, { services })
-          const serviceIds = servicesResponse.results
-            .filter(r => r.success && r.id)
-            .map(r => r.id!)
-          
-          // STEP 4: Link transaction to services
-          await paymentService.linkTransactionToServices({
-            transactionReference: reference,
-            serviceIds: serviceIds
-          })
-        }
-        
-      } else {
-        // Regular order flow
-        if (!simStatus.isActive) {
-          // SIM not active - store pending order
-          await subscriptionService.storePendingOrder({
-            msisdn: newMsisdn,
-            productId: selectedPackage!.productId,
-            productAmount: selectedPackage!.price,
-            paymentReference: reference
-          })
-          
-        } else {
-          // SIM is active - create order immediately
-          const orderResponse = await subscriptionService.createOrder({
-            products: [{ id: selectedPackage!.productId, amount: selectedPackage!.price }],
-            msisdn: newMsisdn
-          })
-          
-          if (orderResponse.orderId) {
-            // Order created immediately - link transaction
-            // STEP 4: Link transaction to order
-            await paymentService.linkTransactionToOrder({
-              transactionReference: reference,
-              orderId: orderResponse.orderId
-            })
-          } else {
-            throw new Error('Order creation failed - no orderId in response')
-          }
-        }
-      }
-      
-      // STEP 5: Create recurring subscription if monthly
-      if (isSubscription && verifyResponse.cardSaved) {
-        const savedCards = await paymentService.getSavedCards()
-        if (savedCards && savedCards.length > 0) {
-          
-          // Build services array from plan allocation
-          const services: DynamicServicePaymentItem[] = []
-          const expiryDate = getDefaultExpiryDate()
-          
-          if (selectedPackage!.planAllocation) {
-            // CONTRACT OR PREPAID WITH ALLOCATION: Use plan allocation
-            
-            if (selectedPackage!.planAllocation.data > 0) {
-              const dataValue = convertRandsToServiceValue('DATA', selectedPackage!.planAllocation.data, selectedPackage!.packageType || 'prepaid')
-              if (dataValue !== null) {
-                services.push({
-                  value: dataValue,
-                  definitionCode: 'DATA',
-                  expiryDate,
-                  priceInCents: selectedPackage!.planAllocation.data * 100
-                })
-              }
-            }
-            
-            if (selectedPackage!.planAllocation.airtime > 0) {
-              const airtimeValue = convertRandsToServiceValue('AIRTIME', selectedPackage!.planAllocation.airtime, selectedPackage!.packageType || 'prepaid')
-              if (airtimeValue !== null) {
-                services.push({
-                  value: airtimeValue,
-                  definitionCode: 'GPA_CREDIT',
-                  expiryDate,
-                  priceInCents: selectedPackage!.planAllocation.airtime * 100
-                })
-              }
-            }
-            if (selectedPackage!.planAllocation.voice > 0) {
-              const voiceValue = convertRandsToServiceValue('VOICE', selectedPackage!.planAllocation.voice, selectedPackage!.packageType || 'prepaid')
-              if (voiceValue !== null) {
-                services.push({
-                  value: voiceValue,
-                  definitionCode: 'VOICE',
-                  expiryDate,
-                  priceInCents: selectedPackage!.planAllocation.voice * 100
-                })
-              }
-            }
-            if (selectedPackage!.planAllocation.sms > 0) {
-              const smsValue = convertRandsToServiceValue('SMS', selectedPackage!.planAllocation.sms, selectedPackage!.packageType || 'prepaid')
-              if (smsValue !== null) {
-                services.push({
-                  value: smsValue,
-                  definitionCode: 'SMS',
-                  expiryDate,
-                  priceInCents: selectedPackage!.planAllocation.sms * 100
-                })
-              }
-            }
-            
-            if (selectedPackage!.planAllocation.whatsapp && selectedPackage!.planAllocation.whatsapp > 0) {
-              const whatsappValue = convertRandsToServiceValue('WHATSAPP', selectedPackage!.planAllocation.whatsapp, selectedPackage!.packageType || 'prepaid')
-              if (whatsappValue !== null) {
-                services.push({
-                  value: whatsappValue,
-                  definitionCode: 'WHATSAPP',
-                  expiryDate,
-                  priceInCents: selectedPackage!.planAllocation.whatsapp * 100
-                })
-              }
-            }
-          } else {
-            // PREPAID WITHOUT ALLOCATION: Backend should derive services from productId
-            // Create a placeholder service that backend will expand based on productId
-            const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
-            services.push({
-              value: priceInCents,
-              definitionCode: 'PACKAGE',  // Backend recognizes this and expands to actual services
-              expiryDate,
-              priceInCents: priceInCents
-            })
-          }
-
-          // Check if this is a combo bundle - use different endpoint
-          if (selectedPackage!.isComboBundle) {
-            const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
-            
-            await paymentService.subscribeToComboBundle({
-              productId: selectedPackage!.productId,
-              msisdn: newMsisdn,
-              paymentMethodId: savedCards[0].id,
-              amount: priceInCents  // Already in cents
-            })
-          } else {
-            if (services.length === 0) {
-              throw new Error('No services defined for recurring subscription')
-            }
-
-            await paymentService.createDynamicServicesRecurring({
-              msisdn: newMsisdn,
-              paymentMethodId: savedCards[0].id,
-              services
-            })
-          }
-        }
-      }
-      
-      setPaymentSuccess(true)
-      // Notify Dashboard to refresh data after successful payment
-      window.dispatchEvent(new CustomEvent('limes:payment-success'))
-      setTimeout(() => {
-        if (onPay) onPay()
-        onClose()
-      }, 2000)
-      
-    } catch (error: any) {
-      console.error('[Payment] Error:', error)
-      setVerificationError(error.message || 'Payment processing failed')
-    } finally {
-      setIsVerifyingPayment(false)
-    }
+    if (!email || !name || !phone || !selectedPackage) return
+    await initializePayment()
   }
 
   const handleAddAddress = () => {
@@ -736,10 +209,10 @@ export default function ShippingModal({
       <div className="relative w-full max-w-2xl mx-0 sm:mx-4 rounded-[28px] bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
         <div className="flex items-start justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-[28px]">
           <div>
-            <div className="text-[20px] sm:text-[22px] font-semibold leading-[1.1]">
+            <div className="font-grotesque text-[20px] sm:text-[22px] font-semibold leading-[1.1]">
               Confirm SIM delivery
             </div>
-            <div className="text-sm text-neutral-500 mt-0.5">
+            <div className="font-manrope text-sm text-neutral-500 mt-0.5">
               Review your package and shipping details
             </div>
           </div>
@@ -758,7 +231,7 @@ export default function ShippingModal({
             {/* Selected Package Section */}
             {selectedPackage && (
               <div className="space-y-3">
-                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                <h3 className="font-grotesque text-neutral-900 font-medium text-[20px] leading-[1.1]">
                   Selected package
                 </h3>
                 <div className="rounded-[22px] border border-[#ABFF63] bg-[#EEFFD9] p-5">
@@ -771,24 +244,24 @@ export default function ShippingModal({
                         className="hidden sm:block h-8 w-8 select-none"
                       />
                       <div>
-                        <div className="font-semibold text-[28px] leading-[1.05] tracking-tight text-neutral-900">
+                        <div className="font-grotesque font-semibold text-[28px] leading-[1.05] tracking-tight text-neutral-900">
                           {selectedPackage.name}
                         </div>
-                        <div className="text-sm text-neutral-600">Product ID: {selectedPackage.productId}</div>
+                        <div className="font-manrope text-sm text-neutral-600">Product ID: {selectedPackage.productId}</div>
                         {selectedPackage.simPackageProductId && (
-                          <div className="text-sm text-neutral-600">SIM Package: {selectedPackage.simPackageProductId}</div>
+                          <div className="font-manrope text-sm text-neutral-600">SIM Package: {selectedPackage.simPackageProductId}</div>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[28px] font-semibold leading-[1.05] text-neutral-900">
+                      <div className="font-grotesque text-[28px] font-semibold leading-[1.05] text-neutral-900">
                         R{selectedPackage.price}
                       </div>
-                      <div className="text-sm text-neutral-600">
+                      <div className="font-manrope text-sm text-neutral-600">
                         {selectedPackage.planChargeType === 'once-off' ? 'Once-off payment' : 'First month (then auto-renews)'}
                       </div>
                       {selectedPackage.packageType && (
-                        <div className="text-sm text-lime-700 font-semibold mt-1">
+                        <div className="font-manrope text-sm text-lime-700 font-semibold mt-1">
                           {selectedPackage.packageType === 'contract' ? 'Contract' : 'Prepaid'}
                         </div>
                       )}
@@ -800,31 +273,31 @@ export default function ShippingModal({
                     <div className="grid grid-cols-2 gap-3 mt-4">
                       {selectedPackage.planAllocation.data > 0 && (
                         <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                          <div className="text-neutral-900 text-base">Mobile data</div>
+                          <div className="font-manrope text-neutral-900 text-base">Mobile data</div>
                           <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.data}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.airtime > 0 && (
                         <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                          <div className="text-neutral-900 text-base">Airtime</div>
+                          <div className="font-manrope text-neutral-900 text-base">Airtime</div>
                           <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.airtime}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.sms > 0 && (
                         <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                          <div className="text-neutral-900 text-base">SMS</div>
+                          <div className="font-manrope text-neutral-900 text-base">SMS</div>
                           <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.sms}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.voice > 0 && (
                         <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                          <div className="text-neutral-900 text-base">Voice minutes</div>
+                          <div className="font-manrope text-neutral-900 text-base">Voice minutes</div>
                           <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.voice}</div>
                         </div>
                       )}
                       {selectedPackage.planAllocation.whatsapp > 0 && (
                         <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                          <div className="text-neutral-900 text-base">WhatsApp</div>
+                          <div className="font-manrope text-neutral-900 text-base">WhatsApp</div>
                           <div className="text-neutral-900 font-semibold text-lg">R{selectedPackage.planAllocation.whatsapp}</div>
                         </div>
                       )}
@@ -834,25 +307,25 @@ export default function ShippingModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                     {selectedPackage.features?.mobileData && (
                       <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                        <div className="text-neutral-900 text-base">Mobile data</div>
+                        <div className="font-manrope text-neutral-900 text-base">Mobile data</div>
                         <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.mobileData}</div>
                       </div>
                     )}
                     {selectedPackage.features?.messaging && (
                       <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                        <div className="text-neutral-900 text-base">Messaging</div>
+                        <div className="font-manrope text-neutral-900 text-base">Messaging</div>
                         <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.messaging}</div>
                       </div>
                     )}
                     {selectedPackage.features?.phone && (
                       <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                        <div className="text-neutral-900 text-base">Phone</div>
+                        <div className="font-manrope text-neutral-900 text-base">Phone</div>
                         <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.phone}</div>
                       </div>
                     )}
                     {selectedPackage.features?.airtime && (
                       <div className="rounded-[18px] bg-[#ABFF63] p-4">
-                        <div className="text-neutral-900 text-base">Airtime</div>
+                        <div className="font-manrope text-neutral-900 text-base">Airtime</div>
                         <div className="text-neutral-900 font-semibold text-lg">{selectedPackage.features.airtime}</div>
                       </div>
                     )}
@@ -865,7 +338,7 @@ export default function ShippingModal({
             {/* Shipping Address Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                <h3 className="font-grotesque text-neutral-900 font-medium text-[20px] leading-[1.1]">
                   Shipping address
                 </h3>
                 {/* {!showAddAddress && (
@@ -901,10 +374,10 @@ export default function ShippingModal({
                             className="hidden sm:block h-10 w-10 select-none"
                           />
                           <div className="flex-1">
-                            <div className="font-semibold text-neutral-900 text-[28px] leading-[1.05] mb-0.5">
+                            <div className="font-grotesque font-semibold text-neutral-900 text-[28px] leading-[1.05] mb-0.5">
                               {idx === 0 ? 'Default Address' : `Address ${idx + 1}`}
                             </div>
-                            <div className="text-sm text-neutral-600 leading-relaxed">
+                            <div className="font-manrope text-sm text-neutral-600 leading-relaxed">
                               {formatAddress(addr)}
                             </div>
                           </div>
@@ -927,7 +400,7 @@ export default function ShippingModal({
               {showAddAddress && (
                 <div className="rounded-xl border-2 border-neutral-900 bg-neutral-50 p-4 space-y-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-neutral-900">New Shipping Address</h4>
+                    <h4 className="font-grotesque font-semibold text-neutral-900">New Shipping Address</h4>
                     <button
                       onClick={() => setShowAddAddress(false)}
                       className="text-sm text-neutral-600 hover:text-neutral-900"
@@ -992,7 +465,7 @@ export default function ShippingModal({
                     aria-hidden="true"
                     className="hidden sm:block h-12 w-12 mx-auto mb-3 opacity-40 select-none"
                   />
-                  <p className="text-sm">No addresses available. Please add one.</p>
+                  <p className="font-manrope text-sm">No addresses available. Please add one.</p>
                 </div>
               )}
             </div>
@@ -1000,7 +473,7 @@ export default function ShippingModal({
             {/* Customer Details for Payment */}
             {!showAddAddress && addresses.length > 0 && selectedPackage && (
               <div className="space-y-3">
-                <h3 className="text-neutral-900 font-medium text-[20px] leading-[1.1]">
+                <h3 className="font-grotesque text-neutral-900 font-medium text-[20px] leading-[1.1]">
                   Payment details
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1027,7 +500,7 @@ export default function ShippingModal({
                 </div>
                 <div className="space-y-2">
                   {selectedPackage.planChargeType === 'monthly' && (
-                    <div className="rounded-lg bg-purple-50 border border-purple-200 p-3 text-xs text-purple-800">
+                    <div className="font-manrope rounded-lg bg-purple-50 border border-purple-200 p-3 text-xs text-purple-800">
                       <strong>Monthly Subscription:</strong> You'll be charged today for Month 1. Your card will be saved and 
                       automatically charged monthly starting 1 month from today. You can cancel anytime.
                     </div>
@@ -1041,7 +514,7 @@ export default function ShippingModal({
               <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-red-900 mb-1">
+                  <h4 className="font-grotesque font-semibold text-red-900 mb-1">
                     {refundRequested ? 'Payment Failed - Refund Requested' : 'Payment Verification Failed'}
                   </h4>
                   <p className="text-sm text-red-700">{verificationError}</p>
@@ -1058,8 +531,8 @@ export default function ShippingModal({
               <div className="rounded-xl bg-green-50 border-2 border-green-200 p-4 flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-green-900 mb-1">Payment Successful!</h4>
-                  <p className="text-sm text-green-700">Your SIM card will be shipped to your address. Redirecting...</p>
+                  <h4 className="font-grotesque font-semibold text-green-900 mb-1">Payment Successful!</h4>
+                  <p className="font-manrope text-sm text-green-700">Your SIM card will be shipped to your address. Redirecting...</p>
                 </div>
               </div>
             )}
@@ -1068,8 +541,8 @@ export default function ShippingModal({
               <div className="rounded-xl bg-blue-50 border-2 border-blue-200 p-4 flex items-start gap-3">
                 <Loader2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-blue-900 mb-1">Verifying Payment...</h4>
-                  <p className="text-sm text-blue-700">Please wait while we confirm your payment with the bank.</p>
+                  <h4 className="font-grotesque font-semibold text-blue-900 mb-1">Verifying Payment...</h4>
+                  <p className="font-manrope text-sm text-blue-700">Please wait while we confirm your payment with the bank.</p>
                 </div>
               </div>
             )}
@@ -1091,8 +564,8 @@ export default function ShippingModal({
                     )}
                   </div>
                   <div className="border-t border-neutral-300 pt-2 flex items-center justify-between">
-                    <span className="font-semibold text-neutral-900 text-base">Total</span>
-                    <span className="font-semibold text-2xl text-lime-700">
+                    <span className="font-grotesque font-semibold text-neutral-900 text-base">Total</span>
+                    <span className="font-grotesque font-semibold text-2xl text-lime-700">
                       R{getTotalWithShipping(selectedPackage)}
                     </span>
                   </div>
@@ -1119,7 +592,7 @@ export default function ShippingModal({
                   )
                 ) : (
                   <div className="text-center py-2">
-                    <p className="text-sm text-neutral-600">Please fill in all payment details above</p>
+                    <p className="font-manrope text-sm text-neutral-600">Please fill in all payment details above</p>
                   </div>
                 )}
               </div>

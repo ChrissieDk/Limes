@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardNavbar from '../components/DashboardNavbar';
 import Footer from '../components/Footer';
-import { userService } from '../services/userService';
 import { paymentService } from '../../payment/services/paymentService';
 import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
+import { formatDate } from '../../../utils/dateFormat';
 import type { SubscriptionDetails } from '../../../types/payment';
 import { 
   XCircle, 
@@ -22,6 +22,33 @@ const PLAN_CODE_TO_NAME: Record<string, string> = {
   'PLN_anjvoror46vxqvaw': 'Test Monthly Plan',
 };
 
+function getStatusColor(status: string) {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return 'text-lime-400 bg-lime-400/10';
+    case 'cancelled':
+    case 'canceled':
+      return 'text-neutral-500 bg-neutral-500/10';
+    case 'non-renewing':
+      return 'text-yellow-400 bg-yellow-400/10';
+    default:
+      return 'text-neutral-400 bg-neutral-400/10';
+  }
+}
+
+function getPlanName(subscription: SubscriptionWithDetails) {
+  if (PLAN_CODE_TO_NAME[subscription.paystackPlanCode]) {
+    return PLAN_CODE_TO_NAME[subscription.paystackPlanCode];
+  }
+  if (PLAN_CODE_TO_NAME[subscription.productId]) {
+    return PLAN_CODE_TO_NAME[subscription.productId];
+  }
+  if (subscription.hasDynamicServices || subscription.productId === 'DYNAMIC_SERVICES') {
+    return 'Build Your Own Plan';
+  }
+  return `Plan ${subscription.productId}`;
+}
+
 interface SubscriptionWithDetails extends SubscriptionDetails {
   msisdn: string;
   productId: string;
@@ -33,8 +60,8 @@ function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState<SubscriptionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState<string | null>(null); // Track which subscription is being cancelled
-  const [showCancelModal, setShowCancelModal] = useState<string | null>(null); // Track which subscription to cancel
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelSuccess, setCancelSuccess] = useState(false);
   
   // MSISDN filter
@@ -49,8 +76,6 @@ function Subscriptions() {
     setLoading(true);
     setError(null);
     try {
-      await userService.getCurrentUser();
-      
       // Use new getAllSubscriptions endpoint
       const { subscriptions: allSubs } = await paymentService.getAllSubscriptions();
       
@@ -128,56 +153,18 @@ function Subscriptions() {
     ? subscriptions 
     : subscriptions.filter(sub => sub.msisdn === selectedMsisdn);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-ZA', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'text-lime-400 bg-lime-400/10';
-      case 'cancelled':
-      case 'canceled':
-        return 'text-neutral-500 bg-neutral-500/10';
-      case 'non-renewing':
-        return 'text-yellow-400 bg-yellow-400/10';
-      default:
-        return 'text-neutral-400 bg-neutral-400/10';
-    }
-  };
-
-  const getPlanName = (subscription: SubscriptionWithDetails) => {
-    // Check if it's a known plan code
-    if (PLAN_CODE_TO_NAME[subscription.paystackPlanCode]) {
-      return PLAN_CODE_TO_NAME[subscription.paystackPlanCode];
-    }
-    if (PLAN_CODE_TO_NAME[subscription.productId]) {
-      return PLAN_CODE_TO_NAME[subscription.productId];
-    }
-    // Dynamic services
-    if (subscription.hasDynamicServices || subscription.productId === 'DYNAMIC_SERVICES') {
-      return 'Build Your Own Plan';
-    }
-    // Fallback to product ID
-    return `Plan ${subscription.productId}`;
-  };
+  const subToCancel = showCancelModal ? subscriptions.find(s => s.id === showCancelModal) : null;
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white">
       <DashboardNavbar />
       
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        {/* Header */}
         <div className="mb-10">
           <h1 className="text-center font-grotesque font-semibold text-white text-5xl sm:text-6xl md:text-7xl leading-[1.02] tracking-tight">
             My subscriptions
           </h1>
-          <p className="mt-3 text-center text-neutral-400 text-sm">
+          <p className="font-manrope mt-3 text-center text-neutral-400 text-sm">
             Manage your active recurring plans
           </p>
         </div>
@@ -210,8 +197,8 @@ function Subscriptions() {
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
               <div>
-                <h3 className="text-white font-semibold mb-1">Error Loading Subscriptions</h3>
-                <p className="text-neutral-400 text-sm">{error}</p>
+                <h3 className="font-grotesque text-white font-semibold mb-1">Error Loading Subscriptions</h3>
+                <p className="font-manrope text-neutral-400 text-sm">{error}</p>
               </div>
             </div>
           </div>
@@ -242,7 +229,7 @@ function Subscriptions() {
               <h3 className="text-white font-grotesque font-semibold text-2xl sm:text-3xl leading-[1.15] mb-2">
                 No active subscriptions
               </h3>
-              <p className="text-neutral-400 text-sm sm:text-base mb-8">
+              <p className="font-manrope text-neutral-400 text-sm sm:text-base mb-8">
                 You don't have any active recurring subscriptions yet.
               </p>
               <button
@@ -257,10 +244,10 @@ function Subscriptions() {
               <h3 className="text-white font-grotesque font-semibold text-xl mb-2">
                 About your subscriptions
               </h3>
-              <p className="text-neutral-400 text-sm">
+              <p className="font-manrope text-neutral-400 text-sm">
                 Your subscription data is synced from your account and will be available across all your devices.
               </p>
-              <p className="text-neutral-400 text-sm mt-3">
+              <p className="font-manrope text-neutral-400 text-sm mt-3">
                 To view or purchase new plans,{' '}
                 <button
                   onClick={() => navigate('/dashboard/packages')}
@@ -289,7 +276,7 @@ function Subscriptions() {
               {/* MSISDN Filter */}
               {availableMsisdns.length > 1 && (
                 <div className="flex items-center gap-3">
-                  <label className="text-neutral-400 text-sm">Filter by number:</label>
+                  <label className="font-manrope text-neutral-400 text-sm">Filter by number:</label>
                   <select
                     value={selectedMsisdn}
                     onChange={(e) => setSelectedMsisdn(e.target.value)}
@@ -313,7 +300,7 @@ function Subscriptions() {
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex-1">
                       <div className="flex items-center mb-2">
-                        <h3 className="text-xl font-semibold text-white mr-3">
+                        <h3 className="font-grotesque text-xl font-semibold text-white mr-3">
                           {getPlanName(sub)}
                         </h3>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(sub.status)}`}>
@@ -321,10 +308,10 @@ function Subscriptions() {
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-neutral-500 text-xs">
+                        <p className="font-manrope text-neutral-500 text-xs">
                           Plan Code: {sub.paystackPlanCode}
                         </p>
-                        <p className="text-neutral-400 text-sm">
+                        <p className="font-manrope text-neutral-400 text-sm">
                           Subscription ID: {sub.paystackSubscriptionCode}
                         </p>
                       </div>
@@ -347,8 +334,8 @@ function Subscriptions() {
                     <div className="flex items-start gap-3">
                       <img src={`${import.meta.env.BASE_URL}images/plan_phone.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
-                        <p className="text-neutral-400 text-sm mb-1">Phone Number</p>
-                        <p className="text-white font-semibold text-lg">{sub.msisdn}</p>
+                        <p className="font-manrope text-neutral-400 text-sm mb-1">Phone Number</p>
+                        <p className="font-grotesque text-white font-semibold text-lg">{sub.msisdn}</p>
                       </div>
                     </div>
 
@@ -356,8 +343,8 @@ function Subscriptions() {
                     <div className="flex items-start gap-3">
                       <img src={`${import.meta.env.BASE_URL}images/plan_lime.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
-                        <p className="text-neutral-400 text-sm mb-1">Amount</p>
-                        <p className="text-white font-semibold text-lg">
+                        <p className="font-manrope text-neutral-400 text-sm mb-1">Amount</p>
+                        <p className="font-grotesque text-white font-semibold text-lg">
                           R{sub.amountInRands.toFixed(2)}/mo
                         </p>
                       </div>
@@ -367,8 +354,8 @@ function Subscriptions() {
                     <div className="flex items-start gap-3">
                       <img src={`${import.meta.env.BASE_URL}images/data_icon.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
-                        <p className="text-neutral-400 text-sm mb-1">Auto-Renewal</p>
-                        <p className="text-white font-semibold">
+                        <p className="font-manrope text-neutral-400 text-sm mb-1">Auto-Renewal</p>
+                        <p className="font-grotesque text-white font-semibold">
                           {sub.cancelledAt ? 'Disabled' : 'Enabled'}
                         </p>
                       </div>
@@ -378,8 +365,8 @@ function Subscriptions() {
                     <div className="flex items-start gap-3">
                       <img src={`${import.meta.env.BASE_URL}images/ticket_icon.svg`} alt="" className="w-8 h-8 flex-shrink-0" />
                       <div>
-                        <p className="text-neutral-400 text-sm mb-1">Next Payment</p>
-                        <p className="text-white font-semibold">
+                        <p className="font-manrope text-neutral-400 text-sm mb-1">Next Payment</p>
+                        <p className="font-grotesque text-white font-semibold">
                           {sub.cancelledAt 
                             ? 'Cancelled' 
                             : formatDate(sub.nextPaymentDate)
@@ -393,7 +380,7 @@ function Subscriptions() {
                     <div className="mt-6 pt-6 border-t border-neutral-800">
                       <div className="flex items-center text-yellow-400">
                         <AlertCircle className="w-4 h-4 mr-2" />
-                        <p className="text-sm">
+                        <p className="font-manrope text-sm">
                           This subscription was cancelled on {formatDate(sub.cancelledAt)}. 
                           You will still have access until the end of your current billing period.
                         </p>
@@ -404,12 +391,11 @@ function Subscriptions() {
               ))}
             </div>
 
-            {/* Info Box */}
             <div className="max-w-6xl mx-auto rounded-[28px] bg-white/5 ring-1 ring-white/10 p-8">
               <div className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
-                  <h3 className="text-white font-semibold mb-2">About Subscriptions</h3>
+                  <h3 className="font-grotesque text-white font-semibold mb-2">About Subscriptions</h3>
                   <ul className="text-neutral-400 text-sm space-y-1">
                     <li>• Subscriptions renew automatically on the next payment date</li>
                     <li>• Cancelling a subscription will stop future charges but keep your access until the end of the current period</li>
@@ -423,7 +409,6 @@ function Subscriptions() {
         )}
       </div>
 
-      {/* Cancel Subscription Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
@@ -433,100 +418,90 @@ function Subscriptions() {
                 <div className="mb-4 mx-auto w-16 h-16 bg-lime-400/10 rounded-full flex items-center justify-center">
                   <CheckCircle2 className="w-8 h-8 text-lime-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Subscription Cancelled</h3>
-                <p className="text-neutral-400">
+                <h3 className="font-grotesque text-xl font-bold text-white mb-2">Subscription Cancelled</h3>
+                <p className="font-manrope text-neutral-400">
                   Your subscription has been successfully cancelled.
                 </p>
               </div>
-            ) : (
-              // Confirmation State
+            ) : subToCancel ? (
               <>
-                {(() => {
-                  const subToCancel = subscriptions.find(s => s.id === showCancelModal);
-                  if (!subToCancel) return null;
-                  
-                  return (
-                    <>
-                      <div className="mb-6">
-                        <div className="mb-4 mx-auto w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
-                          <AlertCircle className="w-8 h-8 text-yellow-400" />
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-2 text-center">Cancel Subscription?</h3>
-                        <p className="text-neutral-400 text-sm text-center">
-                          {getPlanName(subToCancel)} • {subToCancel.msisdn}
-                        </p>
-                      </div>
+                <div className="mb-6">
+                  <div className="mb-4 mx-auto w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-yellow-400" />
+                  </div>
+                  <h3 className="font-grotesque text-xl font-bold text-white mb-2 text-center">Cancel Subscription?</h3>
+                  <p className="font-manrope text-neutral-400 text-sm text-center">
+                    {getPlanName(subToCancel)} • {subToCancel.msisdn}
+                  </p>
+                </div>
 
-                      <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4 mb-6 space-y-3">
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="text-white font-semibold text-sm">Access Until Billing Date</p>
-                            <p className="text-neutral-400 text-sm">
-                              You'll continue to have access until {formatDate(subToCancel.nextPaymentDate)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="text-white font-semibold text-sm">No Future Charges</p>
-                            <p className="text-neutral-400 text-sm">
-                              You won't be charged after {formatDate(subToCancel.nextPaymentDate)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="text-white font-semibold text-sm">Resubscribe Anytime</p>
-                            <p className="text-neutral-400 text-sm">
-                              You can choose a new package from our plans page once this expires
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-4 mb-6 space-y-3">
+                  <div className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <p className="font-grotesque text-white font-semibold text-sm">Access Until Billing Date</p>
+                      <p className="font-manrope text-neutral-400 text-sm">
+                        You'll continue to have access until {formatDate(subToCancel.nextPaymentDate)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <p className="font-grotesque text-white font-semibold text-sm">No Future Charges</p>
+                      <p className="font-manrope text-neutral-400 text-sm">
+                        You won't be charged after {formatDate(subToCancel.nextPaymentDate)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-lime-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <p className="font-grotesque text-white font-semibold text-sm">Resubscribe Anytime</p>
+                      <p className="font-manrope text-neutral-400 text-sm">
+                        You can choose a new package from our plans page once this expires
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-                      {error && (
-                        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
-                          <div className="flex items-start">
-                            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-                            <p className="text-red-400 text-sm">{error}</p>
-                          </div>
-                        </div>
-                      )}
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+                      <p className="text-red-400 text-sm">{error}</p>
+                    </div>
+                  </div>
+                )}
 
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            setShowCancelModal(null);
-                            setError(null);
-                          }}
-                          disabled={cancelling === showCancelModal}
-                          className="flex-1 bg-neutral-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
-                        >
-                          Keep Subscription
-                        </button>
-                        <button
-                          onClick={() => handleCancelSubscription(subToCancel)}
-                          disabled={cancelling === showCancelModal}
-                          className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                        >
-                          {cancelling === showCancelModal ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Cancelling...
-                            </>
-                          ) : (
-                            'Yes, Cancel'
-                          )}
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowCancelModal(null);
+                      setError(null);
+                    }}
+                    disabled={cancelling === showCancelModal}
+                    className="flex-1 bg-neutral-800 text-white px-4 py-3 rounded-lg font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
+                  >
+                    Keep Subscription
+                  </button>
+                  <button
+                    onClick={() => handleCancelSubscription(subToCancel)}
+                    disabled={cancelling === showCancelModal}
+                    className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {cancelling === showCancelModal ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      'Yes, Cancel'
+                    )}
+                  </button>
+                </div>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       )}

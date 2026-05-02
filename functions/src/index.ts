@@ -7,25 +7,12 @@ import { getPasswordResetEmailHtml } from './email/templates/passwordResetEmail'
 // Secrets must be bound via runWith() so they are available as process.env in 1st gen
 const runtimeOpts = { secrets: ['RESEND_API_KEY', 'EMAIL_FROM_ADDRESS', 'FRONTEND_URL', 'CONTACT_SUPPORT_EMAILS'] }
 
-/** Default inbox when env is unset (contact form only). */
-const DEFAULT_CONTACT_INBOX =
-  'support@simpal.co.za,christiaan@simpal.co.za,wayne@simpal.co.za,imtiyaaz@simpal.co.za,ryan@simpal.co.za,hayley@simpal.co.za'
-
-/** Comma-separated inbox list, e.g. "a@x.com,b@y.com". Falls back to CONTACT_SUPPORT_EMAIL or DEFAULT_CONTACT_INBOX. */
+/** Comma-separated inbox list, e.g. "a@x.com,b@y.com". */
 function getContactInboxRecipients(): string[] {
-  const raw =
-    process.env.CONTACT_SUPPORT_EMAILS ??
-    process.env.CONTACT_SUPPORT_EMAIL ??
-    DEFAULT_CONTACT_INBOX
+  const raw = process.env.CONTACT_SUPPORT_EMAILS ?? process.env.CONTACT_SUPPORT_EMAIL ?? ''
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  const list = raw
+  return raw
     .split(',')
-    .map((s) => s.trim())
-    .filter((s) => emailRegex.test(s))
-  if (list.length > 0) {
-    return list
-  }
-  return DEFAULT_CONTACT_INBOX.split(',')
     .map((s) => s.trim())
     .filter((s) => emailRegex.test(s))
 }
@@ -69,7 +56,7 @@ export const onUserSignup = functions.runWith(runtimeOpts).auth.user().onCreate(
     // Extract user name from displayName or email
     const userName = user.displayName || user.email.split('@')[0]
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://yourdomain.com'
+    const frontendUrl = process.env.FRONTEND_URL
     const emailHtml = getVerificationEmailHtml(userName, verificationLink, frontendUrl)
 
     // Send email via Resend
@@ -129,7 +116,7 @@ export const sendPasswordResetEmail = functions.runWith(runtimeOpts).https.onCal
     const userName = user.displayName || email.split('@')[0]
 
     // Generate email HTML
-    const frontendUrl = process.env.FRONTEND_URL || 'https://yourdomain.com'
+    const frontendUrl = process.env.FRONTEND_URL
     const emailHtml = getPasswordResetEmailHtml(userName, resetLink, frontendUrl)
 
     // Send email via Resend
