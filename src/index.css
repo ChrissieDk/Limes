@@ -38,3 +38,63 @@ body {
 .hover\:animate-jiggle:hover {
   animation: jiggle 300ms ease-in-out;
 }
+
+/* ── Sentry Feedback Widget — Limes Theme Overrides ──
+   These CSS variables pierce the widget's Shadow DOM and override
+   every color, border, and font to match the Limes design system.
+   https://docs.sentry.io/platforms/javascript/guides/react/user-feedback/configuration/
+*/
+#sentry-feedback {
+  /* Surface colors */
+  --background: #0E0E12;
+  --foreground: #ffffff;
+  --background-hover: rgba(255, 255, 255, 0.05);
+
+  /* Accent (primary action) — Limes lime green */
+  --accent-background: #ABFF63;
+  --accent-background-hover: #99FF4D;
+  --accent-foreground: #0E0E12;
+
+  /* Borders & shadows */
+  --border: rgba(255, 255, 255, 0.10);
+  --box-shadow: none;
+  --outline: rgba(255, 255, 255, 0.20);
+
+  /* Submit button — matches Limes primary Button */
+  --submit-background: #ABFF63;
+  --submit-background-hover: #99FF4D;
+  --submit-border: transparent;
+  --submit-outline-focus: rgba(171, 255, 99, 0.50);
+  --submit-foreground: #0E0E12;
+  --submit-foreground-hover: #0E0E12;
+
+  /* Cancel button — matches Limes secondary Button */
+  --cancel-background: rgba(255, 255, 255, 0.05);
+  --cancel-background-hover: rgba(255, 255, 255, 0.10);
+  --cancel-border: rgba(255, 255, 255, 0.10);
+  --cancel-outline-focus: rgba(255, 255, 255, 0.20);
+  --cancel-foreground: #ffffff;
+  --cancel-foreground-hover: #ffffff;
+
+  /* Inputs — matches TextField dark variant */
+  /* Using #1F1E24 (the gray from Checkbox.tsx) so it's visibly gray, not black */
+  --input-background: #1F1E24;
+  --input-foreground: #ffffff;
+  /* Stronger border so inputs are clearly highlighted */
+  --input-border: rgba(255, 255, 255, 0.20);
+  --input-outline-focus: rgba(171, 255, 99, 0.50);
+  /* Fallback variable names in case Sentry uses a different naming scheme */
+  --input-bg: #1F1E24;
+  --input-border-color: rgba(255, 255, 255, 0.20);
+
+  /* Radius & typography */
+  --form-border-radius: 12px;
+  --form-content-border-radius: 12px;
+  --border-radius: 12px;
+  --font-family: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-size: 14px;
+
+  /* Status colors */
+  --success-color: #2da98c;
+  --error-color: #f55459;
+}
