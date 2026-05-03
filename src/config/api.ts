@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getIdToken } from 'firebase/auth'
+import * as Sentry from '@sentry/react'
 import { auth } from './firebase'
 import { API_TIMEOUT_MS } from '../constants/api'
 
@@ -14,7 +15,6 @@ if (!apiUrl && !isDev) {
   console.warn('VITE_API_URL is not set. Falling back to staging URL:', STAGING_URL)
 }
 
-// One-time cleanup: remove legacy localStorage token storage (security fix)
 try {
   localStorage.removeItem('authToken')
 } catch {
@@ -47,18 +47,81 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor for error handling
+// Response interceptor for error handling + Sentry logging
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log slow API calls
+    const duration = response.config.headers['x-request-start']
+      ? Date.now() - Number(response.config.headers['x-request-start'])
+      : undefined
+
+    if (duration && duration > 2000) {
+      Sentry.logger.warn('api_slow_response', {
+        endpoint: response.config.url || 'unknown',
+        method: response.config.method?.toUpperCase() || 'GET',
+        status: response.status,
+        duration_ms: duration,
+      })
+    }
+
+    return response
+  },
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    const endpoint = error.config?.url || 'unknown'
+    const method = error.config?.method?.toUpperCase() || 'GET'
+
+    if (status === 401) {
       const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
       const pathname = window.location.pathname.replace(base, '') || '/'
       const isPublicRoute = pathname === '/' || pathname.startsWith('/signin') || pathname.startsWith('/signup')
+
+      Sentry.logger.warn('api_401_unauthorized', {
+        endpoint,
+        method,
+        route: pathname,
+        is_public_route: isPublicRoute,
+      })
+
       if (!isPublicRoute) {
         window.location.href = `${base}/signin`
       }
+    } else if (status && status >= 500) {
+      Sentry.logger.error('api_server_error', {
+        endpoint,
+        method,
+        status,
+        message: error.message,
+      })
+    } else if (error.code === 'ECONNABORTED') {
+      Sentry.logger.error('api_timeout', {
+        endpoint,
+        method,
+        timeout_ms: API_TIMEOUT_MS,
+      })
+    } else if (status && status >= 400) {
+      Sentry.logger.warn('api_client_error', {
+        endpoint,
+        method,
+        status,
+        message: error.message,
+      })
+    } else {
+      // Network or unknown errors
+      Sentry.logger.error('api_network_error', {
+        endpoint,
+        method,
+        code: error.code || 'UNKNOWN',
+        message: error.message,
+      })
     }
+
     return Promise.reject(error)
   }
 )
+
+// Stamp request start time for duration tracking
+apiClient.interceptors.request.use((config) => {
+  config.headers['x-request-start'] = String(Date.now())
+  return config
+})
