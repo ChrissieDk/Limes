@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { catalogService } from '../../catalog/services/catalogService'
 import { inventoryService } from '../../inventory/services/inventoryService'
+import { log } from '../../../lib/sentry-logger'
 import type { CatalogProduct, CatalogCategoryNode } from '../../../types'
 import type { PlanAllocation } from '../components/PlanBuilder'
 import type { EnrichedComboPackage } from '../../catalog/utils/packageEnricher'
@@ -210,6 +211,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
   const handlePackageTypeSelect = (type: PackageType) => {
     setPackageType(type)
     resetFlow()
+    log.info('package_type_selected', { package_type: type || 'null' })
   }
 
   const handleSimStatusSelect = (status: SimStatus) => {
@@ -220,11 +222,13 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
     setBundleCategories([])
     setSimPackageProductId(null)
     setIccidConfirmed(false)
+    log.info('sim_status_selected', { sim_status: status || 'null', package_type: packageType || 'null' })
   }
 
   const handleIccidSubmit = async () => {
     if (iccid.trim().length < 15) {
       setIccidError('Please enter a valid ICCID (found on the back of your SIM card)')
+      log.warn('iccid_validation_failed', { reason: 'too_short', length: iccid.trim().length })
       return
     }
     setIccidError(null)
@@ -233,9 +237,11 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
       const result = await inventoryService.checkSim(iccid)
       if (!result.ok) {
         setIccidError(result.message)
+        log.warn('iccid_check_failed', { reason: result.message })
         return
       }
       setIccidConfirmed(true)
+      log.info('iccid_confirmed', { sim_status: simStatus || 'null' })
     } finally {
       setIccidSubmitLoading(false)
     }
@@ -244,6 +250,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
   const handleBundleCategorySelect = (categoryId: string) => {
     setSelectedBundleCategory(categoryId)
     setShowPackages(true)
+    log.info('bundle_category_selected', { category_id: categoryId, package_type: packageType || 'null' })
   }
 
   const handleBackFromBundleCategories = () => {
@@ -286,6 +293,18 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
     setPlanAllocation(allocation)
     const totalPriceInRands = allocation.data + allocation.airtime + allocation.sms + allocation.voice + allocation.whatsapp
     const totalPriceInCents = totalPriceInRands * 100
+    log.info('custom_plan_built', {
+      package_type: 'contract',
+      plan_charge_type: 'monthly',
+      total_price_rands: totalPriceInRands,
+      total_price_cents: totalPriceInCents,
+      data_allocation: allocation.data,
+      airtime_allocation: allocation.airtime,
+      voice_allocation: allocation.voice,
+      sms_allocation: allocation.sms,
+      whatsapp_allocation: allocation.whatsapp,
+      sim_status: simStatus || 'null',
+    })
     navigate('/dashboard', {
       state: {
         selectedPackage: {
@@ -322,6 +341,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
 
   const handleContractFlowTypeSelect = (flowType: 'dynamic' | 'combo') => {
     setContractFlowType(flowType)
+    log.info('contract_flow_type_selected', { flow_type: flowType, package_type: packageType || 'null' })
   }
 
   const handleBackFromContractFlowChoice = () => {
@@ -340,6 +360,14 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
   }
 
   const handleComboBundleSelect = (product: EnrichedComboPackage) => {
+    log.info('combo_bundle_selected', {
+      product_id: product.id,
+      product_name: product.name,
+      price_rands: product.actualPrice,
+      price_cents: product.actualPriceCents,
+      package_type: 'contract',
+      sim_status: simStatus || 'null',
+    })
     navigate('/dashboard', {
       state: {
         selectedPackage: {
@@ -364,6 +392,15 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
 
   const handleBuyNow = (product: CatalogProduct) => {
     const chargeType = getPlanChargeType(product.id)
+    log.info('prepaid_package_selected', {
+      product_id: product.id,
+      product_name: product.name,
+      price_rands: product.price,
+      price_cents: product.price * 100,
+      package_type: 'prepaid',
+      plan_charge_type: chargeType,
+      sim_status: simStatus || 'null',
+    })
     navigate('/dashboard', {
       state: {
         selectedPackage: {

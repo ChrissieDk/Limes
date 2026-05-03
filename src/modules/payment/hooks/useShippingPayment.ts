@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { paymentService } from '../services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
+import { log } from '../../../lib/sentry-logger'
 import { buildServicesFromAllocation, convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../utils/dynamicPricing'
 import { SHIPPING_COST_CENTS } from '../../../constants/shipping'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
@@ -35,11 +36,20 @@ export function useShippingPayment(
 
     try {
       const isSubscription = selectedPackage?.planChargeType === 'monthly'
+      log.info('payment_verification_started', {
+        reference,
+        package_type: selectedPackage?.packageType || 'null',
+        plan_charge_type: selectedPackage?.planChargeType || 'null',
+        is_subscription: isSubscription,
+        amount_cents: selectedPackage?.priceInCents || selectedPackage?.price ? toCents(selectedPackage!.price) : 0,
+      })
 
       const verifyResponse = await paymentService.verifyPayment({ reference, saveCard: isSubscription })
       if (!verifyResponse.success) {
+        log.error('payment_verification_failed', { reference, error: verifyResponse.error || 'unknown' })
         throw new Error(verifyResponse.error || 'Payment verification failed')
       }
+      log.info('payment_verified', { reference, card_saved: verifyResponse.cardSaved ?? false })
 
       if (!ricaData) throw new Error('RICA data is required for subscriber creation')
 
@@ -60,12 +70,15 @@ export function useShippingPayment(
         const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
         newMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
         if (!newMsisdn) throw new Error('Failed to allocate MSISDN')
+        log.info('subscriber_created', { reference, msisdn: newMsisdn })
       } catch (subscriberErr) {
+        log.error('subscriber_creation_failed', { reference, error: String(subscriberErr) })
         try {
           await paymentService.requestRefund({ transactionReference: reference, amountInCents: null, reason: 'MVNX subscriber creation failed' })
           setRefundRequested(true)
+          log.info('refund_requested', { reference, reason: 'subscriber_creation_failed' })
         } catch (refundErr) {
-          console.error('[Payment] Refund request failed:', refundErr)
+          log.error('refund_request_failed', { reference, error: String(refundErr) })
         }
         throw new Error('Subscriber creation failed. A refund has been requested and will be processed within 5-7 business days.')
       }
@@ -83,10 +96,20 @@ export function useShippingPayment(
       }
 
       setPaymentSuccess(true)
+      log.info('payment_success', {
+        reference,
+        msisdn: newMsisdn,
+        package_type: selectedPackage?.packageType || 'null',
+        plan_charge_type: selectedPackage?.planChargeType || 'null',
+        amount_cents: selectedPackage?.priceInCents || selectedPackage?.price ? toCents(selectedPackage!.price) : 0,
+        is_subscription: isSubscription,
+      })
       window.dispatchEvent(new CustomEvent('limes:payment-success'))
       setTimeout(() => { if (onPay) onPay(); onClose() }, 2000)
     } catch (error) {
-      setVerificationError(getAxiosErrorMessage(error, 'Payment processing failed'))
+      const errMsg = getAxiosErrorMessage(error, 'Payment processing failed')
+      log.error('payment_processing_failed', { reference, error: errMsg })
+      setVerificationError(errMsg)
     } finally {
       setIsVerifyingPayment(false)
     }
@@ -166,6 +189,7 @@ export function useShippingPayment(
   const initializePayment = async () => {
     if (!selectedPackage) {
       setVerificationError('Please select a package')
+      log.warn('payment_init_no_package', { reason: 'no_package_selected' })
       return
     }
 
@@ -175,24 +199,37 @@ export function useShippingPayment(
     try {
       let initResponse: { success: boolean; data?: { access_code: string; reference: string }; error?: string }
 
+      const baseLogAttrs = {
+        product_id: selectedPackage.productId || 'null',
+        package_type: selectedPackage.packageType || 'null',
+        plan_charge_type: selectedPackage.planChargeType || 'null',
+        price_cents: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0),
+        sim_status: selectedPackage.simStatus || 'null',
+        is_dynamic_plan: !!selectedPackage.isDynamicPlan,
+        is_combo_bundle: !!selectedPackage.isComboBundle,
+      }
+
       if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
-        if (!ricaData) { setVerificationError('RICA data is required for contract plans'); return }
-        if (!selectedPackage.simPackageProductId) { setVerificationError('SIM package product ID is required'); return }
+        if (!ricaData) { setVerificationError('RICA data is required for contract plans'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'rica_data_missing' }); return }
+        if (!selectedPackage.simPackageProductId) { setVerificationError('SIM package product ID is required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'sim_package_product_id_missing' }); return }
         const services = buildServicesFromAllocation(selectedPackage.planAllocation, selectedPackage.packageType || 'prepaid')
+        log.info('payment_initializing', { ...baseLogAttrs, flow: 'dynamic_services' })
         initResponse = await paymentService.initializeDynamicServicesPayment({
           msisdn: null as unknown as string,
           services,
           ...(selectedPackage.simStatus === 'needs-sim' && { shippingCostInCents: SHIPPING_COST_CENTS }),
         })
       } else if (selectedPackage.isComboBundle) {
-        if (!selectedPackage.productId || !selectedPackage.price) { setVerificationError('Product ID and price are required'); return }
+        if (!selectedPackage.productId || !selectedPackage.price) { setVerificationError('Product ID and price are required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'product_id_or_price_missing' }); return }
+        log.info('payment_initializing', { ...baseLogAttrs, flow: 'combo_bundle' })
         initResponse = await paymentService.initializeTransaction({
           productId: String(selectedPackage.productId),
           amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0),
           msisdn: null,
         })
       } else {
-        if (!selectedPackage.productId || !selectedPackage.price) { setVerificationError('Product ID and price are required'); return }
+        if (!selectedPackage.productId || !selectedPackage.price) { setVerificationError('Product ID and price are required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'product_id_or_price_missing' }); return }
+        log.info('payment_initializing', { ...baseLogAttrs, flow: 'standard' })
         initResponse = await paymentService.initializeTransaction({
           productId: String(selectedPackage.productId),
           msisdn: null,
@@ -201,19 +238,27 @@ export function useShippingPayment(
       }
 
       if (!initResponse.success || !initResponse.data) {
+        log.error('payment_init_failed', { ...baseLogAttrs, error: initResponse.error || 'unknown' })
         setVerificationError(initResponse.error || 'Failed to initialize payment')
         return
       }
+
+      log.info('payment_initialized', { ...baseLogAttrs, reference: initResponse.data.reference || 'null' })
 
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: (transaction: Record<string, unknown>) => {
           handlePaymentVerification(String(transaction.reference || initResponse.data?.reference || ''))
         },
-        onCancel: () => setVerificationError(null),
+        onCancel: () => {
+          log.warn('payment_cancelled_by_user', { ...baseLogAttrs, reference: initResponse.data?.reference || 'null' })
+          setVerificationError(null)
+        },
       })
     } catch (error) {
-      setVerificationError(getAxiosErrorMessage(error, 'Failed to initialize payment. Please try again.'))
+      const errMsg = getAxiosErrorMessage(error, 'Failed to initialize payment. Please try again.')
+      log.error('payment_init_exception', { error: errMsg })
+      setVerificationError(errMsg)
     } finally {
       setIsInitializing(false)
     }
