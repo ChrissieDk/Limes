@@ -26,9 +26,56 @@ Sentry.init({
       blockAllMedia: true,
     }),
 
-    // User Feedback — adds a floating "Report a Bug" button
+    // User Feedback — styled to match Limes UI exactly
+    // Docs: https://docs.sentry.io/platforms/javascript/user-feedback/configuration/
     Sentry.feedbackIntegration({
-      colorScheme: 'system',
+      colorScheme: 'dark',
+      showBranding: false,
+
+      // Logo shown at the top of the feedback form
+      formLogo: '/images/limes-mobile_horizontal.svg',
+
+      // Button text
+      buttonLabel: 'Report an Issue',
+      submitButtonLabel: 'Send Report',
+      cancelButtonLabel: 'Cancel',
+      formTitle: 'Report an Issue',
+
+      // Placeholders
+      namePlaceholder: 'Your name',
+      emailPlaceholder: 'your.email@example.com',
+      messagePlaceholder: 'What went wrong? Describe the issue...',
+
+      // Fields visibility / requirements
+      showName: true,
+      showEmail: true,
+      isNameRequired: false,
+      isEmailRequired: false,
+
+      // Shared Limes theme (app is dark-only)
+      // Use camelCase keys (not CSS variable names) for JS config
+      themeLight: {
+        background: '#0E0E12',
+        foreground: '#ffffff',
+        accentBackground: '#ABFF63',
+        accentForeground: '#0E0E12',
+        outline: 'rgba(255, 255, 255, 0.20)',
+        boxShadow: 'none',
+        successColor: '#2da98c',
+        errorColor: '#f55459',
+      },
+
+      // Dark theme — identical to light since Limes is dark-only
+      themeDark: {
+        background: '#0E0E12',
+        foreground: '#ffffff',
+        accentBackground: '#ABFF63',
+        accentForeground: '#0E0E12',
+        outline: 'rgba(255, 255, 255, 0.20)',
+        boxShadow: 'none',
+        successColor: '#2da98c',
+        errorColor: '#f55459',
+      },
     }),
 
     // Capture console.* calls as structured Sentry Logs.
@@ -101,6 +148,47 @@ Sentry.init({
     return event
   },
 })
+
+if (typeof window !== 'undefined') {
+  const injectFeedbackStyles = () => {
+    const host = document.getElementById('sentry-feedback')
+    if (!host || !host.shadowRoot) return false
+
+    const style = document.createElement('style')
+    style.textContent = `
+      /* Form inputs — match Limes TextField dark variant */
+      textarea,
+      input[type="text"],
+      input[type="email"] {
+        background: #1F1E24 !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+        font-family: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+      }
+      textarea::placeholder,
+      input::placeholder {
+        color: rgba(255, 255, 255, 0.40) !important;
+      }
+      textarea:focus,
+      input:focus {
+        border-color: rgba(171, 255, 99, 0.50) !important;
+        outline: none !important;
+        box-shadow: 0 0 0 2px rgba(171, 255, 99, 0.15) !important;
+      }
+    `
+    host.shadowRoot.appendChild(style)
+    return true
+  }
+
+  // Try immediately (widget may already be mounted)
+  if (!injectFeedbackStyles()) {
+    const observer = new MutationObserver(() => {
+      if (injectFeedbackStyles()) observer.disconnect()
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+  }
+}
 
 // Set app-wide attributes on every log, error, and trace
 Sentry.getGlobalScope().setAttributes({
