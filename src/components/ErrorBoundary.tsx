@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import * as Sentry from '@sentry/react'
 
 interface Props {
   children: ReactNode
@@ -11,8 +12,8 @@ interface State {
 }
 
 /**
- * Catches React render errors and prevents the entire app from crashing.
- * Logs to console in development; in production you'd send to Sentry/etc.
+ * Catches React render errors and sends them to Sentry.
+ * Falls back to a friendly UI so the entire app doesn't crash.
  */
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -25,9 +26,13 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // In production, replace this with Sentry, LogRocket, etc.
-    console.error('[ErrorBoundary] React error caught:', error)
-    console.error('[ErrorBoundary] Component stack:', info.componentStack)
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: info.componentStack,
+        },
+      },
+    })
   }
 
   render() {
