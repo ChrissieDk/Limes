@@ -7,6 +7,7 @@ import type { CatalogProduct } from '../../../types'
 import type { ServiceType } from '../../payment/config/ratingTable'
 import { Loader2 } from 'lucide-react'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
+import { log } from '../../../lib/sentry-logger'
 import { useTopUpData } from './useTopUpData'
 import BundleCategoryGrid from './BundleCategoryGrid'
 
@@ -214,6 +215,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   const handlePurchaseBundle = async () => {
     if (!selectedProduct || !selectedPhoneNumber) {
       setPaymentError('Please select a bundle and phone number')
+      log.warn('topup_bundle_init_failed', { reason: 'missing_product_or_phone' })
       return
     }
 
@@ -223,7 +225,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     try {
       if (!selectedProduct.price) {
         setPaymentError('Price is missing for bundle')
-        console.error('[TopUp] Price is missing from selectedProduct')
+        log.error('topup_bundle_init_failed', { reason: 'price_missing', product_id: selectedProduct.id })
         return
       }
 
@@ -233,26 +235,41 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         amount: toCents(selectedProduct.price),
       }
 
+      log.info('topup_bundle_initializing', {
+        product_id: selectedProduct.id,
+        product_name: selectedProduct.name,
+        msisdn: selectedPhoneNumber,
+        amount_cents: payload.amount,
+        kind: 'bundle',
+      })
+
       const initResponse = await paymentService.initializeTransaction(payload)
 
       if (!initResponse.success || !initResponse.data) {
+        log.error('topup_bundle_init_failed', { error: initResponse.error || 'unknown' })
         setPaymentError(initResponse.error || 'Failed to initialize payment')
         return
       }
+
+      log.info('topup_bundle_initialized', { reference: initResponse.data.reference })
 
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: async (transaction: Record<string, unknown>) => {
           try {
             const reference = String(transaction.reference || initResponse.data?.reference || '')
+            log.info('topup_bundle_payment_verifying', { reference })
+
             const verificationResponse = await paymentService.verifyPayment({
               reference,
               saveCard: false,
             })
 
             if (!verificationResponse.success) {
+              log.error('topup_bundle_verification_failed', { reference, error: verificationResponse.error || 'unknown' })
               throw new Error(verificationResponse.error || 'Payment verification failed')
             }
+            log.info('topup_bundle_verified', { reference })
 
             const orderResponse = await subscriptionService.createOrder({
               products: [{ id: selectedProduct.id, amount: selectedProduct.price }],
@@ -264,22 +281,28 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
                 transactionReference: reference,
                 orderId: orderResponse.orderId,
               })
+              log.info('topup_bundle_order_created', { reference, order_id: orderResponse.orderId })
             } else if (!orderResponse.message) {
+              log.error('topup_bundle_order_failed', { reference, response: JSON.stringify(orderResponse) })
               throw new Error('Order creation failed - no orderId or message in response')
             }
 
             resetPayment()
           } catch (err) {
-            setPaymentError(getAxiosErrorMessage(err, 'Payment processing failed'))
+            const errMsg = getAxiosErrorMessage(err, 'Payment processing failed')
+            log.error('topup_bundle_processing_failed', { error: errMsg })
+            setPaymentError(errMsg)
           }
         },
         onCancel: () => {
+          log.warn('topup_bundle_cancelled_by_user', { product_id: selectedProduct.id })
           setPaymentError(null)
         },
       })
     } catch (error) {
-      console.error('[TopUp] Payment error:', error)
-      setPaymentError(getAxiosErrorMessage(error, 'Failed to process payment'))
+      const errMsg = getAxiosErrorMessage(error, 'Failed to process payment')
+      log.error('topup_bundle_exception', { error: errMsg })
+      setPaymentError(errMsg)
     } finally {
       setIsPaymentProcessing(false)
     }
@@ -289,6 +312,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   const handlePurchaseDynamicService = async () => {
     if (!selectedPhoneNumber || kind === 'bundles') {
       setPaymentError('Please select a phone number')
+      log.warn('topup_dynamic_init_failed', { reason: 'missing_phone_or_wrong_kind', kind })
       return
     }
 
@@ -301,6 +325,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
       if (serviceValue === null) {
         setPaymentError(`${kind} service is not available for prepaid packages`)
+        log.warn('topup_dynamic_init_failed', { reason: 'service_unavailable', service_type: serviceType, price })
         return
       }
 
@@ -320,29 +345,45 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
         ],
       }
 
+      log.info('topup_dynamic_initializing', {
+        msisdn: selectedPhoneNumber,
+        service_type: serviceType,
+        definition_code: definitionCode,
+        price_cents: priceInCents,
+        kind,
+      })
+
       const initResponse = await dynamicServicesPaymentService.initializePayment(payload)
 
       if (!initResponse.success || !initResponse.data) {
+        log.error('topup_dynamic_init_failed', { error: initResponse.error || 'unknown' })
         setPaymentError(initResponse.error || 'Failed to initialize payment')
         return
       }
+
+      log.info('topup_dynamic_initialized', { reference: initResponse.data.reference })
 
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: async (transaction: Record<string, unknown>) => {
           try {
             const reference = String(transaction.reference || initResponse.data?.reference || '')
+            log.info('topup_dynamic_payment_verifying', { reference })
+
             const verificationResponse = await paymentService.verifyPayment({
               reference,
               saveCard: false,
             })
 
             if (!verificationResponse.success) {
+              log.error('topup_dynamic_verification_failed', { reference, error: verificationResponse.error || 'unknown' })
               throw new Error(verificationResponse.error || 'Payment verification failed')
             }
+            log.info('topup_dynamic_verified', { reference })
 
             const sv = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
             if (sv === null) {
+              log.error('topup_dynamic_service_conversion_failed', { kind, price })
               throw new Error(`${kind} service is not available for prepaid packages`)
             }
 
@@ -353,6 +394,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
             const serviceIds = servicesResponse.results.filter((r) => r.success && r.id).map((r) => r.id!)
             if (serviceIds.length === 0) {
+              log.error('topup_dynamic_no_services_created', { reference, response: JSON.stringify(servicesResponse.results) })
               throw new Error('No services created')
             }
 
@@ -361,18 +403,23 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
               serviceIds,
             })
 
+            log.info('topup_dynamic_services_linked', { reference, service_count: serviceIds.length })
             resetPayment()
           } catch (err) {
-            setPaymentError(getAxiosErrorMessage(err, 'Payment processing failed'))
+            const errMsg = getAxiosErrorMessage(err, 'Payment processing failed')
+            log.error('topup_dynamic_processing_failed', { error: errMsg })
+            setPaymentError(errMsg)
           }
         },
         onCancel: () => {
+          log.warn('topup_dynamic_cancelled_by_user', { msisdn: selectedPhoneNumber, kind, price })
           setPaymentError(null)
         },
       })
     } catch (error) {
-      console.error('[TopUp] Dynamic service payment error:', error)
-      setPaymentError(getAxiosErrorMessage(error, 'Failed to process payment'))
+      const errMsg = getAxiosErrorMessage(error, 'Failed to process payment')
+      log.error('topup_dynamic_exception', { error: errMsg })
+      setPaymentError(errMsg)
     } finally {
       setIsPaymentProcessing(false)
     }
