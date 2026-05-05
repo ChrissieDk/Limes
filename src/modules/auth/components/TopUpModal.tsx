@@ -8,6 +8,7 @@ import type { ServiceType } from '../../payment/config/ratingTable'
 import { Loader2 } from 'lucide-react'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import { log } from '../../../lib/sentry-logger'
+import { trackPurchase, trackBeginCheckout } from '../../analytics/services/analyticsService'
 import { useTopUpData } from './useTopUpData'
 import BundleCategoryGrid from './BundleCategoryGrid'
 
@@ -253,6 +254,20 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
       log.info('topup_bundle_initialized', { reference: initResponse.data.reference })
 
+      trackBeginCheckout({
+        value: selectedProduct.price,
+        currency: 'ZAR',
+        items: [
+          {
+            item_id: String(selectedProduct.id),
+            item_name: selectedProduct.name,
+            price: selectedProduct.price,
+            quantity: 1,
+            item_category: 'bundle',
+          },
+        ],
+      })
+
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: async (transaction: Record<string, unknown>) => {
@@ -286,6 +301,22 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
               log.error('topup_bundle_order_failed', { reference, response: JSON.stringify(orderResponse) })
               throw new Error('Order creation failed - no orderId or message in response')
             }
+
+            trackPurchase({
+              transactionId: reference,
+              value: selectedProduct.price,
+              currency: 'ZAR',
+              items: [
+                {
+                  item_id: String(selectedProduct.id),
+                  item_name: selectedProduct.name,
+                  price: selectedProduct.price,
+                  quantity: 1,
+                  item_category: 'bundle',
+                },
+              ],
+              paymentType: verificationResponse.transaction?.channel || 'card',
+            })
 
             resetPayment()
           } catch (err) {
@@ -363,6 +394,20 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
       log.info('topup_dynamic_initialized', { reference: initResponse.data.reference })
 
+      trackBeginCheckout({
+        value: price,
+        currency: 'ZAR',
+        items: [
+          {
+            item_id: `${kind}_topup`,
+            item_name: `${kind.charAt(0).toUpperCase() + kind.slice(1)} Top-up`,
+            price: price,
+            quantity: 1,
+            item_category: kind,
+          },
+        ],
+      })
+
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
         onSuccess: async (transaction: Record<string, unknown>) => {
@@ -404,6 +449,23 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             })
 
             log.info('topup_dynamic_services_linked', { reference, service_count: serviceIds.length })
+
+            trackPurchase({
+              transactionId: reference,
+              value: price,
+              currency: 'ZAR',
+              items: [
+                {
+                  item_id: `${kind}_topup`,
+                  item_name: `${kind.charAt(0).toUpperCase() + kind.slice(1)} Top-up`,
+                  price: price,
+                  quantity: 1,
+                  item_category: kind,
+                },
+              ],
+              paymentType: verificationResponse.transaction?.channel || 'card',
+            })
+
             resetPayment()
           } catch (err) {
             const errMsg = getAxiosErrorMessage(err, 'Payment processing failed')
