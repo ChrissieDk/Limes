@@ -3,6 +3,7 @@ import { CreditCard, Trash2, Loader2, AlertCircle, CheckCircle2, Star, FileText 
 import { paymentService } from '../services/paymentService'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import { toCents } from '../utils/dynamicPricing'
+import { trackPurchase } from '../../analytics/services/analyticsService'
 import type { SavedCard } from '../../../types/payment'
 
 interface SavedCardsProps {
@@ -112,6 +113,22 @@ export default function SavedCards({
         setTimeout(() => setSuccessMessage(null), 3000)
         if (onCardSelected) {
           onCardSelected(cardId)
+        }
+        if (response.transaction) {
+          trackPurchase({
+            transactionId: response.transaction.reference,
+            value: chargeAmount,
+            currency: response.transaction.currency || 'ZAR',
+            items: [
+              {
+                item_id: response.transaction.reference,
+                item_name: 'Saved Card Payment',
+                price: chargeAmount,
+                quantity: 1,
+              },
+            ],
+            paymentType: response.transaction.channel || 'card',
+          })
         }
       } else {
         setError(response.error || 'Payment failed')
