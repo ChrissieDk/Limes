@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { paymentService } from '../services/paymentService'
 import { subscriptionService } from '../../subscription/services/subscriptionService'
 import { log } from '../../../lib/sentry-logger'
+import { trackPurchase, trackBeginCheckout } from '../../analytics/services/analyticsService'
 import { buildServicesFromAllocation, convertRandsToServiceValue, getDefaultExpiryDate, toCents } from '../utils/dynamicPricing'
 import { SHIPPING_COST_CENTS } from '../../../constants/shipping'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
@@ -94,6 +95,26 @@ export function useShippingPayment(
       if (isSubscription && verifyResponse.cardSaved) {
         await handleRecurringSubscription(newMsisdn)
       }
+
+      const totalPriceRands = selectedPackage?.price || 0
+      const shippingRands = selectedPackage?.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS / 100 : 0
+
+      trackPurchase({
+        transactionId: reference,
+        value: totalPriceRands + shippingRands,
+        currency: 'ZAR',
+        items: [
+          {
+            item_id: String(selectedPackage?.productId || selectedPackage?.simPackageProductId || 'unknown'),
+            item_name: selectedPackage?.name || 'SIM Package',
+            price: totalPriceRands,
+            quantity: 1,
+            item_category: selectedPackage?.packageType || undefined,
+          },
+        ],
+        shipping: shippingRands > 0 ? shippingRands : undefined,
+        paymentType: verifyResponse.transaction?.channel || 'card',
+      })
 
       setPaymentSuccess(true)
       log.info('payment_success', {
@@ -244,6 +265,23 @@ export function useShippingPayment(
       }
 
       log.info('payment_initialized', { ...baseLogAttrs, reference: initResponse.data.reference || 'null' })
+
+      const totalPriceRands = selectedPackage?.price || 0
+      const shippingRands = selectedPackage?.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS / 100 : 0
+
+      trackBeginCheckout({
+        value: totalPriceRands + shippingRands,
+        currency: 'ZAR',
+        items: [
+          {
+            item_id: String(selectedPackage?.productId || selectedPackage?.simPackageProductId || 'unknown'),
+            item_name: selectedPackage?.name || 'SIM Package',
+            price: totalPriceRands,
+            quantity: 1,
+            item_category: selectedPackage?.packageType || undefined,
+          },
+        ],
+      })
 
       const popup = new PaystackPop()
       popup.resumeTransaction(initResponse.data.access_code, {
