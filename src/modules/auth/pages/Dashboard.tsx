@@ -23,7 +23,6 @@ import Footer from '../components/Footer';
 
 function Dashboard() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCardModel | null>(null);
