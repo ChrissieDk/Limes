@@ -11,6 +11,10 @@ export default function HowToJoin() {
         <span>How you can join Limes</span>
       </div>
 
+      <p className="mt-4 text-center text-neutral-400 text-base md:text-lg font-manrope max-w-2xl mx-auto">
+        Two ways in. Both take less time than a trip to the shops.
+      </p>
+
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2 md:gap-x-3 md:gap-y-3">
         <div className="rounded-[28px] bg-yellow-300 text-neutral-900 p-5 md:p-6">
           <img
@@ -23,9 +27,23 @@ export default function HowToJoin() {
             Get a new Limes SIM
           </h3>
           <p className="mt-2.5 text-[15px] md:text-base text-neutral-900/80 font-manrope max-w-[52ch]">
-            Start fresh with a Limes number on prepaid or contract. Choose a plan that suits you and get
-            connected.
+            Start fresh with a Limes number on prepaid or subscription. Choose a plan that suits you, order
+            online, and we&apos;ll deliver to your door.
           </p>
+          <ul className="mt-3 space-y-1 text-sm text-neutral-900/70 font-manrope">
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-900/50">→</span>
+              <span>Delivered in 2–5 business days</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-900/50">→</span>
+              <span>RICA online in 5 minutes</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-900/50">→</span>
+              <span>Activate instantly from your dashboard</span>
+            </li>
+          </ul>
 
           <div className="mt-4">
             <Link
@@ -50,11 +68,25 @@ export default function HowToJoin() {
           </h3>
           <p className="mt-2.5 text-[15px] md:text-base text-neutral-900/80 font-manrope max-w-[62ch]">
             Bring your existing number to Limes and enjoy better value on the same number you already
-            use.
+            use. We handle the breakup with your old network.
           </p>
+          <ul className="mt-3 space-y-1 text-sm text-neutral-900/70 font-manrope">
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-900/50">→</span>
+              <span>Port completes in 24–48 hours</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-900/50">→</span>
+              <span>Your number stays exactly the same</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-neutral-900/50">→</span>
+              <span>We update you via SMS at every step</span>
+            </li>
+          </ul>
           <p className="mt-2.5 text-xs md:text-sm text-neutral-900/70 font-manrope max-w-[72ch]">
-            Porting can take up to 48 hours. During this time, you may experience limited or no
-            connectivity.
+            During the handover you may experience limited connectivity for a few minutes.
+            We recommend starting on a weekday morning.
           </p>
 
           <div className="mt-4">
@@ -77,13 +109,12 @@ export default function HowToJoin() {
           <span className="font-manrope">View packages</span>
         </Link>
         <Link
-          to="/contact"
+          to="/how-it-works"
           className="inline-flex items-center justify-center rounded-xl bg-neutral-800 text-white font-semibold text-sm px-5 h-10 border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] hover:bg-neutral-700 transition-colors"
         >
-          <span className="font-manrope">Contact us</span>
+          <span className="font-manrope">See how it works</span>
         </Link>
       </div>
     </section>
   )
 }
-

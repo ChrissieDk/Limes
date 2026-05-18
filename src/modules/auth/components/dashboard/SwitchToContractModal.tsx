@@ -49,7 +49,7 @@ export function SwitchToContractModal({ open, onClose, msisdn, productId, onConf
       await Promise.resolve(onConfirm(msisdn, productId));
       setIsSuccess(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to switch to contract');
+      setError(e instanceof Error ? e.message : 'Failed to switch to subscription');
     } finally {
       setIsLoading(false);
     }
@@ -69,9 +69,9 @@ export function SwitchToContractModal({ open, onClose, msisdn, productId, onConf
       <div className="relative w-full max-w-lg mx-0 sm:mx-4 rounded-[28px] bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
         <div className="flex items-start justify-between px-6 py-5 border-b border-neutral-200 bg-white">
           <div>
-            <div className="font-grotesque text-[22px] font-semibold leading-[1.1]">Switch to Contract</div>
+            <div className="font-grotesque text-[22px] font-semibold leading-[1.1]">Switch to Subscription</div>
             <div className="font-manrope text-sm text-neutral-500 mt-1">
-              Upgrade your SIM from Prepaid to Contract.
+              Upgrade your SIM from Prepaid to Subscription.
             </div>
           </div>
           <button
@@ -96,7 +96,7 @@ export function SwitchToContractModal({ open, onClose, msisdn, productId, onConf
             </div>
             <div className="font-grotesque text-[24px] font-semibold text-neutral-900">Upgrade in progress!</div>
             <div className="font-manrope mt-3 text-sm text-neutral-600 leading-relaxed">
-              Your SIM <span className="font-semibold">{msisdn}</span> is being upgraded to Contract.
+              Your SIM <span className="font-semibold">{msisdn}</span> is being upgraded to Subscription.
               <br />
               This may take a few moments to complete.
             </div>
@@ -125,11 +125,11 @@ export function SwitchToContractModal({ open, onClose, msisdn, productId, onConf
             </div>
 
             <p className="font-manrope text-sm text-neutral-600 leading-relaxed">
-              You are about to switch this SIM from Prepaid to Contract. Your monthly billing will begin once the upgrade is processed.
+              You are about to switch this SIM from Prepaid to Subscription. Your monthly billing will begin once the upgrade is processed.
             </p>
 
             {error && (
-              <p id="contract-error" className="text-sm text-red-600" role="alert">
+              <p id="subscription-error" className="text-sm text-red-600" role="alert">
                 {error}
               </p>
             )}

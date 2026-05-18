@@ -236,7 +236,7 @@ export function PlanDetails({ sim, onPortMyNumber, onSwitchToContract, isPorting
             <div>
               <h4 className="font-grotesque text-white font-semibold text-xl leading-snug mb-2">Looking for long-term plans?</h4>
               <p className="font-manrope text-neutral-400 text-[13px] leading-relaxed">
-                You can now change your SIM from Prepaid to Contract.<br className="hidden sm:block" /> Get everything you need, every month.
+                You can now change your SIM from Prepaid to Subscription.<br className="hidden sm:block" /> Get everything you need, every month.
               </p>
             </div>
             {/* BACKEND TODO: sim.packageType should come from MsisdnData.packageType.
@@ -247,14 +247,14 @@ export function PlanDetails({ sim, onPortMyNumber, onSwitchToContract, isPorting
               type="button"
               onClick={onSwitchToContract}
               disabled={sim.packageType === 'contract'}
-              title={sim.packageType === 'contract' ? 'You are already on a contract plan' : undefined}
+              title={sim.packageType === 'contract' ? 'You are already on a subscription plan' : undefined}
               className={`inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-[#FDDA36] px-5 text-sm font-semibold text-neutral-900 shadow-[0_8px_18px_rgba(0,0,0,0.22)] transition-all self-start ${
                 sim.packageType === 'contract'
                   ? 'opacity-40 cursor-not-allowed'
                   : 'hover:brightness-95'
               }`}
             >
-              Switch to Contract
+              Switch to Subscription
               <span aria-hidden="true" className="text-base leading-none">→</span>
             </button>
           </div>

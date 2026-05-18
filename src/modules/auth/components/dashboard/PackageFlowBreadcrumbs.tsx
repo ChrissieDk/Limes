@@ -36,7 +36,7 @@ function getPackageFlowBreadcrumbItems(input: PackageFlowBreadcrumbInput): Bread
     return items
   }
 
-  items.push({ label: packageType === 'contract' ? 'Contract' : 'Prepaid' })
+  items.push({ label: packageType === 'contract' ? 'Subscription' : 'Prepaid' })
 
   if (packageType === 'contract' && !contractFlowType) {
     items.push({ label: 'Plan type' })

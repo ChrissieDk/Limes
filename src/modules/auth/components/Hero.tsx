@@ -35,11 +35,12 @@ export default function Hero() {
         </h1>
 
         <p className="font-manrope mt-8 max-w-xl text-neutral-400 text-base md:text-lg">
-          Get a Limes SIM or keep your current number.
+          Prepaid or subscription. Build your own plan or pick a bundle. Switch in minutes, not days — and
+          only pay for what you actually use.
         </p>
 
         <div className="font-manrope mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-neutral-400">
-          <span>Prepaid or contract</span>
+          <span>Prepaid or subscription</span>
           <span className="size-1.5 rounded-full bg-yellow-400" />
           <span>Flexible plans</span>
           <span className="size-1.5 rounded-full bg-green-400" />
@@ -68,5 +69,3 @@ export default function Hero() {
     </section>
   )
 }
-
-

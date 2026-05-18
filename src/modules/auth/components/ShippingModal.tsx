@@ -262,7 +262,7 @@ export default function ShippingModal({
                       </div>
                       {selectedPackage.packageType && (
                         <div className="font-manrope text-sm text-lime-700 font-semibold mt-1">
-                          {selectedPackage.packageType === 'contract' ? 'Contract' : 'Prepaid'}
+                          {selectedPackage.packageType === 'contract' ? 'Subscription' : 'Prepaid'}
                         </div>
                       )}
                     </div>
