@@ -12,10 +12,10 @@ interface SavedCardsProps {
   chargeAmount?: number
 }
 
-export default function SavedCards({ 
-  onCardSelected, 
+export default function SavedCards({
+  onCardSelected,
   showChargeButton = false,
-  chargeAmount 
+  chargeAmount,
 }: SavedCardsProps) {
   const [cards, setCards] = useState<SavedCard[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,7 @@ export default function SavedCards({
 
   const deduplicateCards = (cardList: SavedCard[]): SavedCard[] => {
     const cardMap = new Map<string, SavedCard>()
-    
+
     cardList.forEach((card) => {
       const key = `${card.last4}-${card.expMonth}-${card.expYear}-${card.bank}`
       const existing = cardMap.get(key)
@@ -53,19 +53,19 @@ export default function SavedCards({
         cardMap.set(key, card)
       }
     })
-    
+
     return Array.from(cardMap.values())
   }
 
   const handleSetDefaultCard = async (cardId: string) => {
     setSettingDefaultId(cardId)
     setError(null)
-    
+
     try {
       await paymentService.setDefaultCard(cardId)
-      setCards(cards.map(c => ({
+      setCards(cards.map((c) => ({
         ...c,
-        isDefault: c.id === cardId
+        isDefault: c.id === cardId,
       })))
       setSuccessMessage('Default card updated successfully')
       setTimeout(() => setSuccessMessage(null), 3000)
@@ -83,10 +83,10 @@ export default function SavedCards({
 
     setDeletingCardId(cardId)
     setError(null)
-    
+
     try {
       await paymentService.deleteSavedCard(cardId)
-      setCards(cards.filter(c => c.id !== cardId))
+      setCards(cards.filter((c) => c.id !== cardId))
       setSuccessMessage('Card deleted successfully')
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err: unknown) {
@@ -101,7 +101,7 @@ export default function SavedCards({
 
     setChargingCardId(cardId)
     setError(null)
-    
+
     try {
       const response = await paymentService.chargeSavedCard({
         paymentMethodId: cardId,
@@ -143,8 +143,8 @@ export default function SavedCards({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-lime-400" />
-        <span className="ml-3 text-gray-400">Loading saved cards...</span>
+        <Loader2 className="w-8 h-8 animate-spin text-[#ABFF63]" />
+        <span className="ml-3 text-neutral-400 font-manrope">Loading saved cards...</span>
       </div>
     )
   }
@@ -152,23 +152,23 @@ export default function SavedCards({
   return (
     <div className="space-y-4">
       {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-900/40 to-green-800/20 border border-green-700/50 rounded-xl text-green-400">
+        <div className="flex items-center gap-3 p-4 bg-[#ABFF63]/10 rounded-xl text-[#ABFF63]">
           <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm font-medium">{successMessage}</span>
+          <span className="text-sm font-medium font-manrope">{successMessage}</span>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-red-900/40 to-red-800/20 border border-red-700/50 rounded-xl text-red-400">
+        <div className="flex items-center gap-3 p-4 bg-red-500/10 rounded-xl text-red-400">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm font-medium">{error}</span>
+          <span className="text-sm font-medium font-manrope">{error}</span>
         </div>
       )}
 
       {cards.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/20 bg-transparent px-6 py-14 text-center">
-          <FileText className="w-7 h-7 text-white/80 mx-auto mb-4" />
-          <div className="text-white font-semibold">No saved cards</div>
+        <div className="rounded-[26px] bg-neutral-800 px-6 py-14 text-center">
+          <FileText className="w-7 h-7 text-neutral-400 mx-auto mb-4" />
+          <div className="text-white font-grotesque font-semibold">No saved cards</div>
           <div className="font-manrope mt-1 text-sm text-neutral-500">
             Save a card during your next payment for faster checkout
           </div>
@@ -178,22 +178,20 @@ export default function SavedCards({
           {cards.map((card) => (
             <div
               key={card.id}
-              className={`group relative overflow-hidden p-5 rounded-xl transition-all duration-300 ${
+              className={`group relative overflow-hidden p-5 rounded-[26px] transition-all duration-300 ${
                 card.isDefault
-                  ? 'bg-white/5 ring-2 ring-[#ABFF63]/40 shadow-[0_18px_55px_rgba(0,0,0,0.25)]'
-                  : 'bg-white/5 ring-1 ring-white/10 hover:bg-white/10'
+                  ? 'bg-neutral-800 shadow-[0_18px_55px_rgba(0,0,0,0.25)]'
+                  : 'bg-neutral-800/60 hover:bg-neutral-800'
               }`}
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-lime-400/5 to-transparent rounded-full blur-2xl" />
-              
-              <div className="relative flex items-center justify-between">
+              <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${card.isDefault ? 'bg-[#ABFF63]/15' : 'bg-white/5'} transition-colors ring-1 ring-white/10`}>
-                    <CreditCard className={`w-6 h-6 ${card.isDefault ? 'text-[#ABFF63]' : 'text-neutral-300'}`} />
+                  <div className={`grid place-items-center rounded-xl shrink-0 ${card.isDefault ? 'bg-[#ABFF63]/15' : 'bg-white/5'}`} style={{ width: 44, height: 44 }}>
+                    <CreditCard className={`w-5 h-5 ${card.isDefault ? 'text-[#ABFF63]' : 'text-neutral-300'}`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-white text-lg">
+                      <span className="font-grotesque font-bold text-white text-lg">
                         {card.cardType.toUpperCase()} •••• {card.last4}
                       </span>
                       {card.isDefault && (
@@ -203,20 +201,20 @@ export default function SavedCards({
                         </span>
                       )}
                     </div>
-                    <div className="font-manrope text-sm text-gray-400">
-                      <span className="font-medium">Expires {card.expMonth}/{card.expYear}</span>
-                      <span className="mx-2">•</span>
+                    <div className="font-manrope text-sm text-neutral-400">
+                      <span>Expires {card.expMonth}/{card.expYear}</span>
+                      <span className="mx-2 text-neutral-600">•</span>
                       <span>{card.bank}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {!card.isDefault && (
                     <button
                       onClick={() => handleSetDefaultCard(card.id)}
                       disabled={settingDefaultId === card.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/10 ring-1 ring-white/10 text-white rounded-xl hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold"
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-xl hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold"
                       title="Set as default payment method"
                     >
                       {settingDefaultId === card.id ? (
@@ -253,8 +251,8 @@ export default function SavedCards({
                   <button
                     onClick={() => handleDeleteCard(card.id)}
                     disabled={deletingCardId === card.id || card.isDefault}
-                    className="p-2.5 text-red-400 hover:bg-red-900/30 hover:text-red-300 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                    title={card.isDefault ? "Cannot delete default card - set another card as default first" : "Delete card"}
+                    className="p-2.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+                    title={card.isDefault ? 'Cannot delete default card - set another card as default first' : 'Delete card'}
                   >
                     {deletingCardId === card.id ? (
                       <Loader2 className="w-5 h-5 animate-spin" />

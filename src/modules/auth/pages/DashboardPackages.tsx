@@ -111,7 +111,7 @@ function PageHeader({
                 : 'Your packages'
 
   const subtitle = !packageType
-    ? 'Select between contract or prepaid options'
+    ? 'Select between subscription or prepaid options'
     : packageType === 'contract' && !contractFlowType
       ? 'Build your own plan or choose a combo bundle'
       : packageType === 'prepaid' && !simStatus
@@ -222,10 +222,10 @@ export default function DashboardPackages() {
                     <div className="mb-4">
                       <img src={`${import.meta.env.BASE_URL}images/house.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
                     </div>
-                    <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Contract</h3>
+                    <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Subscription</h3>
                     <p className="font-manrope mt-1.5 text-neutral-900/80 text-base md:text-lg">Long-term plans with SIM delivery.</p>
                     <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
-                      <span>I want a Contract</span>
+                      <span>I want a Subscription</span>
                       <span aria-hidden="true">→</span>
                     </div>
                   </button>

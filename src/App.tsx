@@ -12,6 +12,7 @@ import AccountDetails from './modules/auth/pages/AccountDetails'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
+import HowItWorks from './modules/auth/pages/HowItWorks'
 import ForgotPassword from './modules/auth/pages/ForgotPassword'
 import VerifyEmail from './modules/auth/pages/VerifyEmail'
 import ResetPassword from './modules/auth/pages/ResetPassword'
@@ -37,6 +38,10 @@ const router = sentryCreateBrowserRouter(
         {
           path: '/faqs',
           element: <Faqs />,
+        },
+        {
+          path: '/how-it-works',
+          element: <HowItWorks />,
         },
         {
           path: '/register',

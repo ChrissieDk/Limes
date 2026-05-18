@@ -25,7 +25,7 @@ export default function PaymentMethodsPage() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 rounded-xl bg-white/10 ring-1 ring-white/10 text-white px-5 h-11 text-sm font-semibold hover:bg-white/15 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-white/5 text-white px-5 h-11 text-sm font-semibold hover:bg-white/10 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
@@ -33,7 +33,7 @@ export default function PaymentMethodsPage() {
         </div>
 
         {/* Content */}
-        <div className="max-w-4xl mx-auto mt-5 rounded-[28px] bg-white/5 ring-1 ring-white/10 p-8 sm:p-10">
+        <div className="max-w-4xl mx-auto mt-5 rounded-[28px] bg-neutral-800 p-8 sm:p-10">
           <div className="mb-6">
             <h2 className="text-white font-grotesque font-semibold text-xl sm:text-2xl mb-1">
               Your saved cards
@@ -46,10 +46,12 @@ export default function PaymentMethodsPage() {
         </div>
 
         {/* Info Cards */}
-        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-4 mt-6">
-          <div className="rounded-[22px] bg-transparent ring-1 ring-white/10 p-6">
+        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-3 mt-6">
+          <div className="rounded-[26px] bg-neutral-800 p-6">
             <div className="flex items-start gap-3">
-              <Lock className="w-4 h-4 text-[#ABFF63] mt-0.5" />
+              <div className="grid place-items-center rounded-xl bg-[#ABFF63]/10 shrink-0" style={{ width: 36, height: 36 }}>
+                <Lock className="w-4 h-4 text-[#ABFF63]" />
+              </div>
               <div>
                 <h3 className="font-grotesque text-sm font-semibold text-white mb-1">Secure &amp; Encrypted</h3>
                 <p className="font-manrope text-sm text-neutral-400">
@@ -58,9 +60,11 @@ export default function PaymentMethodsPage() {
               </div>
             </div>
           </div>
-          <div className="rounded-[22px] bg-transparent ring-1 ring-white/10 p-6">
+          <div className="rounded-[26px] bg-neutral-800 p-6">
             <div className="flex items-start gap-3">
-              <Zap className="w-4 h-4 text-[#ABFF63] mt-0.5" />
+              <div className="grid place-items-center rounded-xl bg-[#ABFF63]/10 shrink-0" style={{ width: 36, height: 36 }}>
+                <Zap className="w-4 h-4 text-[#ABFF63]" />
+              </div>
               <div>
                 <h3 className="font-grotesque text-sm font-semibold text-white mb-1">One-click payments</h3>
                 <p className="font-manrope text-sm text-neutral-400">

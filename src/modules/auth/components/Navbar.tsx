@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 
-const navItems = [
+const navLinks = [
   { href: '/#hero', label: 'Home', dot: 'bg-indigo-400' },
   { href: '/#why', label: 'Why Choose', dot: 'bg-purple-400' },
+  { href: '/how-it-works', label: 'How It Works', dot: 'bg-lime-400', isRoute: true },
   { href: '/#packages', label: 'Packages', dot: 'bg-pink-400' },
-  { href: '/#partners', label: 'Partners', dot: 'bg-lime-400' },
-  { href: '/contact', label: 'Contact', dot: 'bg-yellow-400', isRoute: true },
+  { href: '/#partners', label: 'Partners', dot: 'bg-blue-400', isRoute: true },
 ]
 
 export default function Navbar() {
@@ -36,11 +36,13 @@ export default function Navbar() {
       <nav className="w-full mx-auto max-w-6xl rounded-xl bg-[#26252C] text-white shadow-sm ring-1 ring-white/10">
         <div className="flex md:grid md:grid-cols-[1fr_auto_1fr] items-center justify-between md:justify-normal px-5 py-3">
           <div className="flex items-center gap-8 justify-self-start">
-            <img src={`${import.meta.env.BASE_URL}images/limes-mobile_horizontal.svg`} alt="Limes" className="h-7" />
+            <Link to="/">
+              <img src={`${import.meta.env.BASE_URL}images/limes-mobile_horizontal.svg`} alt="Limes" className="h-7" />
+            </Link>
           </div>
 
           <ul className="hidden md:flex gap-6 text-[15px]">
-            {navItems.map((item) => (
+            {navLinks.map((item) => (
               <li key={item.href}>
                 {item.isRoute ? (
                   <Link to={item.href} className="group inline-flex flex-col items-center">
@@ -92,7 +94,7 @@ export default function Navbar() {
 
           <div className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? 'max-h-[500px]' : 'max-h-0'}`}>
           <ul className="px-5 pb-4 space-y-2">
-            {navItems.map((item) => (
+            {navLinks.map((item) => (
               <li key={item.href}>
                 {item.isRoute ? (
                   <Link to={item.href} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
@@ -143,5 +145,3 @@ export default function Navbar() {
     </div>
   )
 }
-
-
