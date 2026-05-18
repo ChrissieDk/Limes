@@ -3,13 +3,6 @@ import { Link } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 
-const navItems = [
-  { href: '/#hero', label: 'Home', dot: 'bg-indigo-400' },
-  { href: '/#why', label: 'Why Choose', dot: 'bg-purple-400' },
-  { href: '/#packages', label: 'Packages', dot: 'bg-pink-400' },
-  { href: '/#partners', label: 'Partners', dot: 'bg-lime-400', isRoute: true },
-]
-
 const navLinks = [
   { href: '/#hero', label: 'Home', dot: 'bg-indigo-400' },
   { href: '/#why', label: 'Why Choose', dot: 'bg-purple-400' },
