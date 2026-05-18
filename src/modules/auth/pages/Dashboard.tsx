@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { CatalogProduct } from '../../../types/catalog';
 import TopUpModal from '../components/TopUpModal';
 import ShippingModal from '../components/ShippingModal';
@@ -14,13 +14,16 @@ import { SimCardSkeleton, PlanDetailsSkeleton } from '../components/dashboard/Sk
 import { SimSearchControls } from '../components/dashboard/SimSearchControls.tsx';
 import { useSimSearch } from '../components/dashboard/useSimSearch.ts';
 import { PortNumberModal } from '../components/dashboard/PortNumberModal.tsx';
+import { SwitchToContractModal } from '../components/dashboard/SwitchToContractModal.tsx';
 import { normalizeMsisdn } from '../../../utils/phoneFormat';
 import { getAxiosErrorMessage } from '../../../utils/errorMessage';
 import { useDashboardData } from './useDashboardData';
+import { PRODUCT_IDS } from './usePackageSelection';
 import Footer from '../components/Footer';
 
 function Dashboard() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentSimIndex, setCurrentSimIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSim, setModalSim] = useState<SimCardModel | null>(null);
@@ -28,6 +31,7 @@ function Dashboard() {
   const [choosePackageModalOpen, setChoosePackageModalOpen] = useState(false);
   const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
   const [portNumberModalOpen, setPortNumberModalOpen] = useState(false);
+  const [switchToContractModalOpen, setSwitchToContractModalOpen] = useState(false);
   const [activatingSim, setActivatingSim] = useState<string | null>(null);
   const [portingInProgressMsisdns, setPortingInProgressMsisdns] = useState<Record<string, true>>(() => {
     try {
@@ -134,6 +138,19 @@ function Dashboard() {
     }
   }
 
+  const handleSwitchToContract = async (msisdn: string, _productId: string) => {
+    try {
+      // The backend MigrateProduct endpoint only takes msisdn + productId in
+      // the route. productId must be the TARGET SIM-package ID (ending in P).
+      // For existing SIM holders upgrading prepaid → contract, the correct
+      // target is CONTRACT_SA (7027225P).
+      await subscriptionService.migrateToContract(msisdn, PRODUCT_IDS.CONTRACT_SA)
+      refresh()
+    } catch (err) {
+      throw new Error(getAxiosErrorMessage(err, 'Failed to switch to contract'))
+    }
+  }
+
   const handlePortConfirm = async (limesMsisdn: string, numberToPortFrom: string) => {
     const normalizedLimes = normalizeMsisdn(limesMsisdn)
     const normalizedPortFrom = normalizeMsisdn(numberToPortFrom)
@@ -216,6 +233,13 @@ function Dashboard() {
         onClose={() => setPortNumberModalOpen(false)}
         currentMsisdn={simCards[currentSimIndex]?.phoneNumber ?? ''}
         onConfirm={handlePortConfirm}
+      />
+      <SwitchToContractModal
+        open={switchToContractModalOpen}
+        onClose={() => setSwitchToContractModalOpen(false)}
+        msisdn={simCards[currentSimIndex]?.phoneNumber ?? ''}
+        productId={PRODUCT_IDS.CONTRACT_SA}
+        onConfirm={handleSwitchToContract}
       />
       <ChoosePackageModal
         open={choosePackageModalOpen}
@@ -323,6 +347,7 @@ function Dashboard() {
                     <PlanDetails
                       sim={simCards[currentSimIndex]}
                       onPortMyNumber={() => setPortNumberModalOpen(true)}
+                      onSwitchToContract={() => setSwitchToContractModalOpen(true)}
                       isPortingInProgress={!!portingInProgressMsisdns[simCards[currentSimIndex]?.phoneNumber ?? '']}
                     />
                   </>

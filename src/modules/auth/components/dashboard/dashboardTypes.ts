@@ -6,6 +6,9 @@ export interface SimCard {
   phoneNumber: string;
   isActive: boolean;
   hasVoiceTopUp: boolean;
+  productId?: string;
+  // Derived from MsisdnData.packageType (backend) or inferred from productId (fallback).
+  packageType?: 'prepaid' | 'contract';
   plan: {
     mobileData: string;
     airtime: string;

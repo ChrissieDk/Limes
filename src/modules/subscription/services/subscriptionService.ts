@@ -83,6 +83,27 @@ export const subscriptionService = {
     )
   },
 
+  /**
+   * Migrates a subscriber from their current product to a new product.
+   * The backend only expects msisdn and productId in the route.
+   *
+   * For prepaid → contract migrations, productId should be the target
+   * SIM-package ID ending in P (e.g. 7027225P for "has-sim" contract).
+   *
+   * BACKEND TODO: Expose `MsisdnData.packageType` ('prepaid' | 'contract')
+   * on the user profile response so the frontend can reliably show / grey-out
+   * the "Switch to Contract" button without guessing from productId.
+   */
+  async migrateToContract(msisdn: string, productId: string): Promise<void> {
+    const encodedMsisdn = encodeURIComponent(msisdn)
+    const encodedProduct = encodeURIComponent(productId)
+    await apiClient.post(
+      `/subscriber/${encodedMsisdn}/product/${encodedProduct}/migrate`,
+      {},
+      { timeout: API_TIMEOUT_SHORT_MS }
+    )
+  },
+
   async storePendingDynamicService(msisdn: string, payload: {
     definitionCode: 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
     value: number

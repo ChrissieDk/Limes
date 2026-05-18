@@ -13,7 +13,7 @@ export type SimStatus = 'has-sim' | 'needs-sim' | null
 
 // Product ID mapping based on API responses
 // CRITICAL: SA = SIM in hand, SOA = Need SIM delivered
-const PRODUCT_IDS = {
+export const PRODUCT_IDS = {
   PREPAID_SA: '7029225P',
   CONTRACT_SA: '7027225P',
   PREPAID_SOA: '7025225P',

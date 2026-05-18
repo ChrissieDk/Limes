@@ -7,6 +7,9 @@ export interface MsisdnData {
   nextPaymentDate: string
   productId: string
   amountInCents: number
+  // BACKEND TODO: Add explicit packageType so frontend can reliably distinguish
+  // prepaid from contract users without guessing from productId.
+  packageType?: 'prepaid' | 'contract'
 }
 
 export interface User {

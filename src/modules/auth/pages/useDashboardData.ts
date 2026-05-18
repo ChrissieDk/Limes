@@ -7,6 +7,26 @@ import type { RicaAddress } from '../../../types'
 import type { SimCard, Transaction } from '../components/dashboard/dashboardTypes'
 import { mockSimCards } from '../components/dashboard/dashboardMocks'
 
+/**
+ * Fallback helper to infer package type from productId until the backend
+ * returns an explicit `packageType` field on MsisdnData.
+ *
+ * BACKEND TODO: Once `MsisdnData.packageType` is available from the API,
+ * this helper can be removed.
+ *
+ * NOTE: This only catches users whose current productId still matches the
+ * initial SIM package IDs (ending in P). Users who purchased bundles after
+ * activation will have different productIds and won't be detected correctly.
+ */
+function inferPackageType(productId: string): 'prepaid' | 'contract' | undefined {
+  const prepaidSimPackageIds = ['7029225P', '7025225P']
+  const contractSimPackageIds = ['7027225P', '7023225P', '7024225P']
+
+  if (prepaidSimPackageIds.includes(productId)) return 'prepaid'
+  if (contractSimPackageIds.includes(productId)) return 'contract'
+  return undefined
+}
+
 export interface DashboardData {
   simCards: SimCard[]
   setSimCards: React.Dispatch<React.SetStateAction<SimCard[]>>
@@ -65,6 +85,8 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
                 phoneNumber: msisdn,
                 isActive: msisdnData.hasActiveSubscription,
                 hasVoiceTopUp: existing?.hasVoiceTopUp ?? false,
+                productId: msisdnData.productId,
+                packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
                 plan: existing?.plan ?? {
                   mobileData: '0GB',
                   airtime: 'R0',
@@ -102,6 +124,8 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
               phoneNumber: msisdnData.msisdn,
               isActive: msisdnData.hasActiveSubscription,
               hasVoiceTopUp: false,
+              productId: msisdnData.productId,
+              packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
               plan: {
                 mobileData: '0GB',
                 airtime: 'R0',

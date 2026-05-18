@@ -133,6 +133,20 @@ describe('subscriptionService', () => {
     })
   })
 
+  describe('migrateToContract', () => {
+    it('calls migrate endpoint with target SIM-package productId', async () => {
+      mockPost.mockResolvedValue({ data: undefined })
+
+      await subscriptionService.migrateToContract('27612345678', '7027225P')
+
+      expect(mockPost).toHaveBeenCalledWith(
+        `/subscriber/${encodeURIComponent('27612345678')}/product/${encodeURIComponent('7027225P')}/migrate`,
+        {},
+        { timeout: API_TIMEOUT_SHORT_MS }
+      )
+    })
+  })
+
   describe('storePendingDynamicService', () => {
     it('stores pending dynamic service', async () => {
       const payload = { definitionCode: 'DATA' as const, value: 1024, priceInCents: 10000, expiryDate: '2025-12-31', paymentReference: 'ref-1' }
