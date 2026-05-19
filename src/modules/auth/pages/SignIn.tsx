@@ -10,6 +10,7 @@ import Footer from '../components/Footer'
 import { useState } from 'react'
 import { firebaseAuthService } from '../services/firebaseAuthService'
 import { getFirebaseAuthErrorMessage } from '../utils/firebaseAuthErrorMessage'
+import { getPostAuthRedirectPath } from '../utils/getPostAuthRedirect'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -33,7 +34,8 @@ export default function SignIn() {
     setSubmitting(true)
     try {
       await firebaseAuthService.signInWithEmailPassword(values)
-      navigate('/dashboard/packages')
+      const path = await getPostAuthRedirectPath()
+      navigate(path)
     } catch (err: unknown) {
       setSubmitError(getFirebaseAuthErrorMessage(err, 'signIn'))
     } finally {

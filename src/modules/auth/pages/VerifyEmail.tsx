@@ -5,6 +5,7 @@ import { applyActionCode, checkActionCode } from 'firebase/auth'
 import AuthLayout from '../layouts/AuthLayout'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
+import { getPostAuthRedirectPath } from '../utils/getPostAuthRedirect'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
@@ -64,7 +65,10 @@ export default function VerifyEmail() {
               </p>
             </div>
             <Button
-              onClick={() => navigate('/dashboard/packages')}
+              onClick={async () => {
+                const path = await getPostAuthRedirectPath()
+                navigate(path)
+              }}
               className="mt-2 h-10 rounded-lg border border-white/10 shadow-none"
             >
               Go to Dashboard

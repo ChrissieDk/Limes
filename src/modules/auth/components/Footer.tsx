@@ -6,8 +6,15 @@ export default function Footer() {
   const links = [
     { label: 'Home', href: `${base}#hero` },
     { label: 'Why Choose Limes', href: `${base}#why` },
+    { label: 'How It Works', href: `/how-it-works`, isRoute: true },
     { label: 'Packages', href: `${base}#packages` },
     { label: 'Partner With Us', href: `${base}#partners` },
+    { label: 'FAQs', href: `/faqs`, isRoute: true },
+  ]
+
+  const legalLinks = [
+    { label: 'Terms & Conditions', href: '/terms-and-conditions' },
+    { label: 'Fair Usage Policy', href: '/fair-usage-policy' },
   ]
 
   const socials = [
@@ -27,22 +34,43 @@ export default function Footer() {
             <br />
             back. Own your money.
           </p>
+          <div className="mt-4 space-y-1 text-sm text-neutral-400 font-manrope">
+            <p>
+              <span className="text-neutral-500">Phone:</span>{' '}
+              <a href="tel:0800390009" className="hover:text-white transition-colors">
+                080 039 0009
+              </a>
+            </p>
+            <p>
+              <span className="text-neutral-500">Email:</span>{' '}
+              <a href="mailto:support@simpal.co.za" className="hover:text-white transition-colors">
+                support@simpal.co.za
+              </a>
+            </p>
+          </div>
         </div>
 
         <div className="md:justify-self-center">
           <div className="font-grotesque text-sm text-neutral-400 font-semibold">Quick Links</div>
           <nav className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-300">
-            {links.map((l) => (
-              <a key={l.href} href={l.href} className="hover:text-white transition-colors">
+            {links.map((l) =>
+              l.isRoute ? (
+                <Link key={l.href} to={l.href} className="hover:text-white transition-colors">
+                  {l.label}
+                </Link>
+              ) : (
+                <a key={l.href} href={l.href} className="hover:text-white transition-colors">
+                  {l.label}
+                </a>
+              )
+            )}
+          </nav>
+          <nav className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-400">
+            {legalLinks.map((l) => (
+              <Link key={l.href} to={l.href} className="hover:text-white transition-colors">
                 {l.label}
-              </a>
+              </Link>
             ))}
-            <Link to="/terms-and-conditions" className="hover:text-white transition-colors">
-              Terms & Conditions
-            </Link>
-            <Link to="/fair-usage-policy" className="hover:text-white transition-colors">
-              Fair Usage Policy
-            </Link>
           </nav>
         </div>
 
@@ -82,4 +110,3 @@ export default function Footer() {
     </footer>
   )
 }
-

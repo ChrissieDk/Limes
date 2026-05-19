@@ -7,6 +7,26 @@ import type { RicaAddress } from '../../../types'
 import type { SimCard, Transaction } from '../components/dashboard/dashboardTypes'
 import { mockSimCards } from '../components/dashboard/dashboardMocks'
 
+/**
+ * Fallback helper to infer package type from productId until the backend
+ * returns an explicit `packageType` field on MsisdnData.
+ *
+ * BACKEND TODO: Once `MsisdnData.packageType` is available from the API,
+ * this helper can be removed.
+ *
+ * NOTE: This only catches users whose current productId still matches the
+ * initial SIM package IDs (ending in P). Users who purchased bundles after
+ * activation will have different productIds and won't be detected correctly.
+ */
+function inferPackageType(productId: string): 'prepaid' | 'contract' | undefined {
+  const prepaidSimPackageIds = ['7029225P', '7025225P']
+  const contractSimPackageIds = ['7027225P', '7023225P', '7024225P']
+
+  if (prepaidSimPackageIds.includes(productId)) return 'prepaid'
+  if (contractSimPackageIds.includes(productId)) return 'contract'
+  return undefined
+}
+
 export interface DashboardData {
   simCards: SimCard[]
   setSimCards: React.Dispatch<React.SetStateAction<SimCard[]>>
@@ -43,12 +63,10 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
   const [activationStatusLoading, setActivationStatusLoading] = useState(true)
 
   const balancesFetchedForRef = useRef('')
-  const activationCheckedForRef = useRef('')
   const activationPollInFlightRef = useRef(false)
 
   const refresh = useCallback(() => {
     balancesFetchedForRef.current = ''
-    activationCheckedForRef.current = ''
 
     const fetchUserData = async () => {
       try {
@@ -65,6 +83,8 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
                 phoneNumber: msisdn,
                 isActive: msisdnData.hasActiveSubscription,
                 hasVoiceTopUp: existing?.hasVoiceTopUp ?? false,
+                productId: msisdnData.productId,
+                packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
                 plan: existing?.plan ?? {
                   mobileData: '0GB',
                   airtime: 'R0',
@@ -102,6 +122,8 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
               phoneNumber: msisdnData.msisdn,
               isActive: msisdnData.hasActiveSubscription,
               hasVoiceTopUp: false,
+              productId: msisdnData.productId,
+              packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
               plan: {
                 mobileData: '0GB',
                 airtime: 'R0',
@@ -110,6 +132,13 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
               },
             }))
             setSimCards(updatedSimCards)
+
+            // Seed isActive from user data — eliminates the need for a batch check
+            const initialSimIsActive: Record<string, boolean> = {}
+            user.msisdns.forEach((md) => {
+              initialSimIsActive[md.msisdn] = md.hasActiveSubscription
+            })
+            setSimIsActive(initialSimIsActive)
           }
         }
       } catch (err) {
@@ -120,6 +149,7 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
       } finally {
         if (!cancelled) {
           setRicaStatusChecked(true)
+          setActivationStatusLoading(false)
         }
       }
     }
@@ -252,67 +282,6 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
       cancelled = true
     }
   }, [simCards, currentSimIndex])
-
-  // Check activation status for each SIM
-  useEffect(() => {
-    let cancelled = false
-    const checkActivationStatuses = async () => {
-      if (simCards.length === 0) {
-        setActivationStatusLoading(false)
-        return
-      }
-
-      const msisdnsKey = simCards.map((s) => s.phoneNumber).filter(Boolean).sort().join(',')
-
-      if (activationCheckedForRef.current === msisdnsKey) {
-        setActivationStatusLoading(false)
-        return
-      }
-
-      setActivationStatusLoading(true)
-
-      const canActivateStatuses: Record<string, boolean> = {}
-      const isActiveStatuses: Record<string, boolean> = {}
-
-      const checkPromises = simCards.map(async (sim) => {
-        if (!sim.phoneNumber) {
-          return { phoneNumber: sim.phoneNumber || sim.id, canActivate: false, isActive: false }
-        }
-        try {
-          const response = await subscriptionService.checkSimActive(sim.phoneNumber)
-          return {
-            phoneNumber: sim.phoneNumber,
-            canActivate:
-              response.isActive &&
-              (response.hasPendingOrders || response.hasPendingDynamicServices || false),
-            isActive: response.isActive,
-          }
-        } catch (err) {
-          console.error(`[Activation] Error checking status for ${sim.phoneNumber}:`, err)
-          return { phoneNumber: sim.phoneNumber, canActivate: false, isActive: false }
-        }
-      })
-
-      const results = await Promise.all(checkPromises)
-
-      results.forEach((result) => {
-        canActivateStatuses[result.phoneNumber] = result.canActivate
-        isActiveStatuses[result.phoneNumber] = result.isActive
-      })
-
-      if (!cancelled) {
-        activationCheckedForRef.current = msisdnsKey
-        setCanActivate(canActivateStatuses)
-        setSimIsActive(isActiveStatuses)
-        setActivationStatusLoading(false)
-      }
-    }
-
-    checkActivationStatuses()
-    return () => {
-      cancelled = true
-    }
-  }, [simCards])
 
   // Lightweight activation status refresh for the currently viewed SIM
   useEffect(() => {

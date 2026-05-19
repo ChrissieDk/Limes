@@ -256,10 +256,12 @@ export interface SavedCard {
 export interface ChargeCardRequest {
   paymentMethodId: string
   amount: number
+  productId?: string          // Optional - bundle product ID (top-ups)
+  msisdn?: string             // Optional - ACTUAL SIM number
   metadata?: {
-    productId: string           // REQUIRED - SIM package product ID
-    msisdn: string              // REQUIRED - ACTUAL SIM number
-    planProductId?: string      // Optional - actual plan/bundle product ID
+    productId?: string         // Backward-compatible nested form
+    msisdn?: string            // Backward-compatible nested form
+    planProductId?: string     // Optional - actual plan/bundle product ID
     productName?: string
     packageType?: 'contract' | 'prepaid'
     simStatus?: 'has-sim' | 'needs-sim'

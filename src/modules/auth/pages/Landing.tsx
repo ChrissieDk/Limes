@@ -1,11 +1,13 @@
 import { useLayoutEffect } from 'react'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
+import TrustBar from '../components/TrustBar'
 import WhyChoose from '../components/WhyChoose'
 import HowToJoin from '../components/HowToJoin'
 import Packages from '../components/Packages'
 import Partners from '../components/Partners'
 import TelecomCta from '../components/TelecomCta'
+import ReviewsMarquee from '../components/ReviewsMarquee'
 import Footer from '../components/Footer'
 import { useLocation } from 'react-router-dom'
 
@@ -46,12 +48,14 @@ export default function Landing() {
 
       <div>
         <Hero />
+        <TrustBar />
         <WhyChoose />
         
         <Packages />
         <HowToJoin />
         <Partners />
         <TelecomCta />
+        <ReviewsMarquee />
         <Footer />
       </div>
     </div>

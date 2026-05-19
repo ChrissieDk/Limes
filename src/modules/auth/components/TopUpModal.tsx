@@ -11,6 +11,8 @@ import { log } from '../../../lib/sentry-logger'
 import { trackPurchase, trackBeginCheckout } from '../../analytics/services/analyticsService'
 import { useTopUpData } from './useTopUpData'
 import BundleCategoryGrid from './BundleCategoryGrid'
+import SavedCardSelector from '../../payment/components/SavedCardSelector'
+import type { SavedCard } from '../../../types/payment'
 
 // Paystack Popup
 declare const PaystackPop: any
@@ -169,6 +171,11 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
 
+  // Saved card states
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([])
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null)
+  const [saveCardForFuture, setSaveCardForFuture] = useState(false)
+
   const {
     bundleCategories,
     selectedCategory,
@@ -194,6 +201,42 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setSelectedPhoneNumber(phoneNumber ?? (phoneNumbers?.[0] ?? ''))
   }, [phoneNumber, phoneNumbers])
 
+  // Fetch saved cards when modal opens
+  useEffect(() => {
+    if (!open) return
+    const fetchCards = async () => {
+      try {
+        const cards = await paymentService.getSavedCards()
+        // Deduplicate using same logic as SavedCards component
+        const cardMap = new Map<string, SavedCard>()
+        cards.forEach((card) => {
+          const key = `${card.last4}-${card.expMonth}-${card.expYear}-${card.bank}`
+          const existing = cardMap.get(key)
+          if (!existing || card.isDefault || card.id > existing.id) {
+            cardMap.set(key, card)
+          }
+        })
+        const uniqueCards = Array.from(cardMap.values())
+        setSavedCards(uniqueCards)
+
+        // Auto-select default card, or first card if no default
+        const defaultCard = uniqueCards.find((c) => c.isDefault)
+        if (defaultCard) {
+          setSelectedPaymentMethodId(defaultCard.id)
+        } else if (uniqueCards.length > 0) {
+          setSelectedPaymentMethodId(uniqueCards[0].id)
+        } else {
+          setSelectedPaymentMethodId(null)
+        }
+      } catch {
+        // Silently fail — user can always pay with new card
+        setSavedCards([])
+        setSelectedPaymentMethodId(null)
+      }
+    }
+    fetchCards()
+  }, [open])
+
   const adjustPrice = (delta: number) => {
     setPrice((prev) => Math.max(1, Math.min(1000, prev + delta)))
   }
@@ -208,8 +251,95 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       setSelectedCategory(null)
       setSelectedProduct(null)
       setPrice(50)
+      setSaveCardForFuture(false)
       onClose()
     }, 2000)
+  }
+
+  // ── Shared post-payment finalizers ─────────────────────────────
+
+  const finalizeBundlePurchase = async (reference: string) => {
+    if (!selectedProduct || !selectedPhoneNumber) return
+
+    const orderResponse = await subscriptionService.createOrder({
+      products: [{ id: selectedProduct.id, amount: selectedProduct.price }],
+      msisdn: selectedPhoneNumber,
+    })
+
+    if (orderResponse.orderId) {
+      await paymentService.linkTransactionToOrder({
+        transactionReference: reference,
+        orderId: orderResponse.orderId,
+      })
+      log.info('topup_bundle_order_created', { reference, order_id: orderResponse.orderId })
+    } else if (!orderResponse.message) {
+      log.error('topup_bundle_order_failed', { reference, response: JSON.stringify(orderResponse) })
+      throw new Error('Order creation failed - no orderId or message in response')
+    }
+
+    trackPurchase({
+      transactionId: reference,
+      value: selectedProduct.price,
+      currency: 'ZAR',
+      items: [
+        {
+          item_id: String(selectedProduct.id),
+          item_name: selectedProduct.name,
+          price: selectedProduct.price,
+          quantity: 1,
+          item_category: 'bundle',
+        },
+      ],
+      paymentType: 'card',
+    })
+
+    resetPayment()
+  }
+
+  const finalizeDynamicServicePurchase = async (reference: string) => {
+    if (!selectedPhoneNumber || kind === 'bundles') return
+
+    const sv = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
+    if (sv === null) {
+      log.error('topup_dynamic_service_conversion_failed', { kind, price })
+      throw new Error(`${kind} service is not available for prepaid packages`)
+    }
+
+    const dc = (kind.toUpperCase() === 'AIRTIME' ? 'GPA_CREDIT' : kind.toUpperCase()) as 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
+    const servicesResponse = await subscriptionService.createDynamicServices(selectedPhoneNumber, {
+      services: [{ value: sv, definitionCode: dc, expiryDate: getDefaultExpiryDate() }],
+    })
+
+    const serviceIds = servicesResponse.results.filter((r) => r.success && r.id).map((r) => r.id!)
+    if (serviceIds.length === 0) {
+      log.error('topup_dynamic_no_services_created', { reference, response: JSON.stringify(servicesResponse.results) })
+      throw new Error('No services created')
+    }
+
+    await paymentService.linkTransactionToServices({
+      transactionReference: reference,
+      serviceIds,
+    })
+
+    log.info('topup_dynamic_services_linked', { reference, service_count: serviceIds.length })
+
+    trackPurchase({
+      transactionId: reference,
+      value: price,
+      currency: 'ZAR',
+      items: [
+        {
+          item_id: `${kind}_topup`,
+          item_name: `${kind.charAt(0).toUpperCase() + kind.slice(1)} Top-up`,
+          price: price,
+          quantity: 1,
+          item_category: kind,
+        },
+      ],
+      paymentType: 'card',
+    })
+
+    resetPayment()
   }
 
   // Handle bundle purchase
@@ -220,20 +350,67 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       return
     }
 
+    if (!selectedProduct.price) {
+      setPaymentError('Price is missing for bundle')
+      log.error('topup_bundle_init_failed', { reason: 'price_missing', product_id: selectedProduct.id })
+      return
+    }
+
     setIsPaymentProcessing(true)
     setPaymentError(null)
 
     try {
-      if (!selectedProduct.price) {
-        setPaymentError('Price is missing for bundle')
-        log.error('topup_bundle_init_failed', { reason: 'price_missing', product_id: selectedProduct.id })
+      const amountInCents = toCents(selectedProduct.price)
+
+      // ── Saved card path ────────────────────────────────────────
+      if (selectedPaymentMethodId) {
+        log.info('topup_bundle_charge_saved_card', {
+          product_id: selectedProduct.id,
+          product_name: selectedProduct.name,
+          msisdn: selectedPhoneNumber,
+          amount_cents: amountInCents,
+          payment_method_id: selectedPaymentMethodId,
+        })
+
+        trackBeginCheckout({
+          value: selectedProduct.price,
+          currency: 'ZAR',
+          items: [
+            {
+              item_id: String(selectedProduct.id),
+              item_name: selectedProduct.name,
+              price: selectedProduct.price,
+              quantity: 1,
+              item_category: 'bundle',
+            },
+          ],
+        })
+
+        const chargeResponse = await paymentService.chargeSavedCard({
+          paymentMethodId: selectedPaymentMethodId,
+          amount: amountInCents,
+          productId: String(selectedProduct.id),
+          msisdn: String(selectedPhoneNumber),
+        })
+
+        if (!chargeResponse.success || !chargeResponse.transaction) {
+          log.error('topup_bundle_charge_failed', { error: chargeResponse.error || 'unknown' })
+          setPaymentError(chargeResponse.error || 'Failed to charge saved card')
+          return
+        }
+
+        const reference = chargeResponse.transaction.reference
+        log.info('topup_bundle_charge_successful', { reference })
+
+        await finalizeBundlePurchase(reference)
         return
       }
 
+      // ── New card path (Paystack popup) ─────────────────────────
       const payload = {
         productId: String(selectedProduct.id),
         msisdn: String(selectedPhoneNumber),
-        amount: toCents(selectedProduct.price),
+        amount: amountInCents,
       }
 
       log.info('topup_bundle_initializing', {
@@ -277,7 +454,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
             const verificationResponse = await paymentService.verifyPayment({
               reference,
-              saveCard: false,
+              saveCard: saveCardForFuture,
             })
 
             if (!verificationResponse.success) {
@@ -286,39 +463,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             }
             log.info('topup_bundle_verified', { reference })
 
-            const orderResponse = await subscriptionService.createOrder({
-              products: [{ id: selectedProduct.id, amount: selectedProduct.price }],
-              msisdn: selectedPhoneNumber,
-            })
-
-            if (orderResponse.orderId) {
-              await paymentService.linkTransactionToOrder({
-                transactionReference: reference,
-                orderId: orderResponse.orderId,
-              })
-              log.info('topup_bundle_order_created', { reference, order_id: orderResponse.orderId })
-            } else if (!orderResponse.message) {
-              log.error('topup_bundle_order_failed', { reference, response: JSON.stringify(orderResponse) })
-              throw new Error('Order creation failed - no orderId or message in response')
-            }
-
-            trackPurchase({
-              transactionId: reference,
-              value: selectedProduct.price,
-              currency: 'ZAR',
-              items: [
-                {
-                  item_id: String(selectedProduct.id),
-                  item_name: selectedProduct.name,
-                  price: selectedProduct.price,
-                  quantity: 1,
-                  item_category: 'bundle',
-                },
-              ],
-              paymentType: verificationResponse.transaction?.channel || 'card',
-            })
-
-            resetPayment()
+            await finalizeBundlePurchase(reference)
           } catch (err) {
             const errMsg = getAxiosErrorMessage(err, 'Payment processing failed')
             log.error('topup_bundle_processing_failed', { error: errMsg })
@@ -364,6 +509,50 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       const priceInCents = price * 100
       const definitionCode = serviceType === 'AIRTIME' ? 'GPA_CREDIT' : serviceType
 
+      // ── Saved card path ────────────────────────────────────────
+      if (selectedPaymentMethodId) {
+        log.info('topup_dynamic_charge_saved_card', {
+          msisdn: selectedPhoneNumber,
+          service_type: serviceType,
+          definition_code: definitionCode,
+          price_cents: priceInCents,
+          payment_method_id: selectedPaymentMethodId,
+        })
+
+        trackBeginCheckout({
+          value: price,
+          currency: 'ZAR',
+          items: [
+            {
+              item_id: `${kind}_topup`,
+              item_name: `${kind.charAt(0).toUpperCase() + kind.slice(1)} Top-up`,
+              price: price,
+              quantity: 1,
+              item_category: kind,
+            },
+          ],
+        })
+
+        const chargeResponse = await paymentService.chargeSavedCard({
+          paymentMethodId: selectedPaymentMethodId,
+          amount: priceInCents,
+          msisdn: String(selectedPhoneNumber),
+        })
+
+        if (!chargeResponse.success || !chargeResponse.transaction) {
+          log.error('topup_dynamic_charge_failed', { error: chargeResponse.error || 'unknown' })
+          setPaymentError(chargeResponse.error || 'Failed to charge saved card')
+          return
+        }
+
+        const reference = chargeResponse.transaction.reference
+        log.info('topup_dynamic_charge_successful', { reference })
+
+        await finalizeDynamicServicePurchase(reference)
+        return
+      }
+
+      // ── New card path (Paystack popup) ─────────────────────────
       const payload = {
         msisdn: String(selectedPhoneNumber),
         services: [
@@ -417,7 +606,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
             const verificationResponse = await paymentService.verifyPayment({
               reference,
-              saveCard: false,
+              saveCard: saveCardForFuture,
             })
 
             if (!verificationResponse.success) {
@@ -426,47 +615,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             }
             log.info('topup_dynamic_verified', { reference })
 
-            const sv = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
-            if (sv === null) {
-              log.error('topup_dynamic_service_conversion_failed', { kind, price })
-              throw new Error(`${kind} service is not available for prepaid packages`)
-            }
-
-            const dc = (kind.toUpperCase() === 'AIRTIME' ? 'GPA_CREDIT' : kind.toUpperCase()) as 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
-            const servicesResponse = await subscriptionService.createDynamicServices(selectedPhoneNumber, {
-              services: [{ value: sv, definitionCode: dc, expiryDate: getDefaultExpiryDate() }],
-            })
-
-            const serviceIds = servicesResponse.results.filter((r) => r.success && r.id).map((r) => r.id!)
-            if (serviceIds.length === 0) {
-              log.error('topup_dynamic_no_services_created', { reference, response: JSON.stringify(servicesResponse.results) })
-              throw new Error('No services created')
-            }
-
-            await paymentService.linkTransactionToServices({
-              transactionReference: reference,
-              serviceIds,
-            })
-
-            log.info('topup_dynamic_services_linked', { reference, service_count: serviceIds.length })
-
-            trackPurchase({
-              transactionId: reference,
-              value: price,
-              currency: 'ZAR',
-              items: [
-                {
-                  item_id: `${kind}_topup`,
-                  item_name: `${kind.charAt(0).toUpperCase() + kind.slice(1)} Top-up`,
-                  price: price,
-                  quantity: 1,
-                  item_category: kind,
-                },
-              ],
-              paymentType: verificationResponse.transaction?.channel || 'card',
-            })
-
-            resetPayment()
+            await finalizeDynamicServicePurchase(reference)
           } catch (err) {
             const errMsg = getAxiosErrorMessage(err, 'Payment processing failed')
             log.error('topup_dynamic_processing_failed', { error: errMsg })
@@ -627,6 +776,29 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
                 <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
                 <p className="font-manrope text-sm font-medium text-green-700">Payment successful! Closing...</p>
               </div>
+            )}
+
+            {/* Saved card selector — only show at the purchase step */}
+            {((kind === 'bundles' && selectedProduct) || (kind !== 'bundles' && selectedPhoneNumber)) && savedCards.length > 0 && (
+              <SavedCardSelector
+                selectedCardId={selectedPaymentMethodId}
+                onSelect={setSelectedPaymentMethodId}
+                disabled={isPaymentProcessing || paymentSuccess}
+              />
+            )}
+
+            {/* Save card checkbox — only when paying with new card */}
+            {((kind === 'bundles' && selectedProduct) || (kind !== 'bundles' && selectedPhoneNumber)) && savedCards.length > 0 && selectedPaymentMethodId === null && (
+              <label className="flex items-center gap-3 rounded-xl border-2 border-neutral-200 px-4 py-3 cursor-pointer hover:bg-neutral-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={saveCardForFuture}
+                  onChange={(e) => setSaveCardForFuture(e.target.checked)}
+                  disabled={isPaymentProcessing || paymentSuccess}
+                  className="w-4 h-4 rounded border-neutral-300 text-[#ABFF63] focus:ring-[#ABFF63] focus:ring-offset-0 accent-[#ABFF63]"
+                />
+                <span className="text-sm text-neutral-700 font-medium">Save this card for faster checkout next time</span>
+              </label>
             )}
 
             {kind !== 'bundles' && selectedPhoneNumber && (
