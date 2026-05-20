@@ -94,7 +94,7 @@ export default function Faqs() {
           <p>
             During the handover you may experience a short window of limited connectivity. We recommend starting your
             port on a weekday morning for the fastest turnaround.{' '}
-            <Link to="/how-it-works" className="underline hover:text-white">
+            <Link to="/how-to/port" className="underline hover:text-white">
               See how porting works
             </Link>
             .

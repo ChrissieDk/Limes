@@ -6,7 +6,7 @@ import { auth } from '../../../config/firebase'
 const navLinks = [
   { href: '/#hero', label: 'Home', dot: 'bg-indigo-400' },
   { href: '/#why', label: 'Why Choose', dot: 'bg-purple-400' },
-  { href: '/how-it-works', label: 'How It Works', dot: 'bg-lime-400', isRoute: true },
+  { href: '/how-to', label: "How To's", dot: 'bg-lime-400', isRoute: true },
   { href: '/#packages', label: 'Packages', dot: 'bg-pink-400' },
   { href: '/#partners', label: 'Partners', dot: 'bg-blue-400', isRoute: true },
 ]

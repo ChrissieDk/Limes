@@ -42,6 +42,12 @@ export default function Footer() {
               </a>
             </p>
             <p>
+              <span className="text-neutral-500">USSD:</span>{' '}
+              <a href="tel:*140%23" className="hover:text-white transition-colors">
+                *140#
+              </a>
+            </p>
+            <p>
               <span className="text-neutral-500">Email:</span>{' '}
               <a href="mailto:support@simpal.co.za" className="hover:text-white transition-colors">
                 support@simpal.co.za
