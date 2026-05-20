@@ -8,6 +8,7 @@ import DashboardPackages from './modules/auth/pages/DashboardPackages'
 import PaymentMethods from './modules/payment/pages/PaymentMethods'
 import Subscriptions from './modules/auth/pages/Subscriptions'
 import ProvisionedUserRoute from './modules/auth/components/ProvisionedUserRoute'
+import AuthenticatedRoute from './modules/auth/components/AuthenticatedRoute'
 import AccountDetails from './modules/auth/pages/AccountDetails'
 import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
@@ -73,7 +74,11 @@ const router = sentryCreateBrowserRouter(
         },
         {
           path: 'dashboard',
-          element: <Outlet />,
+          element: (
+            <AuthenticatedRoute>
+              <Outlet />
+            </AuthenticatedRoute>
+          ),
           children: [
             {
               element: (
