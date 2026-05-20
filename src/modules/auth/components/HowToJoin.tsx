@@ -109,7 +109,7 @@ export default function HowToJoin() {
           <span className="font-manrope">View packages</span>
         </Link>
         <Link
-          to="/how-it-works"
+          to="/how-to"
           className="inline-flex items-center justify-center rounded-xl bg-neutral-800 text-white font-semibold text-sm px-5 h-10 border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] hover:bg-neutral-700 transition-colors"
         >
           <span className="font-manrope">See how it works</span>

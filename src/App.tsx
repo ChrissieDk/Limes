@@ -14,6 +14,13 @@ import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
 import HowItWorks from './modules/auth/pages/HowItWorks'
+import HowToHub from './modules/auth/pages/HowToHub'
+import HowToJoinPage from './modules/auth/pages/HowToJoinPage'
+import HowToActivate from './modules/auth/pages/HowToActivate'
+import HowToTopUp from './modules/auth/pages/HowToTopUp'
+import HowToRica from './modules/auth/pages/HowToRica'
+import HowToDelivery from './modules/auth/pages/HowToDelivery'
+import HowToPort from './modules/auth/pages/HowToPort'
 import ForgotPassword from './modules/auth/pages/ForgotPassword'
 import VerifyEmail from './modules/auth/pages/VerifyEmail'
 import ResetPassword from './modules/auth/pages/ResetPassword'
@@ -43,6 +50,34 @@ const router = sentryCreateBrowserRouter(
         {
           path: '/how-it-works',
           element: <HowItWorks />,
+        },
+        {
+          path: '/how-to',
+          element: <HowToHub />,
+        },
+        {
+          path: '/how-to/join',
+          element: <HowToJoinPage />,
+        },
+        {
+          path: '/how-to/activate',
+          element: <HowToActivate />,
+        },
+        {
+          path: '/how-to/top-up',
+          element: <HowToTopUp />,
+        },
+        {
+          path: '/how-to/rica',
+          element: <HowToRica />,
+        },
+        {
+          path: '/how-to/delivery',
+          element: <HowToDelivery />,
+        },
+        {
+          path: '/how-to/port',
+          element: <HowToPort />,
         },
         {
           path: '/register',
