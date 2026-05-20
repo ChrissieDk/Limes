@@ -83,9 +83,10 @@ apiClient.interceptors.response.use(
         is_public_route: isPublicRoute,
       })
 
-      if (!isPublicRoute) {
-        window.location.href = `${base}/signin`
-      }
+      // NOTE: We intentionally do NOT redirect here. 401 errors are allowed to
+      // propagate to the component level so that UI can show graceful messages
+      // (e.g. "Your session has expired"). Auth redirects are handled at the
+      // routing layer by <AuthenticatedRoute>.
     } else if (status && status >= 500) {
       Sentry.logger.error('api_server_error', {
         endpoint,
