@@ -7,6 +7,7 @@ import { warehouseService } from '../services/warehouseService'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import { formatDate } from '../../../utils/dateFormat'
 import type { TrackingResponseDTO, TrackingEventDTO, ProofOfDeliveryDTO } from '../../../types/warehouse'
+import type { MsisdnData } from '../../../types/user'
 import {
   Truck,
   Package,
@@ -414,26 +415,27 @@ export default function DeliveryTracking() {
     }
   }
 
+  const DELIVERY_PRODUCT_ID = '7023225P'
+
   const loadSimsWithTracking = async () => {
     setLoading(true)
     setError(null)
     try {
       const user = await userService.getCurrentUser()
-      const msisdns = user.msisdns?.map((m) => m.msisdn) || []
-      if (msisdns.length === 0 && user.msisdn) {
-        msisdns.push(user.msisdn)
-      }
+      const allMsisdns: MsisdnData[] = user.msisdns || []
 
-      // Fetch tracking for all SIMs in parallel.
-      // Only SIMs that were shipped (needs-sim flow) will have tracking data.
-      // SIMs activated via ICCID (has-sim flow) will return 404 / no order.
+      // Only show SIMs that were ordered for physical delivery.
+      // productId '7023225P' is the physical SIM delivery package.
+      const deliveryMsisdns = allMsisdns.filter((m) => m.productId === DELIVERY_PRODUCT_ID)
+
+      // Fetch tracking for delivery SIMs in parallel.
       const results = await Promise.all(
-        msisdns.map(async (msisdn) => {
+        deliveryMsisdns.map(async (msisdnData) => {
           try {
-            const data = await warehouseService.getTrackingEventsByMsisdn(msisdn)
-            return { msisdn, tracking: data as TrackingResponseDTO | null, err: null }
+            const data = await warehouseService.getTrackingEventsByMsisdn(msisdnData.msisdn)
+            return { msisdn: msisdnData.msisdn, tracking: data as TrackingResponseDTO | null, err: null }
           } catch (e) {
-            return { msisdn, tracking: null, err: e }
+            return { msisdn: msisdnData.msisdn, tracking: null, err: e }
           }
         })
       )
@@ -459,18 +461,13 @@ export default function DeliveryTracking() {
       const shippedSims: SimOption[] = processed
         .filter((r) => {
           if (!r.tracking) return false
-          // Exclude SIMs where the only event is ORDER_CREATED — these are
-          // typically has-sim (ICCID) activations where no physical shipment occurred.
-          // But KEEP synthetic PAYMENT_RECEIVED entries.
           const events = r.tracking.events
           if (events.length === 0) return false
-          if (events.length === 1 && events[0].status === 'ORDER_CREATED') return false
           return true
         })
         .map((r) => ({
           msisdn: r.msisdn,
-          name:
-            user.msisdns?.find((m) => m.msisdn === r.msisdn)?.simDescription || r.msisdn,
+          name: allMsisdns.find((m) => m.msisdn === r.msisdn)?.simDescription || r.msisdn,
           tracking: r.tracking,
         }))
 
@@ -486,11 +483,29 @@ export default function DeliveryTracking() {
     }
   }
 
-  const handleSelectSim = (msisdn: string) => {
+  const handleSelectSim = async (msisdn: string) => {
     setSelectedMsisdn(msisdn)
-    setTracking(sims.find((s) => s.msisdn === msisdn)?.tracking ?? null)
     setDropdownOpen(false)
     setError(null)
+    // Refresh tracking data for the selected SIM
+    try {
+      const data = await warehouseService.getTrackingEventsByMsisdn(msisdn)
+      setTracking(data)
+      // Update the sims array with fresh data
+      setSims((prev) =>
+        prev.map((sim) => (sim.msisdn === msisdn ? { ...sim, tracking: data } : sim))
+      )
+    } catch (e) {
+      if (isNoTrackingError(e)) {
+        const pending = createSyntheticPendingTracking(msisdn)
+        setTracking(pending)
+        setSims((prev) =>
+          prev.map((sim) => (sim.msisdn === msisdn ? { ...sim, tracking: pending } : sim))
+        )
+      } else {
+        setError(friendlyWarehouseError(e))
+      }
+    }
   }
 
   const isDelivered = tracking?.currentStatus === 'DELIVERED'
@@ -543,9 +558,9 @@ export default function DeliveryTracking() {
         ) : sims.length === 0 ? (
           <div className="rounded-2xl bg-neutral-800 border border-neutral-700 p-8 text-center">
             <Truck className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-            <h3 className="font-grotesque text-white font-semibold text-lg">No deliveries to track</h3>
+            <h3 className="font-grotesque text-white font-semibold text-lg">No SIMs for delivery</h3>
             <p className="font-manrope text-neutral-400 text-sm mt-2">
-              None of your SIMs were shipped for delivery. SIMs activated with an existing ICCID don&apos;t have delivery tracking.
+              You don&apos;t have any SIMs ordered for delivery. SIMs activated with an existing ICCID don&apos;t have delivery tracking.
             </p>
             <button
               onClick={() => navigate('/dashboard')}
