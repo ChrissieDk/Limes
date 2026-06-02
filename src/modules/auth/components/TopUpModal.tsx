@@ -359,6 +359,20 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setIsPaymentProcessing(true)
     setPaymentError(null)
 
+    // Safety check: verify SIM is still active before charging
+    try {
+      const status = await subscriptionService.checkSimActive(selectedPhoneNumber)
+      if (!status.isActive) {
+        setPaymentError('This SIM is not active. Please wait for activation to complete before topping up.')
+        setIsPaymentProcessing(false)
+        return
+      }
+    } catch (err) {
+      // If the check itself fails, log and allow the purchase to proceed.
+      // The backend is the ultimate gatekeeper.
+      log.warn('topup_bundle_sim_status_check_failed', { msisdn: selectedPhoneNumber, error: getAxiosErrorMessage(err, 'unknown') })
+    }
+
     try {
       const amountInCents = toCents(selectedProduct.price)
 
@@ -494,6 +508,20 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
     setIsPaymentProcessing(true)
     setPaymentError(null)
+
+    // Safety check: verify SIM is still active before charging
+    try {
+      const status = await subscriptionService.checkSimActive(selectedPhoneNumber)
+      if (!status.isActive) {
+        setPaymentError('This SIM is not active. Please wait for activation to complete before topping up.')
+        setIsPaymentProcessing(false)
+        return
+      }
+    } catch (err) {
+      // If the check itself fails, log and allow the purchase to proceed.
+      // The backend is the ultimate gatekeeper.
+      log.warn('topup_dynamic_sim_status_check_failed', { msisdn: selectedPhoneNumber, error: getAxiosErrorMessage(err, 'unknown') })
+    }
 
     try {
       const serviceType = kind.toUpperCase() as ServiceType
