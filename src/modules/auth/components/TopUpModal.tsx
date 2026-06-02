@@ -174,7 +174,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   // Saved card states
   const [savedCards, setSavedCards] = useState<SavedCard[]>([])
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null)
-  const [saveCardForFuture, setSaveCardForFuture] = useState(false)
+  const [saveCardForFuture, setSaveCardForFuture] = useState(true)
 
   const {
     bundleCategories,
@@ -788,7 +788,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             )}
 
             {/* Save card checkbox — only when paying with new card */}
-            {((kind === 'bundles' && selectedProduct) || (kind !== 'bundles' && selectedPhoneNumber)) && savedCards.length > 0 && selectedPaymentMethodId === null && (
+            {((kind === 'bundles' && selectedProduct) || (kind !== 'bundles' && selectedPhoneNumber)) && selectedPaymentMethodId === null && (
               <label className="flex items-center gap-3 rounded-xl border-2 border-neutral-200 px-4 py-3 cursor-pointer hover:bg-neutral-50 transition-colors">
                 <input
                   type="checkbox"
