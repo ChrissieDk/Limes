@@ -174,7 +174,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
   // Saved card states
   const [savedCards, setSavedCards] = useState<SavedCard[]>([])
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null)
-  const [saveCardForFuture, setSaveCardForFuture] = useState(false)
+  const [saveCardForFuture, setSaveCardForFuture] = useState(true)
 
   const {
     bundleCategories,
@@ -359,6 +359,20 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     setIsPaymentProcessing(true)
     setPaymentError(null)
 
+    // Safety check: verify SIM is still active before charging
+    try {
+      const status = await subscriptionService.checkSimActive(selectedPhoneNumber)
+      if (!status.isActive) {
+        setPaymentError('This SIM is not active. Please wait for activation to complete before topping up.')
+        setIsPaymentProcessing(false)
+        return
+      }
+    } catch (err) {
+      // If the check itself fails, log and allow the purchase to proceed.
+      // The backend is the ultimate gatekeeper.
+      log.warn('topup_bundle_sim_status_check_failed', { msisdn: selectedPhoneNumber, error: getAxiosErrorMessage(err, 'unknown') })
+    }
+
     try {
       const amountInCents = toCents(selectedProduct.price)
 
@@ -494,6 +508,20 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
     setIsPaymentProcessing(true)
     setPaymentError(null)
+
+    // Safety check: verify SIM is still active before charging
+    try {
+      const status = await subscriptionService.checkSimActive(selectedPhoneNumber)
+      if (!status.isActive) {
+        setPaymentError('This SIM is not active. Please wait for activation to complete before topping up.')
+        setIsPaymentProcessing(false)
+        return
+      }
+    } catch (err) {
+      // If the check itself fails, log and allow the purchase to proceed.
+      // The backend is the ultimate gatekeeper.
+      log.warn('topup_dynamic_sim_status_check_failed', { msisdn: selectedPhoneNumber, error: getAxiosErrorMessage(err, 'unknown') })
+    }
 
     try {
       const serviceType = kind.toUpperCase() as ServiceType
@@ -788,7 +816,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
             )}
 
             {/* Save card checkbox — only when paying with new card */}
-            {((kind === 'bundles' && selectedProduct) || (kind !== 'bundles' && selectedPhoneNumber)) && savedCards.length > 0 && selectedPaymentMethodId === null && (
+            {((kind === 'bundles' && selectedProduct) || (kind !== 'bundles' && selectedPhoneNumber)) && selectedPaymentMethodId === null && (
               <label className="flex items-center gap-3 rounded-xl border-2 border-neutral-200 px-4 py-3 cursor-pointer hover:bg-neutral-50 transition-colors">
                 <input
                   type="checkbox"

@@ -133,12 +133,10 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
             }))
             setSimCards(updatedSimCards)
 
-            // Seed isActive from user data — eliminates the need for a batch check
-            const initialSimIsActive: Record<string, boolean> = {}
-            user.msisdns.forEach((md) => {
-              initialSimIsActive[md.msisdn] = md.hasActiveSubscription
-            })
-            setSimIsActive(initialSimIsActive)
+            // NOTE: We deliberately do NOT seed simIsActive from hasActiveSubscription.
+            // hasActiveSubscription reflects whether the user has a billing subscription,
+            // NOT whether the SIM is active on the network. Prepaid users would falsely
+            // appear inactive. We let the polling loop below truth every SIM from the API.
           }
         }
       } catch (err) {
@@ -283,10 +281,10 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
     }
   }, [simCards, currentSimIndex])
 
-  // Lightweight activation status refresh for the currently viewed SIM
+  // Lightweight activation status refresh for ALL SIMs
   useEffect(() => {
-    const msisdn = simCards[currentSimIndex]?.phoneNumber
-    if (!msisdn) return
+    const msisdns = simCards.map((s) => s.phoneNumber).filter(Boolean)
+    if (msisdns.length === 0) return
 
     let cancelled = false
 
@@ -297,19 +295,27 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
 
       activationPollInFlightRef.current = true
       try {
-        const response = await subscriptionService.checkSimActive(msisdn)
+        const results = await Promise.allSettled(
+          msisdns.map((msisdn) => subscriptionService.checkSimActive(msisdn))
+        )
         if (cancelled) return
 
-        setCanActivate((prev) => ({
-          ...prev,
-          [msisdn]:
-            response.isActive &&
-            (response.hasPendingOrders || response.hasPendingDynamicServices || false),
-        }))
-        setSimIsActive((prev) => ({
-          ...prev,
-          [msisdn]: response.isActive,
-        }))
+        results.forEach((result, idx) => {
+          const msisdn = msisdns[idx]
+          if (result.status === 'fulfilled') {
+            const response = result.value
+            setCanActivate((prev) => ({
+              ...prev,
+              [msisdn]:
+                response.isActive &&
+                (response.hasPendingOrders || response.hasPendingDynamicServices || false),
+            }))
+            setSimIsActive((prev) => ({
+              ...prev,
+              [msisdn]: response.isActive,
+            }))
+          }
+        })
       } catch {
         // Silent in background; initial activation checker already logs errors
       } finally {
@@ -324,7 +330,8 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
       cancelled = true
       window.clearInterval(id)
     }
-  }, [simCards, currentSimIndex])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simCards.map((s) => s.phoneNumber).join(',')])
 
   return {
     simCards,

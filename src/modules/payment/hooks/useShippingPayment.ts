@@ -45,7 +45,7 @@ export function useShippingPayment(
         amount_cents: selectedPackage?.priceInCents || selectedPackage?.price ? toCents(selectedPackage!.price) : 0,
       })
 
-      const verifyResponse = await paymentService.verifyPayment({ reference, saveCard: isSubscription })
+      const verifyResponse = await paymentService.verifyPayment({ reference, saveCard: true })
       if (!verifyResponse.success) {
         log.error('payment_verification_failed', { reference, error: verifyResponse.error || 'unknown' })
         throw new Error(verifyResponse.error || 'Payment verification failed')
