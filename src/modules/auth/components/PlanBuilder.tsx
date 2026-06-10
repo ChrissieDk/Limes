@@ -171,7 +171,7 @@ export default function PlanBuilder({ onContinue, onBack }: PlanBuilderProps) {
       <div className="rounded-[26px] bg-[#26252C] border border-white/10 p-7 shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <div className="font-grotesque font-bold text-white text-[28px] sm:text-[32px] leading-tight">Your plan total</div>
+            <div className="font-grotesque font-bold text-white text-[28px] sm:text-[32px] leading-tight">Your subscription total</div>
             <div className="mt-1 text-white/60 text-sm font-manrope">Review your selections and continue.</div>
           </div>
           <div className="text-right">

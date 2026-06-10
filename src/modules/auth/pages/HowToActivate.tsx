@@ -30,7 +30,7 @@ const scenarios = [
 const notes = [
   {
     title: 'Why do I need to click Activate?',
-    body: 'The Activate button processes pending orders and dynamic services that are queued for your SIM. Even if the network shows the SIM as active, this step ensures your bundles and plan features are fully provisioned.',
+    body: 'The Activate button processes pending orders and dynamic services that are queued for your SIM. Even if the network shows the SIM as active, this step ensures your bundles and subscription features are fully provisioned.',
   },
   {
     title: 'How long does activation take?',

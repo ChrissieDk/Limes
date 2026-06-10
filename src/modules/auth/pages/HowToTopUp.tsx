@@ -48,7 +48,7 @@ const tips = [
   },
   {
     title: 'What if I run out mid-month?',
-    body: 'Top up anytime — there are no restrictions. You can also change your entire monthly plan if you find you\'re consistently running low. No penalties, no fuss.',
+    body: 'Top up anytime — there are no restrictions. You can also change your entire monthly subscription if you find you\'re consistently running low. No penalties, no fuss.',
   },
 ]
 
@@ -130,7 +130,7 @@ export default function HowToTopUp() {
             </div>
             <p className="text-sm text-[#ABFF63] font-manrope">
               <span className="font-semibold">Pro tip:</span> If you consistently run low before month-end,
-              consider switching to a subscription plan. It renews automatically and you can change or cancel anytime.
+              consider switching to a subscription. It renews automatically and you can change or cancel anytime.
             </p>
           </div>
         </div>

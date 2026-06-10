@@ -1,10 +1,12 @@
 import * as Sentry from '@sentry/react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { HelmetProvider } from 'react-helmet-async'
 import './index.css'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 
+//sentry initialization
 Sentry.init({
   dsn: 'https://731e046d41281156c2fa304dfdb4101d@o4511324749824000.ingest.de.sentry.io/4511324754608208',
   environment: import.meta.env.MODE || 'development',
@@ -207,8 +209,10 @@ const root = createRoot(document.getElementById('root')!, {
 
 root.render(
   <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </HelmetProvider>
   </StrictMode>,
 )

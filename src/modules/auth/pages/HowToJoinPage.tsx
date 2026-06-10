@@ -6,9 +6,9 @@ import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 const steps = [
   {
     number: '01',
-    title: 'Pick your plan',
+    title: 'Pick your subscription',
     description:
-      'Choose a prepaid or subscription bundle that fits how you connect. Want full control? Use our plan builder to allocate your budget across data, airtime, voice, SMS and WhatsApp.',
+      'Choose a prepaid or subscription option that fits how you connect. Want full control? Use our subscription builder to allocate your budget across data, airtime, voice, SMS and WhatsApp.',
     colour: 'bg-yellow-300',
     textColour: 'text-neutral-900',
   },
@@ -98,7 +98,7 @@ export default function HowToJoinPage() {
               Get a new Limes SIM
             </h3>
             <p className="mt-3 text-[15px] md:text-base text-neutral-900/80 font-manrope leading-relaxed max-w-[52ch]">
-              Start fresh with a Limes number on prepaid or subscription. Choose a plan that suits you, order
+              Start fresh with a Limes number on prepaid or subscription. Choose a subscription that suits you, order
               online, and we&apos;ll deliver to your door.
             </p>
             <ul className="mt-4 space-y-2 text-sm text-neutral-900/70 font-manrope">

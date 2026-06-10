@@ -191,7 +191,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
         )
         setProducts(filteredProducts)
       } catch (err) {
-        setError('Failed to load packages. Please try again later.')
+        setError('Failed to load bundles. Please try again later.')
         console.error('Error fetching packages:', err)
       } finally {
         setLoading(false)
@@ -310,7 +310,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
         selectedPackage: {
           productId: 'dynamic-plan',
           simPackageProductId: simPackageProductId,
-          name: 'Custom Plan',
+          name: 'Custom Subscription',
           price: totalPriceInRands,
           priceInCents: totalPriceInCents,
           packageType: 'contract',
@@ -326,7 +326,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
               allocation.sms > 0 && `SMS: R${allocation.sms}`,
               allocation.voice > 0 && `Voice: R${allocation.voice}`,
               allocation.whatsapp > 0 && `WhatsApp: R${allocation.whatsapp}`,
-            ].filter(Boolean).join(', ') || 'Custom plan',
+            ].filter(Boolean).join(', ') || 'Custom subscription',
           },
         },
       },

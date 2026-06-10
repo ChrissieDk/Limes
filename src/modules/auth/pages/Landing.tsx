@@ -5,7 +5,6 @@ import TrustBar from '../components/TrustBar'
 import WhyChoose from '../components/WhyChoose'
 import HowToJoin from '../components/HowToJoin'
 import Packages from '../components/Packages'
-import Partners from '../components/Partners'
 import TelecomCta from '../components/TelecomCta'
 import ReviewsMarquee from '../components/ReviewsMarquee'
 import Footer from '../components/Footer'
@@ -53,7 +52,6 @@ export default function Landing() {
         
         <Packages />
         <HowToJoin />
-        <Partners />
         <TelecomCta />
         <ReviewsMarquee />
         <Footer />

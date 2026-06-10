@@ -86,11 +86,11 @@ export default function Packages() {
     <section id="packages" className="relative bg-neutral-900">
       <div className="mx-auto max-w-6xl px-6 pt-14 pb-24">
         <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
-          <span className="w-2.5 h-2.5 rounded-full bg-pink-300 mr-3 translate-y-[1px]" /> Our Packages
+          <span className="w-2.5 h-2.5 rounded-full bg-pink-300 mr-3 translate-y-[1px]" /> Our Subscriptions
         </div>
 
         <h2 className="mt-4 text-center font-grotesque font-bold text-white text-[34px] sm:text-[44px] md:text-[56px] leading-[1.05]">
-          Flexible plans that suit how you
+          Flexible subscriptions that suit how you
           <br />
           connect
         </h2>

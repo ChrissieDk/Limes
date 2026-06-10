@@ -108,7 +108,7 @@ export default function SignUp() {
         </>
       }
       subheading={
-        <>Join the community where your mobile plan actually makes sense for you.</>
+        <>Join the community where your mobile subscription actually makes sense for you.</>
       }
       side={
         <div className="h-full w-full rounded-3xl overflow-hidden flex items-center justify-center p-3">
