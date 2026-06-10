@@ -1,5 +1,6 @@
 import { useLayoutEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import SEO from './components/SEO'
 
 export default function RootLayout() {
   const { pathname, hash } = useLocation()
@@ -12,5 +13,10 @@ export default function RootLayout() {
     window.scrollTo(0, 0)
   }, [pathname, hash])
 
-  return <Outlet />
+  return (
+    <>
+      <SEO />
+      <Outlet />
+    </>
+  )
 }
