@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 
@@ -11,9 +11,19 @@ const navLinks = [
   { href: '/#partners', label: 'Partners', dot: 'bg-blue-400', isRoute: true },
 ]
 
+function isNavLinkActive(item: typeof navLinks[number], pathname: string, hash: string) {
+  if (item.isRoute) {
+    return pathname === item.href
+  }
+  const expectedHash = item.href.replace(/^.*#/, '#')
+  return pathname === '/' && hash === expectedHash
+}
+
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const { pathname, hash } = useLocation()
 
   useEffect(() => {
     const onHash = (e: MouseEvent) => {
@@ -31,9 +41,22 @@ export default function Navbar() {
     return unsubscribe
   }, [])
 
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
-    <div className="sticky top-3 z-10 px-3 sm:px-0">
-      <nav className="w-full mx-auto max-w-6xl rounded-xl bg-[#26252C] text-white shadow-sm ring-1 ring-white/10">
+    <div className="fixed top-3 left-0 right-0 z-50 px-3 sm:px-0">
+      <nav
+        className={`w-full mx-auto max-w-6xl rounded-xl text-white shadow-sm ring-1 transition-all duration-300 ${
+          scrolled
+            ? 'bg-[#26252C]/85 backdrop-blur-xl ring-white/20 shadow-lg'
+            : 'bg-[#26252C] ring-white/10'
+        }`}
+      >
         <div className="flex md:grid md:grid-cols-[1fr_auto_1fr] items-center justify-between md:justify-normal px-5 py-3">
           <div className="flex items-center gap-8 justify-self-start">
             <Link to="/">
@@ -42,25 +65,28 @@ export default function Navbar() {
           </div>
 
           <ul className="hidden md:flex gap-6 text-[15px]">
-            {navLinks.map((item) => (
-              <li key={item.href}>
-                {item.isRoute ? (
-                  <Link to={item.href} className="group inline-flex flex-col items-center">
-                    <span className="font-manrope font-medium transition-colors duration-200 group-hover:text-white">{item.label}</span>
-                    <span className={`mt-1 size-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${item.dot}`} />
-                  </Link>
-                ) : (
-                  <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group inline-flex flex-col items-center">
-                    <span className="font-manrope font-medium transition-colors duration-200 group-hover:text-white">{item.label}</span>
-                    <span className={`mt-1 size-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${item.dot}`} />
-                  </a>
-                )}
-              </li>
-            ))}
+            {navLinks.map((item) => {
+              const active = isNavLinkActive(item, pathname, hash)
+              return (
+                <li key={item.href}>
+                  {item.isRoute ? (
+                    <Link to={item.href} className="group inline-flex flex-col items-center">
+                      <span className={`font-manrope font-medium transition-colors duration-200 ${active ? 'text-white' : 'group-hover:text-white'}`}>{item.label}</span>
+                      <span className={`mt-1 size-1.5 rounded-full transition-opacity duration-200 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
+                    </Link>
+                  ) : (
+                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group inline-flex flex-col items-center">
+                      <span className={`font-manrope font-medium transition-colors duration-200 ${active ? 'text-white' : 'group-hover:text-white'}`}>{item.label}</span>
+                      <span className={`mt-1 size-1.5 rounded-full transition-opacity duration-200 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
+                    </a>
+                  )}
+                </li>
+              )
+            })}
             <li>
               <Link to="/faqs" className="group inline-flex flex-col items-center">
-                <span className="font-medium transition-colors duration-200 group-hover:text-white">FAQs</span>
-                <span className="mt-1 size-1.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 bg-purple-400" />
+                <span className={`font-medium transition-colors duration-200 ${pathname === '/faqs' ? 'text-white' : 'group-hover:text-white'}`}>FAQs</span>
+                <span className={`mt-1 size-1.5 rounded-full bg-purple-400 transition-opacity duration-200 ${pathname === '/faqs' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
               </Link>
             </li>
           </ul>
@@ -92,33 +118,36 @@ export default function Navbar() {
           </div>
         </div>
 
-          <div className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? 'max-h-[500px]' : 'max-h-0'}`}>
+        <div className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? 'max-h-[500px]' : 'max-h-0'}`}>
           <ul className="px-5 pb-4 space-y-2">
-            {navLinks.map((item) => (
-              <li key={item.href}>
-                {item.isRoute ? (
-                  <Link to={item.href} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
-                    <div className="flex items-center gap-3">
-                      <span className={`size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${item.dot}`} />
-                      <span className="font-manrope text-sm font-medium">{item.label}</span>
-                    </div>
-                    <span className="text-white/40">›</span>
-                  </Link>
-                ) : (
-                  <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
-                    <div className="flex items-center gap-3">
-                      <span className={`size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${item.dot}`} />
-                      <span className="font-manrope text-sm font-medium">{item.label}</span>
-                    </div>
-                    <span className="text-white/40">›</span>
-                  </a>
-                )}
-              </li>
-            ))}
+            {navLinks.map((item) => {
+              const active = isNavLinkActive(item, pathname, hash)
+              return (
+                <li key={item.href}>
+                  {item.isRoute ? (
+                    <Link to={item.href} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
+                      <div className="flex items-center gap-3">
+                        <span className={`size-2 rounded-full transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
+                        <span className="font-manrope text-sm font-medium">{item.label}</span>
+                      </div>
+                      <span className="text-white/40">›</span>
+                    </Link>
+                  ) : (
+                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
+                      <div className="flex items-center gap-3">
+                        <span className={`size-2 rounded-full transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
+                        <span className="font-manrope text-sm font-medium">{item.label}</span>
+                      </div>
+                      <span className="text-white/40">›</span>
+                    </a>
+                  )}
+                </li>
+              )
+            })}
             <li>
               <Link to="/faqs" className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
                 <div className="flex items-center gap-3">
-                  <span className="size-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-purple-400" />
+                  <span className={`size-2 rounded-full transition-opacity ${pathname === '/faqs' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} bg-purple-400`} />
                   <span className="font-manrope text-sm font-medium">FAQs</span>
                 </div>
                 <span className="text-white/40">›</span>
