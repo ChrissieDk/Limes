@@ -14,6 +14,7 @@ import Landing from './modules/auth/pages/Landing'
 import Contact from './modules/auth/pages/Contact'
 import Faqs from './modules/auth/pages/Faqs'
 import HowItWorks from './modules/auth/pages/HowItWorks'
+import PartnersPage from './modules/auth/pages/PartnersPage'
 import HowToHub from './modules/auth/pages/HowToHub'
 import HowToJoinPage from './modules/auth/pages/HowToJoinPage'
 import HowToActivate from './modules/auth/pages/HowToActivate'
@@ -50,6 +51,10 @@ const router = sentryCreateBrowserRouter(
         {
           path: '/how-it-works',
           element: <HowItWorks />,
+        },
+        {
+          path: '/partners',
+          element: <PartnersPage />,
         },
         {
           path: '/how-to',
