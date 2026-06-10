@@ -8,7 +8,7 @@ export default function Footer() {
     { label: 'Why Choose Limes', href: `${base}#why` },
     { label: 'How It Works', href: `/how-it-works`, isRoute: true },
     { label: 'Subscriptions', href: `${base}#packages` },
-    { label: 'Partner With Us', href: `${base}#partners` },
+    { label: 'Partner With Us', href: '/partners', isRoute: true },
     { label: 'FAQs', href: `/faqs`, isRoute: true },
   ]
 

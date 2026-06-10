@@ -8,7 +8,7 @@ const navLinks = [
   { href: '/#why', label: 'Why Choose', dot: 'bg-purple-400' },
   { href: '/how-to', label: "How To's", dot: 'bg-lime-400', isRoute: true },
   { href: '/#packages', label: 'Subscriptions', dot: 'bg-pink-400' },
-  { href: '/#partners', label: 'Partners', dot: 'bg-blue-400', isRoute: true },
+  { href: '/partners', label: 'Partners', dot: 'bg-blue-400', isRoute: true },
 ]
 
 function isNavLinkActive(item: typeof navLinks[number], pathname: string, hash: string) {
@@ -49,11 +49,12 @@ export default function Navbar() {
   }, [])
 
   return (
-    <div className="fixed top-3 left-0 right-0 z-50 px-3 sm:px-0">
+    <>
+      <div className="fixed top-3 left-0 right-0 z-50 px-3 sm:px-0">
       <nav
         className={`w-full mx-auto max-w-6xl rounded-xl text-white shadow-sm ring-1 transition-all duration-300 ${
           scrolled
-            ? 'bg-[#26252C]/85 backdrop-blur-xl ring-white/20 shadow-lg'
+            ? 'bg-[#26252C]/75 backdrop-blur-xl ring-white/20 shadow-lg'
             : 'bg-[#26252C] ring-white/10'
         }`}
       >
@@ -171,6 +172,8 @@ export default function Navbar() {
           </ul>
         </div>
       </nav>
-    </div>
+      </div>
+      <div className="h-[84px]" aria-hidden="true" />
+    </>
   )
 }
