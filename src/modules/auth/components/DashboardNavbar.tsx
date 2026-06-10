@@ -49,7 +49,7 @@ const PROVISIONED_ONLY_PATHS = new Set<string>([
   '/dashboard/delivery-tracking',
 ])
 
-const DISABLED_TAB_TITLE = 'Complete your plan and SIM setup first.'
+const DISABLED_TAB_TITLE = 'Complete your subscription and SIM setup first.'
 
 export default function DashboardNavbar() {
   const { pathname } = useLocation()

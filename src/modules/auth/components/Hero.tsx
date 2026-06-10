@@ -35,14 +35,14 @@ export default function Hero() {
         </h1>
 
         <p className="font-manrope mt-8 max-w-xl text-neutral-400 text-base md:text-lg">
-          Prepaid or subscription. Build your own plan or pick a bundle. Switch in minutes, not days — and
+          Prepaid or subscription. Build your own subscription or pick a subscription. Switch in minutes, not days — and
           only pay for what you actually use.
         </p>
 
         <div className="font-manrope mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-neutral-400">
           <span>Prepaid or subscription</span>
           <span className="size-1.5 rounded-full bg-yellow-400" />
-          <span>Flexible plans</span>
+          <span>Flexible subscriptions</span>
           <span className="size-1.5 rounded-full bg-green-400" />
           <span>Simple switching</span>
         </div>
@@ -50,7 +50,7 @@ export default function Hero() {
         <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
           <div className="w-full sm:w-44">
             <Link to={ctaPath}>
-              <Button variant="primary">View packages</Button>
+              <Button variant="primary">View subscriptions</Button>
             </Link>
           </div>
           <div className="w-full sm:w-44">

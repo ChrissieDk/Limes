@@ -213,7 +213,7 @@ export default function ShippingModal({
               Confirm SIM delivery
             </div>
             <div className="font-manrope text-sm text-neutral-500 mt-0.5">
-              Review your package and shipping details
+              Review your subscription and shipping details
             </div>
           </div>
           <button 
@@ -232,7 +232,7 @@ export default function ShippingModal({
             {selectedPackage && (
               <div className="space-y-3">
                 <h3 className="font-grotesque text-neutral-900 font-medium text-[20px] leading-[1.1]">
-                  Selected package
+                  Selected subscription
                 </h3>
                 <div className="rounded-[22px] border border-[#ABFF63] bg-[#EEFFD9] p-5">
                   <div className="flex items-start justify-between mb-3">
@@ -249,7 +249,7 @@ export default function ShippingModal({
                         </div>
                         <div className="font-manrope text-sm text-neutral-600">Product ID: {selectedPackage.productId}</div>
                         {selectedPackage.simPackageProductId && (
-                          <div className="font-manrope text-sm text-neutral-600">SIM Package: {selectedPackage.simPackageProductId}</div>
+                          <div className="font-manrope text-sm text-neutral-600">SIM Subscription: {selectedPackage.simPackageProductId}</div>
                         )}
                       </div>
                     </div>
@@ -552,7 +552,7 @@ export default function ShippingModal({
               <div className="space-y-4 pt-2">
                 <div className="rounded-[18px] bg-neutral-100 p-5 space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-600">Package</span>
+                    <span className="text-neutral-600">Subscription</span>
                     <span className="font-semibold text-neutral-900">R{selectedPackage.price}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">

@@ -146,7 +146,7 @@ function Dashboard() {
       await subscriptionService.migrateToContract(msisdn, PRODUCT_IDS.CONTRACT_SA)
       refresh()
     } catch (err) {
-      throw new Error(getAxiosErrorMessage(err, 'Failed to switch to contract'))
+      throw new Error(getAxiosErrorMessage(err, 'Failed to switch to subscription'))
     }
   }
 

@@ -17,7 +17,7 @@ export default function Partners() {
       key: 'wholesale',
       title: 'Wholesale pricing advantage',
       description:
-        'Access discounted rates on voice, data, and IoT services, allowing you to offer competitive plans or boost margins.',
+        'Access discounted rates on voice, data, and IoT services, allowing you to offer competitive subscriptions or boost margins.',
       bgClass: 'bg-pink-300',
       textClass: 'text-neutral-900',
       icon: (
@@ -59,9 +59,9 @@ export default function Partners() {
     },
     {
       key: 'custom',
-      title: 'Customisable plans',
+      title: 'Customisable subscriptions',
       description:
-        'Tailor prepaid, postpaid, or IoT packages to fit your customers’ or employees’ needs.',
+        'Tailor prepaid, postpaid, or IoT subscriptions to fit your customers’ or employees’ needs.',
       bgClass: 'bg-white',
       textClass: 'text-neutral-900',
       icon: (

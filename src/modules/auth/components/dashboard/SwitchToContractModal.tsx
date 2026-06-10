@@ -119,7 +119,7 @@ export function SwitchToContractModal({ open, onClose, msisdn, productId, onConf
                 <span className="font-manrope text-sm font-semibold text-neutral-900">{msisdn}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-manrope text-sm text-neutral-500">Target Package ID</span>
+                <span className="font-manrope text-sm text-neutral-500">Target Subscription ID</span>
                 <span className="font-manrope text-sm font-semibold text-neutral-900">{productId}</span>
               </div>
             </div>

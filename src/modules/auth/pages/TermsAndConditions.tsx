@@ -32,7 +32,7 @@ export default function TermsAndConditions() {
 
           <p className="font-grotesque font-semibold text-white">1. Definitions</p>
           <p>1.1 &quot;Limes Mobile&quot; means Limes Mobile , a division of Simpal (Pty) Ltd, registration number 2014/017358/07.</p>
-          <p>1.2 &quot;The Website&quot; https://www.limes.network/ which is owned and operated by Limes Mobile, a division of Simpal (Pty) Ltd.</p>
+          <p>1.2 &quot;The Website&quot; https://www.limesmobile.co.za/ which is owned and operated by Limes Mobile, a division of Simpal (Pty) Ltd.</p>
           <p>1.3 &quot;User&quot; means any person that enters or uses the Website.</p>
           <p>1.4 &quot;we&quot;, &quot;us&quot; and &quot;our&quot; means Limes Mobile Mobile, its affiliates, subsidiaries or its successors-in-title;</p>
           <p>1.5 &quot;you&quot; and/or &quot;your&quot; means you the User</p>
@@ -52,7 +52,7 @@ export default function TermsAndConditions() {
             following information is therefore disclosed in terms of section 43 of the ECT Act:
           </p>
           <p>3.1 Street address: Unit 7B OLD MILL BUSINESS PARK, Cape Town, 7405, Western Cape, South Africa.</p>
-          <p>3.2 The website address is: https://www.limes.network/</p>
+          <p>3.2 The website address is: https://www.limesmobile.co.za/</p>
 
           <p className="font-grotesque font-semibold text-white">4. Disclaimer</p>
           <p>

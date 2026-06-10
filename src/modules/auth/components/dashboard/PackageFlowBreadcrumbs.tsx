@@ -30,7 +30,7 @@ function getPackageFlowBreadcrumbItems(input: PackageFlowBreadcrumbInput): Bread
     comboBundleCount,
   } = input
 
-  const items: BreadcrumbItem[] = [{ label: 'Packages' }]
+  const items: BreadcrumbItem[] = [{ label: 'Subscriptions' }]
 
   if (!packageType) {
     return items
@@ -39,13 +39,13 @@ function getPackageFlowBreadcrumbItems(input: PackageFlowBreadcrumbInput): Bread
   items.push({ label: packageType === 'contract' ? 'Subscription' : 'Prepaid' })
 
   if (packageType === 'contract' && !contractFlowType) {
-    items.push({ label: 'Plan type' })
+    items.push({ label: 'Subscription type' })
     return items
   }
 
   if (packageType === 'contract' && contractFlowType) {
     items.push({
-      label: contractFlowType === 'dynamic' ? 'Build your own' : 'Combo bundles',
+      label: contractFlowType === 'dynamic' ? 'Build your own' : 'Combo subscriptions',
     })
   }
 
@@ -73,20 +73,20 @@ function getPackageFlowBreadcrumbItems(input: PackageFlowBreadcrumbInput): Bread
 
   if (prepaidReadyForBundles) {
     if (bundleCategories.length > 0 && !selectedBundleCategory && !showPackages) {
-      items.push({ label: 'Bundle types' })
+      items.push({ label: 'Subscription types' })
       return items
     }
     if (showPackages && selectedBundleCategory) {
       const cat = bundleCategories.find((c) => c.id === selectedBundleCategory)
-      items.push({ label: cat?.name?.trim() || 'Bundles' })
-      items.push({ label: 'Packages' })
+      items.push({ label: cat?.name?.trim() || 'Subscriptions' })
+      items.push({ label: 'Subscriptions' })
       return items
     }
     return items
   }
 
   if (packageType === 'contract' && contractFlowType === 'dynamic' && showPlanBuilder && !planAllocation) {
-    items.push({ label: 'Customise plan' })
+    items.push({ label: 'Customise subscription' })
     return items
   }
 

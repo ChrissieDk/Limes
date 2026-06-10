@@ -5,9 +5,9 @@ import Footer from '../components/Footer'
 const steps = [
   {
     number: '01',
-    title: 'Pick your plan',
+    title: 'Pick your subscription',
     description:
-      'Choose a prepaid or subscription bundle that fits how you connect. Want full control? Use our plan builder to allocate your budget across data, airtime, voice, SMS and WhatsApp.',
+      'Choose a prepaid or subscription option that fits how you connect. Want full control? Use our subscription builder to allocate your budget across data, airtime, voice, SMS and WhatsApp.',
     colour: 'bg-yellow-300',
     textColour: 'text-neutral-900',
   },
@@ -72,7 +72,7 @@ export default function HowItWorks() {
         </h1>
         <p className="mt-4 text-center text-neutral-400 text-base md:text-lg font-manrope max-w-2xl mx-auto">
           No store visits. No paperwork marathons. No locked-in subscriptions. Just four steps
-          between you and a plan that actually fits.
+          between you and a subscription that actually fits.
         </p>
       </section>
 

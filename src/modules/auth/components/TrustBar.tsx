@@ -28,7 +28,7 @@ const items = [
   {
     icon: `${base}images/data_icon.svg`,
     label: 'Only pay for what you use',
-    sub: 'Build your own plan',
+    sub: 'Build your own subscription',
     bg: 'bg-[#ABFF63]',
   },
   {

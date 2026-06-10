@@ -95,25 +95,23 @@ function PageHeader({
   comboBundleCount: number
 }) {
   const title = !packageType
-    ? 'Choose your package type'
+    ? 'Choose your subscription type'
     : packageType === 'contract' && !contractFlowType
-      ? 'Choose your plan type'
+      ? 'Choose your subscription type'
       : packageType === 'prepaid' && !simStatus
         ? 'Do you have a SIM?'
         : packageType === 'contract' && contractFlowType && !simStatus
           ? 'Do you have a SIM?'
-          : simStatus === 'has-sim' && !iccidConfirmed
-            ? 'Enter your ICCID'
-            : simStatus && !selectedBundleCategory && packageType === 'prepaid'
-              ? 'Choose your bundle type'
+          : simStatus && !selectedBundleCategory && packageType === 'prepaid'
+              ? 'Choose your subscription type'
               : comboBundleCount > 0
-                ? 'Choose your combo bundle'
-                : 'Your packages'
+                ? 'Choose your combo subscription'
+                : 'Your subscriptions'
 
   const subtitle = !packageType
     ? 'Select between subscription or prepaid options'
     : packageType === 'contract' && !contractFlowType
-      ? 'Build your own plan or choose a combo bundle'
+      ? 'Build your own subscription or choose a combo subscription'
       : packageType === 'prepaid' && !simStatus
         ? 'Let us know if you already have a SIM card'
         : packageType === 'contract' && contractFlowType && !simStatus
@@ -121,10 +119,10 @@ function PageHeader({
           : simStatus === 'has-sim' && !iccidConfirmed
             ? 'Found on the back of your SIM card'
             : simStatus && !selectedBundleCategory && packageType === 'prepaid'
-              ? 'Select the type of bundle you need'
+              ? 'Select the type of subscription you need'
               : comboBundleCount > 0
-                ? `${comboBundleCount} combo bundles available`
-                : `Showing ${selectedBundleCategory || packageType} packages`
+                ? `${comboBundleCount} combo subscriptions available`
+                : `Showing ${selectedBundleCategory || packageType} subscriptions`
 
   return (
     <>
@@ -198,7 +196,7 @@ export default function DashboardPackages() {
           </div>
           <div className="mx-auto max-w-6xl px-2 sm:px-6 pt-4 sm:pt-6">
             <div className="font-manrope flex items-center justify-center text-sm text-neutral-400">
-              <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Packages
+              <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Subscriptions
             </div>
             <PageHeader
               packageType={packageType}
@@ -223,7 +221,7 @@ export default function DashboardPackages() {
                       <img src={`${import.meta.env.BASE_URL}images/house.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
                     </div>
                     <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Subscription</h3>
-                    <p className="font-manrope mt-1.5 text-neutral-900/80 text-base md:text-lg">Long-term plans with SIM delivery.</p>
+                    <p className="font-manrope mt-1.5 text-neutral-900/80 text-base md:text-lg">Long-term subscriptions with SIM delivery.</p>
                     <div className="mt-3 text-neutral-900 font-semibold inline-flex items-center gap-2">
                       <span>I want a Subscription</span>
                       <span aria-hidden="true">→</span>
@@ -261,7 +259,7 @@ export default function DashboardPackages() {
                       </div>
                       <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Build your own</h3>
                       <p className="font-manrope mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
-                        <span>Customise your perfect plan</span>
+                        <span>Customise your perfect subscription</span>
                         <span aria-hidden="true">→</span>
                       </p>
                     </button>
@@ -273,9 +271,9 @@ export default function DashboardPackages() {
                       <div className="mb-4">
                         <img src={`${import.meta.env.BASE_URL}images/zblock.png`} alt="" aria-hidden="true" className="h-11 w-11 select-none" />
                       </div>
-                      <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Combo bundles</h3>
+                      <h3 className="font-grotesque text-neutral-900 font-bold text-[30px] md:text-[34px] leading-[1.05]">Combo subscriptions</h3>
                       <p className="font-manrope mt-1.5 text-neutral-900 text-base md:text-lg inline-flex items-center gap-2">
-                        <span>Choose from our bundles</span>
+                        <span>Choose from our subscriptions</span>
                         <span aria-hidden="true">→</span>
                       </p>
                     </button>
@@ -406,7 +404,7 @@ export default function DashboardPackages() {
               {packageType === 'prepaid' && showPackages && selectedBundleCategory && (
                 <div>
                   <div className="flex items-center gap-4 mb-6">
-                    <BackButton onClick={handleBackFromPackages} label="Back to bundles" />
+                    <BackButton onClick={handleBackFromPackages} label="Back to subscriptions" />
                     <button
                       onClick={handleReset}
                       className="px-6 py-3 rounded-xl bg-neutral-700 text-white font-semibold hover:bg-neutral-600 transition-colors"
@@ -461,7 +459,7 @@ export default function DashboardPackages() {
                     </div>
                   ) : (
                     <div className="text-center py-12 text-neutral-400">
-                      <p className="font-manrope text-lg">No packages available in this category.</p>
+                      <p className="font-manrope text-lg">No subscriptions available in this category.</p>
                     </div>
                   )}
                 </div>

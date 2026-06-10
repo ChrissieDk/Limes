@@ -127,7 +127,7 @@ function PaymentSummary({ label, amount, onPurchase, isProcessing, isSuccess }: 
       <div className="rounded-2xl bg-neutral-50 p-5 space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-neutral-600 font-medium">{label}</span>
-          <span className="font-semibold text-neutral-900">{label === 'Bundle' ? amount : 'Airtime'}</span>
+          <span className="font-semibold text-neutral-900">{label === 'Subscription' ? amount : 'Airtime'}</span>
         </div>
         <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
           <span className="font-grotesque font-bold text-neutral-900 text-base">Total</span>
@@ -302,7 +302,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
     const sv = convertRandsToServiceValue(kind.toUpperCase() as ServiceType, price, 'prepaid')
     if (sv === null) {
       log.error('topup_dynamic_service_conversion_failed', { kind, price })
-      throw new Error(`${kind} service is not available for prepaid packages`)
+      throw new Error(`${kind} service is not available for prepaid bundles`)
     }
 
     const dc = (kind.toUpperCase() === 'AIRTIME' ? 'GPA_CREDIT' : kind.toUpperCase()) as 'DATA' | 'VOICE' | 'SMS' | 'WHATSAPP' | 'GPA_CREDIT'
@@ -528,7 +528,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
       const serviceValue = convertRandsToServiceValue(serviceType, price, 'prepaid')
 
       if (serviceValue === null) {
-        setPaymentError(`${kind} service is not available for prepaid packages`)
+        setPaymentError(`${kind} service is not available for prepaid bundles`)
         log.warn('topup_dynamic_init_failed', { reason: 'service_unavailable', service_type: serviceType, price })
         return
       }
@@ -841,7 +841,7 @@ export default function TopUpModal({ open, onClose, phoneNumber, phoneNumbers }:
 
             {kind === 'bundles' && selectedProduct && (
               <PaymentSummary
-                label="Bundle"
+                label="Subscription"
                 amount={`R${selectedProduct.price.toFixed(2)}`}
                 onPurchase={handlePurchaseBundle}
                 isProcessing={isPaymentProcessing}

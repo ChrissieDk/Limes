@@ -1,7 +1,7 @@
 const reviews = [
   {
     quote:
-      "Switching to Limes was the easiest telecom decision I've made. The plan builder let me allocate exactly what my team needs — no bloated subscriptions, no nonsense.",
+      "Switching to Limes was the easiest telecom decision I've made. The subscription builder let me allocate exactly what my team needs — no bloated subscriptions, no nonsense.",
     name: 'Hayley',
     role: 'Business Owner / Creative',
     accent: 'bg-yellow-300',
@@ -33,7 +33,7 @@ const reviews = [
   },
   {
     quote:
-      "Great service, quick turnaround, and the cashback is a genuinely nice perk. I built my own plan in about two minutes and haven't thought about my mobile bill since.",
+      "Great service, quick turnaround, and the cashback is a genuinely nice perk. I built my own subscription in about two minutes and haven't thought about my mobile bill since.",
     name: 'Christiaan',
     role: 'Developer / Creative',
     accent: 'bg-[#ABFF63]',
