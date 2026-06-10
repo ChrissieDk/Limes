@@ -333,7 +333,7 @@ export default function ChoosePackageModal({ open, onClose, selectedPackage }: C
       <div className="relative w-full max-w-xl mx-0 sm:mx-4 rounded-2xl bg-white text-neutral-900 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[82vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 sticky top-0 bg-white z-10 rounded-t-2xl">
           <div>
-            <div className="font-normal text-xl">Choose a package</div>
+            <div className="font-normal text-xl">Choose a subscription</div>
             <div className="font-manrope text-sm text-neutral-500">Provide details to create your account</div>
           </div>
           <button aria-label="Close" className="size-10 grid place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100 text-2xl" onClick={onClose}>×</button>

@@ -7,7 +7,7 @@ const timeline = [
     number: '01',
     title: 'Order confirmed',
     description:
-      'Once you\'ve selected your plan and completed checkout, your order is confirmed and sent to our warehouse. You\'ll receive an email confirmation with your order details.',
+      'Once you\'ve selected your subscription and completed checkout, your order is confirmed and sent to our warehouse. You\'ll receive an email confirmation with your order details.',
     colour: 'bg-yellow-300',
   },
   {

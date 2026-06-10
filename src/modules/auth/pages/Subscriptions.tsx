@@ -16,10 +16,10 @@ import {
 
 // Map product IDs and Paystack plan codes to friendly names
 const PLAN_CODE_TO_NAME: Record<string, string> = {
-  '40021': 'Lite Monthly Plan',
-  '40022': '300MB Monthly Plan',
-  'PLN_h1tdp1icb27ss2w': '300MB Monthly Plan',
-  'PLN_anjvoror46vxqvaw': 'Test Monthly Plan',
+  '40021': 'Lite Monthly Subscription',
+  '40022': '300MB Monthly Subscription',
+  'PLN_h1tdp1icb27ss2w': '300MB Monthly Subscription',
+  'PLN_anjvoror46vxqvaw': 'Test Monthly Subscription',
 };
 
 function getStatusColor(status: string) {
@@ -44,9 +44,9 @@ function getPlanName(subscription: SubscriptionWithDetails) {
     return PLAN_CODE_TO_NAME[subscription.productId];
   }
   if (subscription.hasDynamicServices || subscription.productId === 'DYNAMIC_SERVICES') {
-    return 'Build Your Own Plan';
+    return 'Build Your Own Subscription';
   }
-  return `Plan ${subscription.productId}`;
+  return `Subscription ${subscription.productId}`;
 }
 
 interface SubscriptionWithDetails extends SubscriptionDetails {
@@ -165,7 +165,7 @@ function Subscriptions() {
             My subscriptions
           </h1>
           <p className="font-manrope mt-3 text-center text-neutral-400 text-sm">
-            Manage your active recurring plans
+            Manage your active recurring subscriptions
           </p>
         </div>
 
@@ -236,7 +236,7 @@ function Subscriptions() {
                 onClick={() => navigate('/dashboard/packages')}
                 className="w-full inline-flex items-center justify-center rounded-2xl bg-[#ABFF63] text-neutral-900 h-12 text-sm font-semibold hover:brightness-95 transition"
               >
-                Browse plans
+                Browse subscriptions
               </button>
             </div>
 
@@ -248,12 +248,12 @@ function Subscriptions() {
                 Your subscription data is synced from your account and will be available across all your devices.
               </p>
               <p className="font-manrope text-neutral-400 text-sm mt-3">
-                To view or purchase new plans,{' '}
+                To view or purchase new subscriptions,{' '}
                 <button
                   onClick={() => navigate('/dashboard/packages')}
                   className="text-[#ABFF63] hover:underline"
                 >
-                  view our packages
+                  view our subscriptions
                 </button>
                 .
               </p>
@@ -309,7 +309,7 @@ function Subscriptions() {
                       </div>
                       <div className="space-y-1">
                         <p className="font-manrope text-neutral-500 text-xs">
-                          Plan Code: {sub.paystackPlanCode}
+                          Subscription Code: {sub.paystackPlanCode}
                         </p>
                         <p className="font-manrope text-neutral-400 text-sm">
                           Subscription ID: {sub.paystackSubscriptionCode}
@@ -399,7 +399,7 @@ function Subscriptions() {
                   <ul className="text-neutral-400 text-sm space-y-1">
                     <li>• Subscriptions renew automatically on the next payment date</li>
                     <li>• Cancelling a subscription will stop future charges but keep your access until the end of the current period</li>
-                    <li>• You can reactivate a cancelled subscription by purchasing the plan again</li>
+                    <li>• You can reactivate a cancelled subscription by purchasing the subscription again</li>
                     <li>• Payment is processed using your saved payment method</li>
                   </ul>
                 </div>
@@ -459,7 +459,7 @@ function Subscriptions() {
                     <div>
                       <p className="font-grotesque text-white font-semibold text-sm">Resubscribe Anytime</p>
                       <p className="font-manrope text-neutral-400 text-sm">
-                        You can choose a new package from our plans page once this expires
+                        You can choose a new subscription from our subscriptions page once this expires
                       </p>
                     </div>
                   </div>

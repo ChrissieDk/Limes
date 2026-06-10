@@ -106,7 +106,7 @@ export function useShippingPayment(
         items: [
           {
             item_id: String(selectedPackage?.productId || selectedPackage?.simPackageProductId || 'unknown'),
-            item_name: selectedPackage?.name || 'SIM Package',
+            item_name: selectedPackage?.name || 'SIM Subscription',
             price: totalPriceRands,
             quantity: 1,
             item_category: selectedPackage?.packageType || undefined,
@@ -209,7 +209,7 @@ export function useShippingPayment(
 
   const initializePayment = async () => {
     if (!selectedPackage) {
-      setVerificationError('Please select a package')
+      setVerificationError('Please select a subscription')
       log.warn('payment_init_no_package', { reason: 'no_package_selected' })
       return
     }
@@ -231,8 +231,8 @@ export function useShippingPayment(
       }
 
       if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
-        if (!ricaData) { setVerificationError('RICA data is required for contract plans'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'rica_data_missing' }); return }
-        if (!selectedPackage.simPackageProductId) { setVerificationError('SIM package product ID is required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'sim_package_product_id_missing' }); return }
+        if (!ricaData) { setVerificationError('RICA data is required for subscriptions'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'rica_data_missing' }); return }
+        if (!selectedPackage.simPackageProductId) { setVerificationError('SIM subscription product ID is required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'sim_package_product_id_missing' }); return }
         const services = buildServicesFromAllocation(selectedPackage.planAllocation, selectedPackage.packageType || 'prepaid')
         log.info('payment_initializing', { ...baseLogAttrs, flow: 'dynamic_services' })
         initResponse = await paymentService.initializeDynamicServicesPayment({
@@ -275,7 +275,7 @@ export function useShippingPayment(
         items: [
           {
             item_id: String(selectedPackage?.productId || selectedPackage?.simPackageProductId || 'unknown'),
-            item_name: selectedPackage?.name || 'SIM Package',
+            item_name: selectedPackage?.name || 'SIM Subscription',
             price: totalPriceRands,
             quantity: 1,
             item_category: selectedPackage?.packageType || undefined,

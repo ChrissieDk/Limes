@@ -7,7 +7,7 @@ const steps = [
     number: '01',
     title: 'Log into your profile',
     description:
-      'Head to limes.network and sign into your account. RICA is part of the onboarding flow, but you can also complete it later from your dashboard if you skipped it.',
+      'Head to limesmobile.co.za and sign into your account. RICA is part of the onboarding flow, but you can also complete it later from your dashboard if you skipped it.',
     colour: 'bg-[#5BA0FF]',
   },
   {

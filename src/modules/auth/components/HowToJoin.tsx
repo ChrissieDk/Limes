@@ -27,7 +27,7 @@ export default function HowToJoin() {
             Get a new Limes SIM
           </h3>
           <p className="mt-2.5 text-[15px] md:text-base text-neutral-900/80 font-manrope max-w-[52ch]">
-            Start fresh with a Limes number on prepaid or subscription. Choose a plan that suits you, order
+            Start fresh with a Limes number on prepaid or subscription. Choose a subscription that suits you, order
             online, and we&apos;ll deliver to your door.
           </p>
           <ul className="mt-3 space-y-1 text-sm text-neutral-900/70 font-manrope">
@@ -106,7 +106,7 @@ export default function HowToJoin() {
           to={ctaPath}
           className="inline-flex items-center justify-center rounded-xl bg-[#ABFF63] text-neutral-900 font-semibold text-sm px-5 h-10 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] border-2 border-black/70 hover:bg-[#ABFF63]/90 transition-colors"
         >
-          <span className="font-manrope">View packages</span>
+          <span className="font-manrope">View subscriptions</span>
         </Link>
         <Link
           to="/how-to"

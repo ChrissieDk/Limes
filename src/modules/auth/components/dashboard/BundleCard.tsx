@@ -43,7 +43,7 @@ export function BundleCard({ bundle }: BundleCardProps) {
 
       {/* Title */}
       <div className="flex items-center mb-4">
-        <img src={titleIcon} alt="bundle icon" className="w-6 h-6 mr-2" />
+        <img src={titleIcon} alt="subscription icon" className="w-6 h-6 mr-2" />
         <h4 className="font-grotesque text-neutral-900 font-extrabold text-2xl">{bundle.name}</h4>
       </div>
 
@@ -92,7 +92,7 @@ export function BundleCard({ bundle }: BundleCardProps) {
       <div className="relative inline-flex w-fit self-start mt-auto pt-2">
         <div className="absolute inset-0 translate-x-1.5 translate-y-2 rounded-2xl bg-neutral-900" />
         <button className="relative bg-white text-black border-2 border-neutral-900 rounded-2xl px-5 py-2.5 font-semibold inline-flex items-center justify-center hover:bg-neutral-800 hover:text-white transition-colors">
-          <span>Get Bundle</span>
+          <span>Get Subscription</span>
           <ExternalLink className="w-4 h-4 ml-2" />
         </button>
       </div>

@@ -37,7 +37,7 @@ export function CurrentPlan({ plan, className }: CurrentPlanProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <h3 className="font-grotesque text-white font-semibold text-lg">Current Plan</h3>
+          <h3 className="font-grotesque text-white font-semibold text-lg">Current Subscription</h3>
           <span className="font-manrope bg-white text-neutral-900 text-xs px-2.5 py-1 rounded-full">SIM1</span>
         </div>
         <div className="inline-flex items-center space-x-2 bg-neutral-900 border border-neutral-700 px-3 py-1 rounded-full">
@@ -53,7 +53,7 @@ export function CurrentPlan({ plan, className }: CurrentPlanProps) {
         <div className="w-12 h-12 bg-transparent rounded-xl flex items-center justify-center">
           <img
             src={`${import.meta.env.BASE_URL}images/plan_logo.png`}
-            alt="Plan"
+            alt="Subscription"
             className="w-7 h-7"
           />
         </div>
@@ -141,7 +141,7 @@ export function CurrentPlan({ plan, className }: CurrentPlanProps) {
         </div>
 
         <div className="text-right">
-          <div className="font-manrope text-neutral-400 text-sm mb-1">Plan pricing</div>
+          <div className="font-manrope text-neutral-400 text-sm mb-1">Subscription pricing</div>
           <div className="font-grotesque text-white font-bold text-3xl">R{plan.price}</div>
         </div>
       </div>

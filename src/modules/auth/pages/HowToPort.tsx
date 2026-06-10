@@ -47,8 +47,8 @@ const notes = [
     body: 'Your current SIM card, your ID, and the cellphone number you want to keep. That\'s it. We handle the rest with your old provider. Make sure your number is active on the old network — ports from cancelled or suspended lines will fail.',
   },
   {
-    title: 'Can I port a number that\'s on contract?',
-    body: 'Yes, but you may need to settle any outstanding contract fees with your old provider first. We recommend checking with them before initiating the port to avoid delays.',
+    title: 'Can I port a number that\'s on subscription?',
+    body: 'Yes, but you may need to settle any outstanding subscription fees with your old provider first. We recommend checking with them before initiating the port to avoid delays.',
   },
 ]
 

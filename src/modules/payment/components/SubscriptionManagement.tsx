@@ -86,7 +86,7 @@ export default function SubscriptionManagement({
 
   const handleCreateSubscription = async () => {
     if (!selectedCardId || !planCode) {
-      setError('Please select a card and enter a plan code')
+      setError('Please select a card and enter a subscription code')
       return
     }
     
@@ -229,7 +229,7 @@ export default function SubscriptionManagement({
 
           <div className="grid gap-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Plan Code:</span>
+              <span className="text-gray-400">Subscription Code:</span>
               <span className="font-medium text-white">{subscription.paystackPlanCode}</span>
             </div>
             <div className="flex justify-between">
@@ -312,7 +312,7 @@ export default function SubscriptionManagement({
               {/* Plan Code */}
               <div>
                 <label className="font-manrope block text-sm font-medium text-gray-300 mb-2">
-                  Plan Code
+                  Subscription Code
                 </label>
                 <input
                   type="text"
@@ -322,7 +322,7 @@ export default function SubscriptionManagement({
                   className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
                 />
                 <p className="font-manrope text-xs text-gray-400 mt-1">
-                  Get plan code from Paystack Dashboard → Plans
+                  Get subscription code from Paystack Dashboard → Subscriptions
                 </p>
               </div>
 

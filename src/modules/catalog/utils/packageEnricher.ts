@@ -25,7 +25,7 @@ export function enrichComboPackage(product: CatalogProduct): EnrichedComboPackag
     // Return original product if no mapping exists
     return {
       ...product,
-      description: product.description || 'Mobile Package', // Ensure description is never undefined
+      description: product.description || 'Mobile Subscription', // Ensure description is never undefined
       isEnriched: false,
       actualPrice: product.price,
       actualPriceCents: product.price * 100
@@ -67,7 +67,7 @@ export function formatPackageBenefits(comboDetails: ComboPackageDetails): string
  */
 export function getPackageSummary(productId: string): string {
   const comboDetails = COMBO_PACKAGES_MAP[productId]
-  return comboDetails?.shortSummary || 'Mobile Package'
+  return comboDetails?.shortSummary || 'Mobile Subscription'
 }
 
 /**

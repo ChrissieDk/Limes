@@ -134,7 +134,7 @@ export default function WhyChoose() {
 
       <div className="mt-10 flex items-center justify-center">
         <h3 className="font-grotesque font-bold text-neutral-400 text-[30px] sm:text-[36px] md:text-[44px] text-center leading-[1.05]">
-          Build out your plan
+          Build out your subscription
         </h3>
       </div>
 
@@ -231,7 +231,7 @@ export default function WhyChoose() {
         >
           <div className="flex items-start justify-between gap-6">
             <div>
-              <div className="font-grotesque font-bold text-white text-2xl leading-tight">Your plan total</div>
+              <div className="font-grotesque font-bold text-white text-2xl leading-tight">Your subscription total</div>
               <div className="mt-1 text-white/60 text-sm font-manrope">Review your selections and continue.</div>
             </div>
             <div className="text-right">

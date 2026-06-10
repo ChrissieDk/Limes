@@ -5,6 +5,7 @@ import './index.css'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 
+//sentry initialization
 Sentry.init({
   dsn: 'https://731e046d41281156c2fa304dfdb4101d@o4511324749824000.ingest.de.sentry.io/4511324754608208',
   environment: import.meta.env.MODE || 'development',

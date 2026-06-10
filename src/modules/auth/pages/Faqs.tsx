@@ -18,11 +18,11 @@ export default function Faqs() {
             Head to{' '}
             <a
               className="underline hover:text-white"
-              href="https://www.limes.network"
+              href="https://www.limesmobile.co.za"
               target="_blank"
               rel="noreferrer"
             >
-              www.limes.network
+              www.limesmobile.co.za
             </a>
             .
           </li>
@@ -64,11 +64,11 @@ export default function Faqs() {
       content: (
         <div className="space-y-2 text-sm text-neutral-300 font-manrope">
           <p>
-            <span className="font-medium text-white">Prepaid</span> means you pay upfront for your bundle and use it
+            <span className="font-medium text-white">Prepaid</span> means you pay upfront for your subscription and use it
             until it runs out or expires. Top up anytime. Great if you want total control and no monthly commitment.
           </p>
           <p>
-            <span className="font-medium text-white">Subscription</span> means your chosen bundle renews automatically every
+            <span className="font-medium text-white">Subscription</span> means your chosen subscription renews automatically every
             month and you&apos;re billed on a set date. Same month-to-month flexibility — you can change or cancel
             anytime — but it&apos;s set-and-forget.
           </p>
@@ -76,10 +76,10 @@ export default function Faqs() {
       ),
     },
     {
-      title: 'When can I change my plan?',
+      title: 'When can I change my subscription?',
       content: (
         <p className="font-manrope text-sm text-neutral-300">
-          You can upgrade or downgrade your plan at any time. Changes apply from your next billing cycle.
+          You can upgrade or downgrade your subscription at any time. Changes apply from your next billing cycle.
         </p>
       ),
     },
@@ -130,7 +130,7 @@ export default function Faqs() {
       title: 'Do my unused minutes or data roll over?',
       content: (
         <p className="font-manrope text-sm text-neutral-300">
-          Unused bundles don&apos;t roll over by default. You can top up anytime and only pay for what you need.
+          Unused subscriptions don&apos;t roll over by default. You can top up anytime and only pay for what you need.
         </p>
       ),
     },
@@ -143,7 +143,7 @@ export default function Faqs() {
             card, choose what you need (data, airtime, voice, SMS or WhatsApp), and pay. It&apos;s instant.
           </p>
           <p>
-            You can also change your entire monthly plan if you find you&apos;re consistently running low — no
+            You can also change your entire monthly subscription if you find you&apos;re consistently running low — no
             penalties, no fuss.
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function Faqs() {
       content: (
         <div className="space-y-2 text-sm text-neutral-300 font-manrope">
           <p>
-            Limes rewards you for staying connected. Depending on your plan and usage, you can earn cashback that
+            Limes rewards you for staying connected. Depending on your subscription and usage, you can earn cashback that
             gets credited to your account. The more you engage with Limes, the more you get back.
           </p>
           <p>
@@ -193,7 +193,7 @@ export default function Faqs() {
             a replacement SIM with the same number.
           </p>
           <p>
-            There may be a small replacement fee depending on your plan. Reach out via the contact form or call
+            There may be a small replacement fee depending on your subscription. Reach out via the contact form or call
             us on <span className="font-medium text-white">080 039 0009</span>.
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function Faqs() {
       title: 'How do I cancel my account?',
       content: (
         <p className="font-manrope text-sm text-neutral-300">
-          Because we&apos;re month-to-month, there&apos;s no cancellation penalty. Simply stop renewing your plan
+          Because we&apos;re month-to-month, there&apos;s no cancellation penalty. Simply stop renewing your subscription
           or contact us and we&apos;ll close your account. If you have an active subscription, cancellation
           takes effect at the end of your current billing cycle.
         </p>
