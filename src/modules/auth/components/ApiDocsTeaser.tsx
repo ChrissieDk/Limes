@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+import Button from './Button'
+
 export default function ApiDocsTeaser() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24">
@@ -13,35 +16,29 @@ export default function ApiDocsTeaser() {
       <p className="mt-4 text-center text-neutral-400 text-base md:text-lg font-manrope max-w-2xl mx-auto">
         Everything you need to integrate — B2B workflows, subscription management,
         RICA, ordering, and more. Clean docs, real endpoints, no guesswork.
+        Interested? Reach out and we’ll share access with you.
       </p>
 
-      <a
-        href="https://limes.readme.io/docs/step-1"
-        target="_blank"
-        rel="noreferrer"
-        className="block mt-10 group"
-      >
-        <div className="rounded-[26px] border-2 border-white/10 bg-neutral-800/50 p-3 sm:p-4 transition-all duration-300 group-hover:border-white/20 group-hover:bg-neutral-800/70">
+      <div className="mt-10">
+        <div className="rounded-[26px] border-2 border-white/10 bg-neutral-800/50 p-3 sm:p-4">
           <div className="rounded-[18px] overflow-hidden border border-white/10">
-            <img
-              src={`${import.meta.env.BASE_URL}images/api-teaser.png`}
-              alt="Limes API Documentation preview"
+            <video
+              src={`${import.meta.env.BASE_URL}images/api-video.mov`}
               className="w-full h-auto block"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
             />
           </div>
         </div>
-      </a>
+      </div>
 
       <div className="mt-6 flex items-center justify-center">
-        <a
-          href="https://limes.readme.io/docs/step-1"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-300 hover:text-white transition-colors font-manrope"
-        >
-          <span>Explore the API docs</span>
-          <span aria-hidden="true">→</span>
-        </a>
+        <Link to="/contact">
+          <Button variant="primary">Request API Access</Button>
+        </Link>
       </div>
     </section>
   )
