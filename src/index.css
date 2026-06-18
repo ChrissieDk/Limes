@@ -1,42 +1,212 @@
 @import "tailwindcss";
 
-/* App base styles */
-:root {
-  color-scheme: light dark;
+@theme {
+    /* ── Typography ── */
+    --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-grotesque:
+        "Darker Grotesque", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+    /* ── Brand Colors ── */
+    --color-brand: #abff63;
+    --color-brand-hover: #99ff4d;
+    --color-bg-primary: #0e0e12;
+    --color-bg-secondary: #1a1920;
+    --color-bg-card: #1c1c1e;
+    --color-bg-card-alt: #26252c;
+    --color-bg-input: #1f1e24;
+    --color-border-default: rgba(255, 255, 255, 0.1);
+    --color-border-subtle: rgba(255, 255, 255, 0.06);
+    --color-border-strong: rgba(255, 255, 255, 0.2);
+    --color-text-primary: #ffffff;
+    --color-text-secondary: rgba(255, 255, 255, 0.6);
+    --color-text-tertiary: rgba(255, 255, 255, 0.4);
+    --color-text-disabled: rgba(255, 255, 255, 0.3);
+
+    /* ── Radius ── */
+    --radius-button: 0.875rem;
+    --radius-card: 1rem;
+    --radius-card-lg: 1.5rem;
+    --radius-modal: 1.75rem;
+    --radius-full: 9999px;
 }
 
-html, body, #root {
-  height: 100%;
+/* App base styles */
+:root {
+    color-scheme: dark;
+}
+
+html,
+body,
+#root {
+    height: 100%;
 }
 
 html {
-  scroll-behavior: smooth;
+    scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-neutral-900 text-white antialiased;
+    @apply bg-neutral-900 text-white antialiased;
 }
 
-/* Font utility for Darker Grotesque */
-.font-grotesque {
-  font-family: 'Darker Grotesque', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+/* ── Mobile-native feel ── */
+
+/* Prevent pull-to-refresh / overscroll bounce (Chrome PWA, iOS standalone) */
+html {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 
-.font-manrope {
-  font-family: 'Manrope', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
-  font-weight: 400;
+body {
+    overscroll-behavior-y: none;
+}
+
+/* Kill tap highlight on all interactive elements */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Eliminate 300ms tap delay */
+a,
+button,
+input,
+select,
+textarea,
+label,
+[role="button"] {
+    touch-action: manipulation;
+}
+
+/* Prevent text selection on interactive elements */
+button,
+a,
+[role="button"],
+label {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Safe area — extend content behind notch and home indicator */
+body {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Fixed/sticky elements need their own safe area awareness */
+.fixed,
+.sticky {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Fonts ── */
+/* Font families configured via @theme above.
+   --font-sans = Manrope (default body)
+   --font-grotesque = Darker Grotesque (headings, emphasis) */
+
+/* ── Animations ── */
+
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-page-enter {
+    animation: page-enter 200ms ease-out both;
+}
+
+/* ── Mobile-native design tokens ── */
+
+/* iOS-style grouped list row */
+.mobile-list-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    min-height: 44px;
+}
+
+.mobile-list-row + .mobile-list-row {
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Full-width form section (replaces floating cards) */
+.mobile-form-section {
+    padding: 1.25rem 1rem;
+}
+
+.mobile-form-section + .mobile-form-section {
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-form-section-title {
+    font-family:
+        "Darker Grotesque",
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Native-feeling press interaction */
+.mobile-press {
+    transition:
+        transform 100ms ease-out,
+        opacity 100ms ease-out;
+}
+
+.mobile-press:active {
+    transform: scale(0.97);
+    opacity: 0.8;
+}
+
+/* Edge-to-edge card (full width, no border radius on mobile) */
+.mobile-card {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.mobile-card + .mobile-card {
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Full-width input override for native feel */
+.mobile-input {
+    width: 100%;
 }
 
 @keyframes jiggle {
-  0% { transform: rotate(0deg) translateZ(0); }
-  25% { transform: rotate(3deg) translateY(-1px); }
-  50% { transform: rotate(0deg) translateZ(0); }
-  75% { transform: rotate(-3deg) translateY(1px); }
-  100% { transform: rotate(0deg) translateZ(0); }
+    0% {
+        transform: rotate(0deg) translateZ(0);
+    }
+    25% {
+        transform: rotate(3deg) translateY(-1px);
+    }
+    50% {
+        transform: rotate(0deg) translateZ(0);
+    }
+    75% {
+        transform: rotate(-3deg) translateY(1px);
+    }
+    100% {
+        transform: rotate(0deg) translateZ(0);
+    }
 }
 
 .hover\:animate-jiggle:hover {
-  animation: jiggle 300ms ease-in-out;
+    animation: jiggle 300ms ease-in-out;
 }
 
 /* ── Sentry Feedback Widget — Limes Theme Overrides ──
@@ -45,87 +215,85 @@ body {
    https://docs.sentry.io/platforms/javascript/guides/react/user-feedback/configuration/
 */
 #sentry-feedback {
-  /* Surface colors */
-  --background: #0E0E12;
-  --foreground: #ffffff;
-  --background-hover: rgba(255, 255, 255, 0.05);
+    /* Surface colors */
+    --background: #0e0e12;
+    --foreground: #ffffff;
+    --background-hover: rgba(255, 255, 255, 0.05);
 
-  /* Accent (primary action) — Limes lime green */
-  --accent-background: #ABFF63;
-  --accent-background-hover: #99FF4D;
-  --accent-foreground: #0E0E12;
+    /* Accent (primary action) — Limes lime green */
+    --accent-background: #abff63;
+    --accent-background-hover: #99ff4d;
+    --accent-foreground: #0e0e12;
 
-  /* Borders & shadows */
-  --border: rgba(255, 255, 255, 0.10);
-  --box-shadow: none;
-  --outline: rgba(255, 255, 255, 0.20);
+    /* Borders & shadows */
+    --border: rgba(255, 255, 255, 0.1);
+    --box-shadow: none;
+    --outline: rgba(255, 255, 255, 0.2);
 
-  /* Submit button — matches Limes primary Button */
-  --submit-background: #ABFF63;
-  --submit-background-hover: #99FF4D;
-  --submit-border: transparent;
-  --submit-outline-focus: rgba(171, 255, 99, 0.50);
-  --submit-foreground: #0E0E12;
-  --submit-foreground-hover: #0E0E12;
+    /* Submit button — matches Limes primary Button */
+    --submit-background: #abff63;
+    --submit-background-hover: #99ff4d;
+    --submit-border: transparent;
+    --submit-outline-focus: rgba(171, 255, 99, 0.5);
+    --submit-foreground: #0e0e12;
+    --submit-foreground-hover: #0e0e12;
 
-  /* Cancel button — matches Limes secondary Button */
-  --cancel-background: rgba(255, 255, 255, 0.05);
-  --cancel-background-hover: rgba(255, 255, 255, 0.10);
-  --cancel-border: rgba(255, 255, 255, 0.10);
-  --cancel-outline-focus: rgba(255, 255, 255, 0.20);
-  --cancel-foreground: #ffffff;
-  --cancel-foreground-hover: #ffffff;
+    /* Cancel button — matches Limes secondary Button */
+    --cancel-background: rgba(255, 255, 255, 0.05);
+    --cancel-background-hover: rgba(255, 255, 255, 0.1);
+    --cancel-border: rgba(255, 255, 255, 0.1);
+    --cancel-outline-focus: rgba(255, 255, 255, 0.2);
+    --cancel-foreground: #ffffff;
+    --cancel-foreground-hover: #ffffff;
 
-  /* Inputs — matches TextField dark variant */
-  /* Using #1F1E24 (the gray from Checkbox.tsx) so it's visibly gray, not black */
-  --input-background: #1F1E24;
-  --input-foreground: #ffffff;
-  /* Stronger border so inputs are clearly highlighted */
-  --input-border: rgba(255, 255, 255, 0.20);
-  --input-outline-focus: rgba(171, 255, 99, 0.50);
-  /* Fallback variable names in case Sentry uses a different naming scheme */
-  --input-bg: #1F1E24;
-  --input-border-color: rgba(255, 255, 255, 0.20);
+    /* Inputs — matches TextField dark variant */
+    --input-background: #1f1e24;
+    --input-foreground: #ffffff;
+    --input-border: rgba(255, 255, 255, 0.2);
+    --input-outline-focus: rgba(171, 255, 99, 0.5);
+    --input-bg: #1f1e24;
+    --input-border-color: rgba(255, 255, 255, 0.2);
 
-  /* Radius & typography */
-  --form-border-radius: 12px;
-  --form-content-border-radius: 12px;
-  --border-radius: 12px;
-  --font-family: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-size: 14px;
+    /* Radius & typography */
+    --form-border-radius: 12px;
+    --form-content-border-radius: 12px;
+    --border-radius: 12px;
+    --font-family:
+        "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-size: 14px;
 
-  /* Status colors */
-  --success-color: #2da98c;
-  --error-color: #f55459;
+    /* Status colors */
+    --success-color: #2da98c;
+    --error-color: #f55459;
 }
 
 /* ── TrustBar marquee animations ── */
 @keyframes marquee-left {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-50%, 0, 0);
-  }
+    0% {
+        transform: translate3d(0, 0, 0);
+    }
+    100% {
+        transform: translate3d(-50%, 0, 0);
+    }
 }
 
 @keyframes marquee-right {
-  0% {
-    transform: translate3d(-50%, 0, 0);
-  }
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
+    0% {
+        transform: translate3d(-50%, 0, 0);
+    }
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
 }
 
 .animate-marquee-left {
-  animation-name: marquee-left;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+    animation-name: marquee-left;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
 }
 
 .animate-marquee-right {
-  animation-name: marquee-right;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+    animation-name: marquee-right;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
 }

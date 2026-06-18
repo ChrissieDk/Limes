@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom'
-import Button from './Button'
+import { memo } from "react";
+import { Link } from "react-router-dom";
+import Button from "./Button";
 
-export default function ApiDocsTeaser() {
+const ApiDocsTeaser = memo(function ApiDocsTeaser() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24">
       <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
@@ -14,9 +15,9 @@ export default function ApiDocsTeaser() {
       </h2>
 
       <p className="mt-4 text-center text-neutral-400 text-base md:text-lg font-manrope max-w-2xl mx-auto">
-        Everything you need to integrate — B2B workflows, subscription management,
-        RICA, ordering, and more. Clean docs, real endpoints, no guesswork.
-        Interested? Reach out and we’ll share access with you.
+        Everything you need to integrate — B2B workflows, subscription
+        management, RICA, ordering, and more. Clean docs, real endpoints, no
+        guesswork. Interested? Reach out and we’ll share access with you.
       </p>
 
       <div className="mt-10">
@@ -41,5 +42,7 @@ export default function ApiDocsTeaser() {
         </Link>
       </div>
     </section>
-  )
-}
+  );
+});
+
+export default ApiDocsTeaser;

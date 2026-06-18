@@ -1,10 +1,8 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
-import type { Analytics } from 'firebase/analytics';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getAnalytics } from "firebase/analytics";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import type { Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,19 +17,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
 
 // Use Functions emulator in dev when explicitly enabled (avoids CORS with deployed functions)
-const functions = getFunctions(app, 'us-central1');
-if (import.meta.env.DEV && import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === 'true') {
-  connectFunctionsEmulator(functions, 'localhost', 5001);
+const functions = getFunctions(app, "us-central1");
+if (
+  import.meta.env.DEV &&
+  import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === "true"
+) {
+  connectFunctionsEmulator(functions, "localhost", 5001);
 }
 export { functions };
 
 // Initialize Analytics only in browser environment (not during SSR)
 let analytics: Analytics | null = null;
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   analytics = getAnalytics(app);
 }
 

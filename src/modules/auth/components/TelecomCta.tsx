@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom'
+import { memo } from "react";
+import { Link } from "react-router-dom";
 
-export default function TelecomCta() {
+const TelecomCta = memo(function TelecomCta() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24">
       <div className="rounded-[26px] bg-white text-neutral-900 border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] px-6 sm:px-8 py-7 overflow-hidden">
@@ -12,7 +13,8 @@ export default function TelecomCta() {
               without becoming an MVNO.
             </h3>
             <p className="mt-3 text-neutral-700 text-base md:text-lg font-manrope">
-              Let’s help you find the right communication solution for your needs.
+              Let’s help you find the right communication solution for your
+              needs.
             </p>
 
             <div className="mt-5">
@@ -45,6 +47,7 @@ export default function TelecomCta() {
         </div>
       </div>
     </section>
-  )
-}
+  );
+});
 
+export default TelecomCta;

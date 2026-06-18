@@ -1,117 +1,178 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import AuthLayout from '../layouts/AuthLayout'
-import TextField from '../components/TextField'
-import Button from '../components/Button'
-import Checkbox from '../components/Checkbox'
-import Footer from '../components/Footer'
-import { useState } from 'react'
-import { firebaseAuthService } from '../services/firebaseAuthService'
-import { getFirebaseAuthErrorMessage } from '../utils/firebaseAuthErrorMessage'
-import { getPostAuthRedirectPath } from '../utils/getPostAuthRedirect'
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import AuthLayout from "../layouts/AuthLayout";
+import MobilePage from "../../../components/MobilePage";
+import TextField from "../components/TextField";
+import Button from "../components/Button";
+import Checkbox from "../components/Checkbox";
+import Footer from "../components/Footer";
+import { useState } from "react";
+import { firebaseAuthService } from "../services/firebaseAuthService";
+import { getFirebaseAuthErrorMessage } from "../utils/firebaseAuthErrorMessage";
+import { getPostAuthRedirectPath } from "../utils/getPostAuthRedirect";
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email address'),
-  password: z.string().min(8, 'Minimum 8 characters'),
-})
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(8, "Minimum 8 characters"),
+});
 
-type FormValues = z.infer<typeof schema>
+type FormValues = z.infer<typeof schema>;
 
 export default function SignIn() {
-  const navigate = useNavigate()
-  const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) })
+  } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (values: FormValues) => {
-    setSubmitError(null)
-    setSubmitting(true)
+    setSubmitError(null);
+    setSubmitting(true);
     try {
-      await firebaseAuthService.signInWithEmailPassword(values)
-      const path = await getPostAuthRedirectPath()
-      navigate(path)
+      await firebaseAuthService.signInWithEmailPassword(values);
+      const path = await getPostAuthRedirectPath();
+      navigate(path);
     } catch (err: unknown) {
-      setSubmitError(getFirebaseAuthErrorMessage(err, 'signIn'))
+      setSubmitError(getFirebaseAuthErrorMessage(err, "signIn"));
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
-    <AuthLayout
-      variant="signin"
-      footer={<Footer />}
-      heading={
-        <>
-          Back for more
-          <br />
-          zest?
-        </>
-      }
-      subheading="Welcome back! Login to manage your data, earn rewards, and keep the good stuff rolling."
-      side={
-        <div className="h-full w-full rounded-3xl overflow-hidden flex items-center justify-center p-3">
-          <img
-            src={`${import.meta.env.BASE_URL}images/sign_in_hero.svg`}
-            alt="Sign in"
-            className="h-full w-full object-contain"
+    <>
+      {/* Desktop: card-based auth layout */}
+      <div className="hidden lg:block">
+        <AuthLayout
+          variant="signin"
+          footer={<Footer />}
+          heading={
+            <>
+              Back for more
+              <br />
+              zest?
+            </>
+          }
+          subheading="Welcome back! Login to manage your data, earn rewards, and keep the good stuff rolling."
+          side={
+            <div className="h-full w-full rounded-3xl overflow-hidden flex items-center justify-center p-3">
+              <img
+                src={`${import.meta.env.BASE_URL}images/sign_in_hero.svg`}
+                alt="Sign in"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          }
+        >
+          <SignInForm
+            register={register}
+            errors={errors}
+            submitting={submitting}
+            submitError={submitError}
+            onSubmit={handleSubmit(onSubmit)}
+          />
+        </AuthLayout>
+      </div>
+
+      {/* Mobile: full-screen native auth */}
+      <MobilePage title="Sign in" backTo="/">
+        <div className="flex flex-col justify-center min-h-[calc(100vh-180px)] px-6">
+          <div className="mb-8">
+            <h1 className="font-grotesque font-bold text-white text-[32px] leading-tight">
+              Welcome{"\n"}back
+            </h1>
+            <p className="font-manrope text-neutral-400 text-sm mt-2">
+              Sign in to manage your account
+            </p>
+          </div>
+
+          <SignInForm
+            register={register}
+            errors={errors}
+            submitting={submitting}
+            submitError={submitError}
+            onSubmit={handleSubmit(onSubmit)}
+            mobile
           />
         </div>
-      }
-    >
-      <div className="grid gap-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-          <TextField
-            variant="dark"
-            type="email"
-            label="Email Address"
-            placeholder="Enter your email address"
-            {...register('email')}
-            error={errors.email?.message}
-          />
+      </MobilePage>
+    </>
+  );
+}
 
-          <TextField
-            variant="dark"
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            {...register('password')}
-            error={errors.password?.message}
-          />
+function SignInForm({
+  register,
+  errors,
+  submitting,
+  submitError,
+  onSubmit,
+  mobile,
+}: {
+  register: any;
+  errors: any;
+  submitting: boolean;
+  submitError: string | null;
+  onSubmit: any;
+  mobile?: boolean;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="grid gap-4">
+      <TextField
+        variant="dark"
+        type="email"
+        label={mobile ? undefined : "Email Address"}
+        placeholder="Email address"
+        {...register("email")}
+        error={errors.email?.message}
+      />
 
-          <div className="flex items-center justify-between pt-1">
-            <Checkbox label="Remember Me" {...register('rememberMe' as any)} />
-            <Link to="/forgot-password" className="text-sm text-neutral-500 hover:text-neutral-400 transition-colors">
-              Forgot your password?
-            </Link>
-          </div>
+      <TextField
+        variant="dark"
+        label={mobile ? undefined : "Password"}
+        type="password"
+        placeholder="Password"
+        {...register("password")}
+        error={errors.password?.message}
+      />
 
-          <Button
-            type="submit"
-            disabled={submitting}
-            className="mt-2 h-10 rounded-lg border border-white/10 shadow-none"
-          >
-            {submitting ? 'Signing In...' : 'Log in'}
-          </Button>
-
-          {submitError && (
-            <div className="font-manrope text-sm text-red-400 text-center">{submitError}</div>
-          )}
-
-          <div className="font-manrope pt-2 text-sm text-neutral-500 text-center">
-            Don&apos;t have an account?{' '}
-            <Link to="/signup" className="text-[#ABFF63] hover:text-[#ABFF63]/90 transition-colors">
-              Sign up now
-            </Link>
-          </div>
-        </form>
+      <div className="flex items-center justify-between pt-1">
+        <Checkbox label="Remember Me" {...register("rememberMe" as any)} />
+        <Link
+          to="/forgot-password"
+          className="text-sm text-neutral-500 hover:text-neutral-400 transition-colors"
+        >
+          Forgot password?
+        </Link>
       </div>
-    </AuthLayout>
-  )
+
+      <Button
+        type="submit"
+        disabled={submitting}
+        className="mt-2 h-12 rounded-xl border border-white/10 shadow-none"
+      >
+        {submitting ? "Signing in…" : "Sign in"}
+      </Button>
+
+      {submitError && (
+        <div className="font-manrope text-sm text-red-400 text-center">
+          {submitError}
+        </div>
+      )}
+
+      <div className="font-manrope pt-2 text-sm text-neutral-500 text-center">
+        Don&apos;t have an account?{" "}
+        <Link
+          to="/signup"
+          className="text-[#ABFF63] hover:text-[#ABFF63]/90 transition-colors"
+        >
+          Sign up
+        </Link>
+      </div>
+    </form>
+  );
 }

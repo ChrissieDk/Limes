@@ -1,58 +1,61 @@
-import { useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { auth } from '../../../config/firebase'
-import { crmService } from '../../crm/services/crmService'
-import { getAxiosErrorMessage } from '../../../utils/errorMessage'
-import type { GetAccountCustomerResponse, RicaAddress } from '../../../types'
-import DashboardNavbar, { clearDashboardDisplayNameCache } from '../components/DashboardNavbar'
-import Footer from '../components/Footer'
-import TextField from '../components/TextField'
-import Button from '../components/Button'
+import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { auth } from "../../../config/firebase";
+import { crmService } from "../../crm/services/crmService";
+import { getAxiosErrorMessage } from "../../../utils/errorMessage";
+import type { GetAccountCustomerResponse, RicaAddress } from "../../../types";
+import DashboardNavbar, {
+  clearDashboardDisplayNameCache,
+} from "../components/DashboardNavbar";
+import MobilePage from "../../../components/MobilePage";
+import Footer from "../components/Footer";
+import TextField from "../components/TextField";
+import Button from "../components/Button";
 
 const schema = z.object({
-  firstname: z.string().min(1, 'First name is required').max(120),
-  lastname: z.string().min(1, 'Last name is required').max(120),
-  streetNo: z.string().min(1, 'Street number is required'),
-  streetName: z.string().min(1, 'Street name is required'),
+  firstname: z.string().min(1, "First name is required").max(120),
+  lastname: z.string().min(1, "Last name is required").max(120),
+  streetNo: z.string().min(1, "Street number is required"),
+  streetName: z.string().min(1, "Street name is required"),
   suburb: z.string(),
-  city: z.string().min(1, 'City is required'),
-  stateOrProvince: z.string().min(1, 'Province / state is required'),
-  postCode: z.string().min(1, 'Postal code is required'),
-})
+  city: z.string().min(1, "City is required"),
+  stateOrProvince: z.string().min(1, "Province / state is required"),
+  postCode: z.string().min(1, "Postal code is required"),
+});
 
-type FormValues = z.infer<typeof schema>
+type FormValues = z.infer<typeof schema>;
 
-function pickPrimaryAddress(data: GetAccountCustomerResponse): RicaAddress | null {
-  // The PATCH endpoint updates `customer.address`, so read that first.
-  return data.customer?.address?.[0] ?? data.address?.[0] ?? null
+function pickPrimaryAddress(
+  data: GetAccountCustomerResponse,
+): RicaAddress | null {
+  return data.customer?.address?.[0] ?? data.address?.[0] ?? null;
 }
 
-function mapResponseToFormDefaults(data: GetAccountCustomerResponse): FormValues {
-  const addr = pickPrimaryAddress(data)
+function mapResponseToFormDefaults(
+  data: GetAccountCustomerResponse,
+): FormValues {
+  const addr = pickPrimaryAddress(data);
   return {
-    firstname: data.detail?.firstname?.trim() ?? '',
-    lastname: data.detail?.lastname?.trim() ?? '',
-    streetNo: addr?.streetNo?.trim() ?? '',
-    streetName: addr?.streetName?.trim() ?? '',
-    suburb: addr?.suburb?.trim() ?? '',
-    city: addr?.city?.trim() ?? '',
-    stateOrProvince: addr?.stateOrProvince?.trim() ?? '',
-    postCode: addr?.postCode?.trim() ?? '',
-  }
+    firstname: data.detail?.firstname?.trim() ?? "",
+    lastname: data.detail?.lastname?.trim() ?? "",
+    streetNo: addr?.streetNo?.trim() ?? "",
+    streetName: addr?.streetName?.trim() ?? "",
+    suburb: addr?.suburb?.trim() ?? "",
+    city: addr?.city?.trim() ?? "",
+    stateOrProvince: addr?.stateOrProvince?.trim() ?? "",
+    postCode: addr?.postCode?.trim() ?? "",
+  };
 }
 
 export default function AccountDetails() {
-  const navigate = useNavigate()
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const countryRef = useRef<string>('ZA')
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const countryRef = useRef<string>("ZA");
 
   const {
     register,
@@ -62,46 +65,47 @@ export default function AccountDetails() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      firstname: '',
-      lastname: '',
-      streetNo: '',
-      streetName: '',
-      suburb: '',
-      city: '',
-      stateOrProvince: '',
-      postCode: '',
+      firstname: "",
+      lastname: "",
+      streetNo: "",
+      streetName: "",
+      suburb: "",
+      city: "",
+      stateOrProvince: "",
+      postCode: "",
     },
-  })
+  });
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     const run = async () => {
-      setLoadError(null)
-      setLoading(true)
+      setLoadError(null);
+      setLoading(true);
       try {
-        const data = await crmService.getAccountCustomer()
-        if (cancelled) return
-        const addr = pickPrimaryAddress(data)
-        countryRef.current = addr?.country?.trim() || 'ZA'
-        reset(mapResponseToFormDefaults(data))
-      } catch (e: unknown) {
-        if (!cancelled) {
-          setLoadError(getAxiosErrorMessage(e, 'Could not load your details'))
-        }
+        const data = await crmService.getAccountCustomer();
+        if (cancelled) return;
+        reset(mapResponseToFormDefaults(data));
+        countryRef.current =
+          data.address?.[0]?.country ||
+          data.customer?.address?.[0]?.country ||
+          "ZA";
+      } catch (err) {
+        if (cancelled) return;
+        setLoadError(getAxiosErrorMessage(err, "Failed to load your details"));
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) setLoading(false);
       }
-    }
-    run()
+    };
+    run();
     return () => {
-      cancelled = true
-    }
-  }, [reset])
+      cancelled = true;
+    };
+  }, [reset]);
 
   const onSubmit = async (values: FormValues) => {
-    setSubmitError(null)
-    setSuccess(false)
-    setSubmitting(true)
+    setSubmitError(null);
+    setSuccess(false);
+    setSubmitting(true);
     try {
       await crmService.updateCustomer({
         isResidential: true,
@@ -122,120 +126,136 @@ export default function AccountDetails() {
             country: countryRef.current,
           },
         ],
-      })
-      const uid = auth.currentUser?.uid
-      if (uid) clearDashboardDisplayNameCache(uid)
-      setSuccess(true)
-    } catch (e: unknown) {
-      setSubmitError(getAxiosErrorMessage(e, 'Save failed'))
+      } as any);
+      setSuccess(true);
+      const uid = auth.currentUser?.uid;
+      if (uid) clearDashboardDisplayNameCache(uid);
+    } catch (err) {
+      setSubmitError(getAxiosErrorMessage(err, "Failed to save your details"));
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
+
+  const formContent = (
+    <>
+      {loading && (
+        <p className="font-manrope text-neutral-400 text-sm text-center py-12">
+          Loading your details…
+        </p>
+      )}
+      {!loading && loadError && (
+        <p className="text-red-400 text-sm text-center py-6 px-4">
+          {loadError}
+        </p>
+      )}
+      {!loading && !loadError && (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Personal section */}
+          <div className="mobile-form-section">
+            <div className="mobile-form-section-title">Personal</div>
+            <div className="grid gap-4">
+              <TextField
+                label="First name"
+                variant="dark"
+                error={errors.firstname?.message}
+                {...register("firstname")}
+              />
+              <TextField
+                label="Last name"
+                variant="dark"
+                error={errors.lastname?.message}
+                {...register("lastname")}
+              />
+            </div>
+          </div>
+
+          {/* Address section */}
+          <div className="mobile-form-section">
+            <div className="mobile-form-section-title">Address</div>
+            <div className="grid grid-cols-2 gap-4">
+              <TextField
+                label="Street number"
+                variant="dark"
+                error={errors.streetNo?.message}
+                {...register("streetNo")}
+              />
+              <TextField
+                label="Street name"
+                variant="dark"
+                error={errors.streetName?.message}
+                {...register("streetName")}
+              />
+              <TextField
+                label="Suburb"
+                variant="dark"
+                error={errors.suburb?.message}
+                {...register("suburb")}
+              />
+              <TextField
+                label="City"
+                variant="dark"
+                error={errors.city?.message}
+                {...register("city")}
+              />
+              <TextField
+                label="Province / state"
+                variant="dark"
+                error={errors.stateOrProvince?.message}
+                {...register("stateOrProvince")}
+              />
+              <TextField
+                label="Postal code"
+                variant="dark"
+                error={errors.postCode?.message}
+                {...register("postCode")}
+              />
+            </div>
+          </div>
+
+          {submitError && (
+            <p className="text-sm text-red-400 px-4 pt-3">{submitError}</p>
+          )}
+          {success && (
+            <p className="font-manrope text-sm text-[#ABFF63] px-4 pt-3">
+              Your details were saved.
+            </p>
+          )}
+
+          <div className="px-4 pt-6 pb-4">
+            <Button
+              type="submit"
+              disabled={submitting}
+              fullWidth
+              className="h-12 text-sm"
+            >
+              {submitting ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-neutral-900">
-      <DashboardNavbar />
-
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
-        <div className="mb-10">
-          <h1 className="text-center font-grotesque font-semibold text-white text-5xl sm:text-6xl md:text-7xl leading-[1.02] tracking-tight">
-            Edit your details
-          </h1>
-          <p className="font-manrope mt-3 text-center text-neutral-400 text-sm">
-            Update your name and address on file
-          </p>
-        </div>
-
-        <div className="max-w-4xl mx-auto">
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 rounded-xl bg-white/10 ring-1 ring-white/10 text-white px-5 h-11 text-sm font-semibold hover:bg-white/15 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </button>
-        </div>
-
-        <div className="max-w-4xl mx-auto mt-5 rounded-[28px] bg-white/5 ring-1 ring-white/10 p-8 sm:p-10">
-          {loading && (
-            <p className="font-manrope text-neutral-400 text-sm text-center py-8">Loading your details…</p>
-          )}
-          {!loading && loadError && (
-            <p className="text-red-400 text-sm text-center py-4">{loadError}</p>
-          )}
-          {!loading && !loadError && (
-            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
-              <div>
-                <h2 className="text-white font-grotesque font-semibold text-xl sm:text-2xl mb-1">
-                  Personal
-                </h2>
-                <p className="font-manrope text-neutral-400 text-sm mb-4">Name as it should appear on your account</p>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <TextField
-                    label="First name"
-                    variant="dark"
-                    error={errors.firstname?.message}
-                    {...register('firstname')}
-                  />
-                  <TextField
-                    label="Last name"
-                    variant="dark"
-                    error={errors.lastname?.message}
-                    {...register('lastname')}
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-white/10 pt-6">
-                <h2 className="text-white font-grotesque font-semibold text-xl sm:text-2xl mb-1">
-                  Address
-                </h2>
-                <p className="font-manrope text-neutral-400 text-sm mb-4">Primary billing / service address</p>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <TextField
-                    label="Street number"
-                    variant="dark"
-                    error={errors.streetNo?.message}
-                    {...register('streetNo')}
-                  />
-                  <TextField
-                    label="Street name"
-                    variant="dark"
-                    error={errors.streetName?.message}
-                    {...register('streetName')}
-                  />
-                  <TextField label="Suburb" variant="dark" error={errors.suburb?.message} {...register('suburb')} />
-                  <TextField label="City" variant="dark" error={errors.city?.message} {...register('city')} />
-                  <TextField
-                    label="Province / state"
-                    variant="dark"
-                    error={errors.stateOrProvince?.message}
-                    {...register('stateOrProvince')}
-                  />
-                  <TextField
-                    label="Postal code"
-                    variant="dark"
-                    error={errors.postCode?.message}
-                    {...register('postCode')}
-                  />
-                </div>
-              </div>
-
-              {submitError && <p className="text-sm text-red-400">{submitError}</p>}
-              {success && <p className="font-manrope text-sm text-[#ABFF63]">Your details were saved.</p>}
-
-              <div className="max-w-xs">
-                <Button type="submit" disabled={submitting} fullWidth className="h-11 text-sm">
-                  {submitting ? 'Saving…' : 'Save changes'}
-                </Button>
-              </div>
-            </form>
-          )}
+    <>
+      {/* Desktop: card-based layout */}
+      <div className="hidden lg:block">
+        <div className="min-h-screen bg-neutral-900">
+          <DashboardNavbar />
+          <div className="py-12 px-6">
+            <div className="max-w-4xl mx-auto mt-5 rounded-[28px] bg-white/5 ring-1 ring-white/10 p-8 sm:p-10">
+              {formContent}
+            </div>
+          </div>
+          <Footer />
         </div>
       </div>
-      <Footer />
-    </div>
-  )
+
+      {/* Mobile: iOS-style grouped form */}
+      <MobilePage title="Edit details" backTo="/dashboard/edit-details">
+        {formContent}
+      </MobilePage>
+    </>
+  );
 }

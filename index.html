@@ -1,37 +1,76 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Join Limes for flexible mobile data, voice, and airtime. Prepaid or subscription — you control how you connect." />
-    <meta name="theme-color" content="#0E0E12" />
-    <meta name="google-site-verification" content="fD_cC3457yFMg7ACFQo-a9zZZSMgFqNx2ks7KqYeEbI" />
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
+        />
+        <meta
+            name="description"
+            content="Join Limes for flexible mobile data, voice, and airtime. Prepaid or subscription — you control how you connect."
+        />
+        <meta name="theme-color" content="#0E0E12" />
+        <meta
+            name="google-site-verification"
+            content="fD_cC3457yFMg7ACFQo-a9zZZSMgFqNx2ks7KqYeEbI"
+        />
 
-    <!-- Open Graph -->
-    <meta property="og:site_name" content="Limes" />
-    <meta property="og:title" content="Limes — The Network Built Different" />
-    <meta property="og:description" content="Join Limes for flexible mobile data, voice, and airtime. Prepaid or subscription — you control how you connect." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://limes.network" />
-    <meta property="og:image" content="https://limes.network/images/hero_new.png" />
+        <!-- iOS PWA -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+            name="apple-mobile-web-app-status-bar-style"
+            content="black-translucent"
+        />
+        <meta name="apple-mobile-web-app-title" content="Limes" />
 
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Limes — The Network Built Different" />
-    <meta name="twitter:description" content="Join Limes for flexible mobile data, voice, and airtime. Prepaid or subscription — you control how you connect." />
-    <meta name="twitter:image" content="https://limes.network/images/hero_new.png" />
+        <!-- Open Graph -->
+        <meta property="og:site_name" content="Limes" />
+        <meta
+            property="og:title"
+            content="Limes — The Network Built Different"
+        />
+        <meta
+            property="og:description"
+            content="Join Limes for flexible mobile data, voice, and airtime. Prepaid or subscription — you control how you connect."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://limes.network" />
+        <meta
+            property="og:image"
+            content="https://limes.network/images/hero_new.png"
+        />
 
-    <title>Limes</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400&display=swap" rel="stylesheet" />
-    <!-- Paystack Inline JS -->
-    <script src="https://js.paystack.co/v2/inline.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+            name="twitter:title"
+            content="Limes — The Network Built Different"
+        />
+        <meta
+            name="twitter:description"
+            content="Join Limes for flexible mobile data, voice, and airtime. Prepaid or subscription — you control how you connect."
+        />
+        <meta
+            name="twitter:image"
+            content="https://limes.network/images/hero_new.png"
+        />
+
+        <title>Limes</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <!-- Brand fonts: Darker Grotesque (headings) + Manrope (body) -->
+        <link
+            href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <!-- Paystack Inline JS — defer so it doesn't block initial render -->
+        <script src="https://js.paystack.co/v2/inline.js" defer></script>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
 </html>

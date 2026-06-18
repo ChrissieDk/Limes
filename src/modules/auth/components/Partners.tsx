@@ -1,90 +1,118 @@
-import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import Button from './Button'
+import { memo, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import Button from "./Button";
 
 type PartnerCard = {
-  key: string
-  title: string
-  description: string
-  bgClass: string
-  textClass: string
-  icon: ReactNode
-}
+  key: string;
+  title: string;
+  description: string;
+  bgClass: string;
+  textClass: string;
+  icon: ReactNode;
+};
 
-export default function Partners() {
+const Partners = memo(function Partners() {
   const cards: PartnerCard[] = [
     {
-      key: 'wholesale',
-      title: 'Wholesale pricing advantage',
+      key: "wholesale",
+      title: "Wholesale pricing advantage",
       description:
-        'Access discounted rates on voice, data, and IoT services, allowing you to offer competitive subscriptions or boost margins.',
-      bgClass: 'bg-pink-300',
-      textClass: 'text-neutral-900',
+        "Access discounted rates on voice, data, and IoT services, allowing you to offer competitive subscriptions or boost margins.",
+      bgClass: "bg-pink-300",
+      textClass: "text-neutral-900",
       icon: (
-        <img src={`${import.meta.env.BASE_URL}images/arrow_icon.svg`} alt="" className="h-10 w-10" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/arrow_icon.svg`}
+          alt=""
+          className="h-10 w-10"
+        />
       ),
     },
     {
-      key: 'mvno',
-      title: 'No MVNO complexity',
+      key: "mvno",
+      title: "No MVNO complexity",
       description:
-        'Skip the regulatory hurdles and network management—we handle the infrastructure while you focus on your customers.',
-      bgClass: 'bg-white',
-      textClass: 'text-neutral-900',
+        "Skip the regulatory hurdles and network management—we handle the infrastructure while you focus on your customers.",
+      bgClass: "bg-white",
+      textClass: "text-neutral-900",
       icon: (
-        <img src={`${import.meta.env.BASE_URL}images/blocker_icon.svg`} alt="" className="h-10 w-10" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/blocker_icon.svg`}
+          alt=""
+          className="h-10 w-10"
+        />
       ),
     },
     {
-      key: 'branding',
-      title: 'Flexible branding options',
+      key: "branding",
+      title: "Flexible branding options",
       description:
-        'Sell under your own brand, co-brand with us, or simply offer our services as an added benefit to your audience.',
-      bgClass: 'bg-[#5BA0FF]',
-      textClass: 'text-neutral-900',
+        "Sell under your own brand, co-brand with us, or simply offer our services as an added benefit to your audience.",
+      bgClass: "bg-[#5BA0FF]",
+      textClass: "text-neutral-900",
       icon: (
-        <img src={`${import.meta.env.BASE_URL}images/flexable_icon.svg`} alt="" className="h-10 w-10" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/flexable_icon.svg`}
+          alt=""
+          className="h-10 w-10"
+        />
       ),
     },
     {
-      key: 'integration',
-      title: 'Scalable & easy integration',
+      key: "integration",
+      title: "Scalable & easy integration",
       description:
-        'Plug into our platform via APIs for seamless activation, billing, and real-time usage tracking.',
-      bgClass: 'bg-lime-300',
-      textClass: 'text-neutral-900',
+        "Plug into our platform via APIs for seamless activation, billing, and real-time usage tracking.",
+      bgClass: "bg-lime-300",
+      textClass: "text-neutral-900",
       icon: (
-        <img src={`${import.meta.env.BASE_URL}images/scalable_icon.svg`} alt="" className="h-10 w-10" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/scalable_icon.svg`}
+          alt=""
+          className="h-10 w-10"
+        />
       ),
     },
     {
-      key: 'custom',
-      title: 'Customisable subscriptions',
+      key: "custom",
+      title: "Customisable subscriptions",
       description:
-        'Tailor prepaid, postpaid, or IoT subscriptions to fit your customers’ or employees’ needs.',
-      bgClass: 'bg-white',
-      textClass: 'text-neutral-900',
+        "Tailor prepaid, postpaid, or IoT subscriptions to fit your customers’ or employees’ needs.",
+      bgClass: "bg-white",
+      textClass: "text-neutral-900",
       icon: (
-        <img src={`${import.meta.env.BASE_URL}images/wings_icon.svg`} alt="" className="h-10 w-10" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/wings_icon.svg`}
+          alt=""
+          className="h-10 w-10"
+        />
       ),
     },
     {
-      key: 'support',
-      title: 'Full backend support',
+      key: "support",
+      title: "Full backend support",
       description:
-        'We manage customer service, compliance, and network operations so you don’t have to.',
-      bgClass: 'bg-yellow-300',
-      textClass: 'text-neutral-900',
+        "We manage customer service, compliance, and network operations so you don’t have to.",
+      bgClass: "bg-yellow-300",
+      textClass: "text-neutral-900",
       icon: (
-        <img src={`${import.meta.env.BASE_URL}images/ticket_icon.svg`} alt="" className="h-10 w-10" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/ticket_icon.svg`}
+          alt=""
+          className="h-10 w-10"
+        />
       ),
     },
-  ]
+  ];
 
   return (
-    <section id="partners" className="mx-auto max-w-6xl px-6 pb-24 scroll-mt-24">
+    <section
+      id="partners"
+      className="mx-auto max-w-6xl px-6 pb-24 scroll-mt-24"
+    >
       <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
-        <span className="w-2.5 h-2.5 rounded-full bg-blue-400 mr-3 translate-y-[1px]" /> Partner With Us
+        <span className="w-2.5 h-2.5 rounded-full bg-blue-400 mr-3 translate-y-[1px]" />{" "}
+        Partner With Us
       </div>
 
       <div className="mt-4 flex items-center justify-center">
@@ -100,7 +128,8 @@ export default function Partners() {
       </div>
 
       <p className="font-manrope mt-4 text-center text-neutral-400 text-base md:text-lg max-w-3xl mx-auto">
-        Partner with Limes to offer mobile connectivity without building your own network.
+        Partner with Limes to offer mobile connectivity without building your
+        own network.
       </p>
 
       <h3 className="mt-14 text-center font-grotesque font-bold text-neutral-400 text-[32px] sm:text-[40px] md:text-[48px] leading-[1.05]">
@@ -132,6 +161,7 @@ export default function Partners() {
         </div>
       </div>
     </section>
-  )
-}
+  );
+});
 
+export default Partners;

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#0E0E12" />
+        <title>Limes — Offline</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui,
+                    sans-serif;
+                background: #0e0e12;
+                color: #ffffff;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .container {
+                text-align: center;
+                padding: 2rem;
+                max-width: 360px;
+            }
+            .icon {
+                font-size: 64px;
+                margin-bottom: 1.5rem;
+                display: block;
+            }
+            h1 {
+                font-weight: 700;
+                font-size: 28px;
+                color: #abff63;
+                margin-bottom: 0.75rem;
+                letter-spacing: -0.02em;
+            }
+            p {
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 15px;
+                line-height: 1.6;
+                margin-bottom: 1.5rem;
+            }
+            button {
+                background: #abff63;
+                color: #0e0e12;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 12px;
+                font-family: "Darker Grotesque", sans-serif;
+                font-weight: 700;
+                font-size: 16px;
+                cursor: pointer;
+                transition: filter 0.2s;
+            }
+            button:hover {
+                filter: brightness(0.9);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <span class="icon">📡</span>
+            <h1>You're offline</h1>
+            <p>
+                Limes needs an internet connection to load your dashboard and
+                process top-ups.
+            </p>
+            <button onclick="location.reload()">Try again</button>
+        </div>
+    </body>
+</html>

@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom'
-import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
+import { memo } from "react";
+import { Link } from "react-router-dom";
+import { useAuthLandingCtaPath } from "../hooks/useAuthLandingCtaPath";
 
-export default function HowToJoin() {
-  const ctaPath = useAuthLandingCtaPath('/signin')
+const HowToJoin = memo(function HowToJoin() {
+  const ctaPath = useAuthLandingCtaPath("/signin");
 
   return (
     <section id="join" className="mx-auto max-w-6xl px-6 pb-16 scroll-mt-24">
@@ -27,8 +28,9 @@ export default function HowToJoin() {
             Get a new Limes SIM
           </h3>
           <p className="mt-2.5 text-[15px] md:text-base text-neutral-900/80 font-manrope max-w-[52ch]">
-            Start fresh with a Limes number on prepaid or subscription. Choose a subscription that suits you, order
-            online, and we&apos;ll deliver to your door.
+            Start fresh with a Limes number on prepaid or subscription. Choose a
+            subscription that suits you, order online, and we&apos;ll deliver to
+            your door.
           </p>
           <ul className="mt-3 space-y-1 text-sm text-neutral-900/70 font-manrope">
             <li className="flex items-start gap-2">
@@ -67,8 +69,9 @@ export default function HowToJoin() {
             Keep your number, switch networks
           </h3>
           <p className="mt-2.5 text-[15px] md:text-base text-neutral-900/80 font-manrope max-w-[62ch]">
-            Bring your existing number to Limes and enjoy better value on the same number you already
-            use. We handle the breakup with your old network.
+            Bring your existing number to Limes and enjoy better value on the
+            same number you already use. We handle the breakup with your old
+            network.
           </p>
           <ul className="mt-3 space-y-1 text-sm text-neutral-900/70 font-manrope">
             <li className="flex items-start gap-2">
@@ -85,8 +88,8 @@ export default function HowToJoin() {
             </li>
           </ul>
           <p className="mt-2.5 text-xs md:text-sm text-neutral-900/70 font-manrope max-w-[72ch]">
-            During the handover you may experience limited connectivity for a few minutes.
-            We recommend starting on a weekday morning.
+            During the handover you may experience limited connectivity for a
+            few minutes. We recommend starting on a weekday morning.
           </p>
 
           <div className="mt-4">
@@ -116,5 +119,7 @@ export default function HowToJoin() {
         </Link>
       </div>
     </section>
-  )
-}
+  );
+});
+
+export default HowToJoin;

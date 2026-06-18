@@ -1,15 +1,19 @@
-import * as Sentry from '@sentry/react'
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { HelmetProvider } from 'react-helmet-async'
-import './index.css'
-import App from './App'
-import ErrorBoundary from './components/ErrorBoundary'
+import * as Sentry from "@sentry/react";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
+import { registerSW } from "virtual:pwa-register";
+import "./index.css";
+import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
+
+// Register PWA service worker (auto-update on new version)
+registerSW({ immediate: true });
 
 //sentry initialization
 Sentry.init({
-  dsn: 'https://731e046d41281156c2fa304dfdb4101d@o4511324749824000.ingest.de.sentry.io/4511324754608208',
-  environment: import.meta.env.MODE || 'development',
+  dsn: "https://731e046d41281156c2fa304dfdb4101d@o4511324749824000.ingest.de.sentry.io/4511324754608208",
+  environment: import.meta.env.MODE || "development",
   sendDefaultPii: true,
 
   // Enable all observability features
@@ -31,22 +35,22 @@ Sentry.init({
     // User Feedback — styled to match Limes UI exactly
     // Docs: https://docs.sentry.io/platforms/javascript/user-feedback/configuration/
     Sentry.feedbackIntegration({
-      colorScheme: 'dark',
+      colorScheme: "dark",
       showBranding: false,
 
       // Logo shown at the top of the feedback form
-      formLogo: '/images/limes-mobile_horizontal.svg',
+      formLogo: "/images/limes-mobile_horizontal.svg",
 
       // Button text
-      buttonLabel: 'Report an Issue',
-      submitButtonLabel: 'Send Report',
-      cancelButtonLabel: 'Cancel',
-      formTitle: 'Report an Issue',
+      buttonLabel: "Report an Issue",
+      submitButtonLabel: "Send Report",
+      cancelButtonLabel: "Cancel",
+      formTitle: "Report an Issue",
 
       // Placeholders
-      namePlaceholder: 'Your name',
-      emailPlaceholder: 'your.email@example.com',
-      messagePlaceholder: 'What went wrong? Describe the issue...',
+      namePlaceholder: "Your name",
+      emailPlaceholder: "your.email@example.com",
+      messagePlaceholder: "What went wrong? Describe the issue...",
 
       // Fields visibility / requirements
       showName: true,
@@ -57,33 +61,33 @@ Sentry.init({
       // Shared Limes theme (app is dark-only)
       // Use camelCase keys (not CSS variable names) for JS config
       themeLight: {
-        background: '#0E0E12',
-        foreground: '#ffffff',
-        accentBackground: '#ABFF63',
-        accentForeground: '#0E0E12',
-        outline: 'rgba(255, 255, 255, 0.20)',
-        boxShadow: 'none',
-        successColor: '#2da98c',
-        errorColor: '#f55459',
+        background: "#0E0E12",
+        foreground: "#ffffff",
+        accentBackground: "#ABFF63",
+        accentForeground: "#0E0E12",
+        outline: "rgba(255, 255, 255, 0.20)",
+        boxShadow: "none",
+        successColor: "#2da98c",
+        errorColor: "#f55459",
       },
 
       // Dark theme — identical to light since Limes is dark-only
       themeDark: {
-        background: '#0E0E12',
-        foreground: '#ffffff',
-        accentBackground: '#ABFF63',
-        accentForeground: '#0E0E12',
-        outline: 'rgba(255, 255, 255, 0.20)',
-        boxShadow: 'none',
-        successColor: '#2da98c',
-        errorColor: '#f55459',
+        background: "#0E0E12",
+        foreground: "#ffffff",
+        accentBackground: "#ABFF63",
+        accentForeground: "#0E0E12",
+        outline: "rgba(255, 255, 255, 0.20)",
+        boxShadow: "none",
+        successColor: "#2da98c",
+        errorColor: "#f55459",
       },
     }),
 
     // Capture console.* calls as structured Sentry Logs.
     // Multiple arguments become searchable attributes automatically.
     Sentry.consoleLoggingIntegration({
-      levels: ['log', 'info', 'warn', 'error', 'debug', 'assert'],
+      levels: ["log", "info", "warn", "error", "debug", "assert"],
     }),
   ],
 
@@ -92,30 +96,40 @@ Sentry.init({
   tracesSampleRate: 1.0,
 
   // Trace propagation for same-origin and your API
-  tracePropagationTargets: [/^\//, /^https:\/\/limes-staging\.up\.railway\.app/],
+  tracePropagationTargets: [
+    /^\//,
+    /^https:\/\/limes-staging\.up\.railway\.app/,
+  ],
 
   // Replay sample rates
-  replaysSessionSampleRate: 0.1,   // 10% of sessions
-  replaysOnErrorSampleRate: 1.0,   // 100% of sessions with an error
+  replaysSessionSampleRate: 0.1, // 10% of sessions
+  replaysOnErrorSampleRate: 1.0, // 100% of sessions with an error
 
   // Strip sensitive fields from logs before sending
   beforeSendLog(log) {
     // Drop debug logs in production to save quota
-    if (import.meta.env.PROD && log.level === 'debug') {
-      return null
+    if (import.meta.env.PROD && log.level === "debug") {
+      return null;
     }
 
     // Scrub sensitive attributes from any log
-    const sensitive = ['password', 'token', 'authorization', 'secret', 'api_key', 'credit_card']
+    const sensitive = [
+      "password",
+      "token",
+      "authorization",
+      "secret",
+      "api_key",
+      "credit_card",
+    ];
     if (log.attributes) {
       for (const key of Object.keys(log.attributes)) {
         if (sensitive.some((s) => key.toLowerCase().includes(s))) {
-          delete log.attributes[key]
+          delete log.attributes[key];
         }
       }
     }
 
-    return log
+    return log;
   },
 
   // Strip sensitive data from error events too
@@ -123,10 +137,10 @@ Sentry.init({
     // Drop localhost events so dev doesn't eat your quota
     if (
       import.meta.env.DEV &&
-      typeof window !== 'undefined' &&
-      window.location.hostname === 'localhost'
+      typeof window !== "undefined" &&
+      window.location.hostname === "localhost"
     ) {
-      return null
+      return null;
     }
 
     // Scrub auth headers from request breadcrumbs
@@ -134,29 +148,29 @@ Sentry.init({
       for (const crumb of event.breadcrumbs) {
         if (crumb.data?.url) {
           try {
-            const url = new URL(crumb.data.url)
-            url.search = ''
-            crumb.data.url = url.toString()
+            const url = new URL(crumb.data.url);
+            url.search = "";
+            crumb.data.url = url.toString();
           } catch {
             // ignore malformed URLs
           }
         }
         if (crumb.data?.headers?.Authorization) {
-          delete crumb.data.headers.Authorization
+          delete crumb.data.headers.Authorization;
         }
       }
     }
 
-    return event
+    return event;
   },
-})
+});
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   const injectFeedbackStyles = () => {
-    const host = document.getElementById('sentry-feedback')
-    if (!host || !host.shadowRoot) return false
+    const host = document.getElementById("sentry-feedback");
+    if (!host || !host.shadowRoot) return false;
 
-    const style = document.createElement('style')
+    const style = document.createElement("style");
     style.textContent = `
       /* Form inputs — match Limes TextField dark variant */
       textarea,
@@ -178,34 +192,34 @@ if (typeof window !== 'undefined') {
         outline: none !important;
         box-shadow: 0 0 0 2px rgba(171, 255, 99, 0.15) !important;
       }
-    `
-    host.shadowRoot.appendChild(style)
-    return true
-  }
+    `;
+    host.shadowRoot.appendChild(style);
+    return true;
+  };
 
   // Try immediately (widget may already be mounted)
   if (!injectFeedbackStyles()) {
     const observer = new MutationObserver(() => {
-      if (injectFeedbackStyles()) observer.disconnect()
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
+      if (injectFeedbackStyles()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 }
 
 // Set app-wide attributes on every log, error, and trace
 Sentry.getGlobalScope().setAttributes({
-  app_name: 'limes',
-  platform: 'web',
-})
+  app_name: "limes",
+  platform: "web",
+});
 
 // React 19 error hooks — sends ALL React errors to Sentry
-const root = createRoot(document.getElementById('root')!, {
+const root = createRoot(document.getElementById("root")!, {
   onUncaughtError: Sentry.reactErrorHandler((error, errorInfo) => {
-    console.warn('Uncaught error', error, errorInfo.componentStack)
+    console.warn("Uncaught error", error, errorInfo.componentStack);
   }),
   onCaughtError: Sentry.reactErrorHandler(),
   onRecoverableError: Sentry.reactErrorHandler(),
-})
+});
 
 root.render(
   <StrictMode>
@@ -215,4 +229,4 @@ root.render(
       </ErrorBoundary>
     </HelmetProvider>
   </StrictMode>,
-)
+);

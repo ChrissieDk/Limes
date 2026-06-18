@@ -1,49 +1,51 @@
+import { memo } from "react";
+
 const reviews = [
   {
     quote:
       "Switching to Limes was the easiest telecom decision I've made. The subscription builder let me allocate exactly what my team needs — no bloated subscriptions, no nonsense.",
-    name: 'Hayley',
-    role: 'Business Owner / Creative',
-    accent: 'bg-yellow-300',
-    initial: 'H',
+    name: "Hayley",
+    role: "Business Owner / Creative",
+    accent: "bg-yellow-300",
+    initial: "H",
   },
   {
     quote:
       "The dashboard is clean, the API integration was straightforward, and any time I had a question the support team came back within minutes. Proper dev-friendly service.",
-    name: 'Ryan',
-    role: 'Developer',
-    accent: 'bg-[#5BA0FF]',
-    initial: 'R',
+    name: "Ryan",
+    role: "Developer",
+    accent: "bg-[#5BA0FF]",
+    initial: "R",
   },
   {
     quote:
       "I've worked with three different networks over the years. Limes is the first one where I actually understand my bill. Month-to-month flexibility and transparent pricing — that's rare in this industry.",
-    name: 'Wayne',
-    role: 'CEO & Business Specialist',
-    accent: 'bg-pink-300',
-    initial: 'W',
+    name: "Wayne",
+    role: "CEO & Business Specialist",
+    accent: "bg-pink-300",
+    initial: "W",
   },
   {
     quote:
       "Porting our entire team's numbers over took less than 48 hours. The step-by-step updates were a nice touch — no one was left guessing when their line would go live.",
-    name: 'Imtiyaaz',
-    role: 'Team Lead',
-    accent: 'bg-[#CDA7FC]',
-    initial: 'I',
+    name: "Imtiyaaz",
+    role: "Team Lead",
+    accent: "bg-[#CDA7FC]",
+    initial: "I",
   },
   {
     quote:
       "Great service, quick turnaround, and the cashback is a genuinely nice perk. I built my own subscription in about two minutes and haven't thought about my mobile bill since.",
-    name: 'Christiaan',
-    role: 'Developer / Creative',
-    accent: 'bg-[#ABFF63]',
-    initial: 'C',
+    name: "Christiaan",
+    role: "Developer / Creative",
+    accent: "bg-[#ABFF63]",
+    initial: "C",
   },
-]
+];
 
-export default function ReviewsMarquee() {
+const ReviewsMarquee = memo(function ReviewsMarquee() {
   // Duplicate enough times for a seamless CSS loop
-  const track = [...reviews, ...reviews, ...reviews, ...reviews]
+  const track = [...reviews, ...reviews, ...reviews, ...reviews];
 
   return (
     <section className="relative overflow-hidden py-10 mb-10">
@@ -65,7 +67,7 @@ export default function ReviewsMarquee() {
       <div className="flex overflow-hidden">
         <div
           className="flex shrink-0 items-stretch gap-5 pr-5 animate-marquee-left will-change-transform"
-          style={{ animationDuration: '70s' }}
+          style={{ animationDuration: "70s" }}
         >
           {track.map((r, idx) => (
             <ReviewCard key={`a-${idx}`} {...r} />
@@ -73,7 +75,7 @@ export default function ReviewsMarquee() {
         </div>
         <div
           className="flex shrink-0 items-stretch gap-5 pr-5 animate-marquee-left will-change-transform"
-          style={{ animationDuration: '70s' }}
+          style={{ animationDuration: "70s" }}
           aria-hidden="true"
         >
           {track.map((r, idx) => (
@@ -86,7 +88,7 @@ export default function ReviewsMarquee() {
       <div className="flex overflow-hidden mt-5 opacity-50">
         <div
           className="flex shrink-0 items-stretch gap-5 pr-5 animate-marquee-right will-change-transform"
-          style={{ animationDuration: '90s' }}
+          style={{ animationDuration: "90s" }}
         >
           {[...track].reverse().map((r, idx) => (
             <ReviewCard key={`c-${idx}`} {...r} />
@@ -94,7 +96,7 @@ export default function ReviewsMarquee() {
         </div>
         <div
           className="flex shrink-0 items-stretch gap-5 pr-5 animate-marquee-right will-change-transform"
-          style={{ animationDuration: '90s' }}
+          style={{ animationDuration: "90s" }}
           aria-hidden="true"
         >
           {[...track].reverse().map((r, idx) => (
@@ -106,8 +108,10 @@ export default function ReviewsMarquee() {
       {/* Bottom divider */}
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </section>
-  )
-}
+  );
+});
+
+export default ReviewsMarquee;
 
 function ReviewCard({
   quote,
@@ -116,11 +120,11 @@ function ReviewCard({
   accent,
   initial,
 }: {
-  quote: string
-  name: string
-  role: string
-  accent: string
-  initial: string
+  quote: string;
+  name: string;
+  role: string;
+  accent: string;
+  initial: string;
 }) {
   return (
     <div className="shrink-0 select-none w-[340px] sm:w-[420px] rounded-[26px] bg-[#26252C] ring-1 ring-white/10 p-6 flex flex-col justify-between">
@@ -147,5 +151,5 @@ function ReviewCard({
         </div>
       </div>
     </div>
-  )
+  );
 }

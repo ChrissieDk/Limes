@@ -27,3 +27,6 @@ functions/lib
 *.sw?
 .env
 .env.sentry-build-plugin
+
+# Storybook
+storybook-static

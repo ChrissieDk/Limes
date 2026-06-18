@@ -1,39 +1,78 @@
-import * as Sentry from '@sentry/react'
-import { RouterProvider, createBrowserRouter, Outlet } from 'react-router-dom'
-import RootLayout from './RootLayout'
-import SignUp from './modules/auth/pages/SignUp'
-import SignIn from './modules/auth/pages/SignIn'
-import Dashboard from './modules/auth/pages/Dashboard'
-import DashboardPackages from './modules/auth/pages/DashboardPackages'
-import PaymentMethods from './modules/payment/pages/PaymentMethods'
-import Subscriptions from './modules/auth/pages/Subscriptions'
-import ProvisionedUserRoute from './modules/auth/components/ProvisionedUserRoute'
-import AuthenticatedRoute from './modules/auth/components/AuthenticatedRoute'
-import AccountDetails from './modules/auth/pages/AccountDetails'
-import Landing from './modules/auth/pages/Landing'
-import Contact from './modules/auth/pages/Contact'
-import Faqs from './modules/auth/pages/Faqs'
-import HowItWorks from './modules/auth/pages/HowItWorks'
-import PartnersPage from './modules/auth/pages/PartnersPage'
-import HowToHub from './modules/auth/pages/HowToHub'
-import HowToJoinPage from './modules/auth/pages/HowToJoinPage'
-import HowToActivate from './modules/auth/pages/HowToActivate'
-import HowToTopUp from './modules/auth/pages/HowToTopUp'
-import HowToRica from './modules/auth/pages/HowToRica'
-import HowToDelivery from './modules/auth/pages/HowToDelivery'
-import HowToPort from './modules/auth/pages/HowToPort'
-import ForgotPassword from './modules/auth/pages/ForgotPassword'
-import VerifyEmail from './modules/auth/pages/VerifyEmail'
-import ResetPassword from './modules/auth/pages/ResetPassword'
-import AuthAction from './modules/auth/pages/AuthAction'
-import TermsAndConditions from './modules/auth/pages/TermsAndConditions'
-import FairUsagePolicy from './modules/auth/pages/FairUsagePolicy'
-import DeliveryTracking from './modules/warehouse/pages/DeliveryTracking'
-import { useAuthState } from './modules/auth/hooks/useAuthState'
+import { lazy, Suspense } from "react";
+import * as Sentry from "@sentry/react";
+import { RouterProvider, createBrowserRouter, Outlet } from "react-router-dom";
+import RootLayout from "./RootLayout";
+import ProvisionedUserRoute from "./modules/auth/components/ProvisionedUserRoute";
+import AuthenticatedRoute from "./modules/auth/components/AuthenticatedRoute";
+import { useAuthState } from "./modules/auth/hooks/useAuthState";
 
-import './config/firebase'
+import "./config/firebase";
 
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV6(createBrowserRouter)
+// Lazy-load all page components for route-level code splitting.
+// Only the landing page loads upfront; everything else loads on demand.
+const Landing = lazy(() => import("./modules/auth/pages/Landing"));
+const SignUp = lazy(() => import("./modules/auth/pages/SignUp"));
+const SignIn = lazy(() => import("./modules/auth/pages/SignIn"));
+const Dashboard = lazy(() => import("./modules/auth/pages/Dashboard"));
+const DashboardPackages = lazy(
+  () => import("./modules/auth/pages/DashboardPackages"),
+);
+const PaymentMethods = lazy(
+  () => import("./modules/payment/pages/PaymentMethods"),
+);
+const Subscriptions = lazy(() => import("./modules/auth/pages/Subscriptions"));
+const AccountDetails = lazy(
+  () => import("./modules/auth/pages/AccountDetails"),
+);
+const Contact = lazy(() => import("./modules/auth/pages/Contact"));
+const Faqs = lazy(() => import("./modules/auth/pages/Faqs"));
+const HowItWorks = lazy(() => import("./modules/auth/pages/HowItWorks"));
+const PartnersPage = lazy(() => import("./modules/auth/pages/PartnersPage"));
+const HowToHub = lazy(() => import("./modules/auth/pages/HowToHub"));
+const HowToJoinPage = lazy(() => import("./modules/auth/pages/HowToJoinPage"));
+const HowToActivate = lazy(() => import("./modules/auth/pages/HowToActivate"));
+const HowToTopUp = lazy(() => import("./modules/auth/pages/HowToTopUp"));
+const HowToRica = lazy(() => import("./modules/auth/pages/HowToRica"));
+const HowToDelivery = lazy(() => import("./modules/auth/pages/HowToDelivery"));
+const HowToPort = lazy(() => import("./modules/auth/pages/HowToPort"));
+const ForgotPassword = lazy(
+  () => import("./modules/auth/pages/ForgotPassword"),
+);
+const VerifyEmail = lazy(() => import("./modules/auth/pages/VerifyEmail"));
+const ResetPassword = lazy(() => import("./modules/auth/pages/ResetPassword"));
+const AuthAction = lazy(() => import("./modules/auth/pages/AuthAction"));
+const TermsAndConditions = lazy(
+  () => import("./modules/auth/pages/TermsAndConditions"),
+);
+const FairUsagePolicy = lazy(
+  () => import("./modules/auth/pages/FairUsagePolicy"),
+);
+const DeliveryTracking = lazy(
+  () => import("./modules/warehouse/pages/DeliveryTracking"),
+);
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
+      <div
+        className="size-8 rounded-full border-2 border-white/20 border-t-white animate-spin"
+        aria-hidden
+      />
+      <span className="sr-only">Loading</span>
+    </div>
+  );
+}
+
+function LazyPage({ Component }: { Component: React.ComponentType }) {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Component />
+    </Suspense>
+  );
+}
+
+const sentryCreateBrowserRouter =
+  Sentry.wrapCreateBrowserRouterV6(createBrowserRouter);
 
 const router = sentryCreateBrowserRouter(
   [
@@ -41,79 +80,79 @@ const router = sentryCreateBrowserRouter(
       element: <RootLayout />,
       children: [
         {
-          path: '/',
-          element: <Landing />,
+          path: "/",
+          element: <LazyPage Component={Landing} />,
         },
         {
-          path: '/faqs',
-          element: <Faqs />,
+          path: "/faqs",
+          element: <LazyPage Component={Faqs} />,
         },
         {
-          path: '/how-it-works',
-          element: <HowItWorks />,
+          path: "/how-it-works",
+          element: <LazyPage Component={HowItWorks} />,
         },
         {
-          path: '/partners',
-          element: <PartnersPage />,
+          path: "/partners",
+          element: <LazyPage Component={PartnersPage} />,
         },
         {
-          path: '/how-to',
-          element: <HowToHub />,
+          path: "/how-to",
+          element: <LazyPage Component={HowToHub} />,
         },
         {
-          path: '/how-to/join',
-          element: <HowToJoinPage />,
+          path: "/how-to/join",
+          element: <LazyPage Component={HowToJoinPage} />,
         },
         {
-          path: '/how-to/activate',
-          element: <HowToActivate />,
+          path: "/how-to/activate",
+          element: <LazyPage Component={HowToActivate} />,
         },
         {
-          path: '/how-to/top-up',
-          element: <HowToTopUp />,
+          path: "/how-to/top-up",
+          element: <LazyPage Component={HowToTopUp} />,
         },
         {
-          path: '/how-to/rica',
-          element: <HowToRica />,
+          path: "/how-to/rica",
+          element: <LazyPage Component={HowToRica} />,
         },
         {
-          path: '/how-to/delivery',
-          element: <HowToDelivery />,
+          path: "/how-to/delivery",
+          element: <LazyPage Component={HowToDelivery} />,
         },
         {
-          path: '/how-to/port',
-          element: <HowToPort />,
+          path: "/how-to/port",
+          element: <LazyPage Component={HowToPort} />,
         },
         {
-          path: '/register',
-          element: <SignUp />,
+          path: "/register",
+          element: <LazyPage Component={SignUp} />,
         },
         {
-          path: '/signup',
-          element: <SignUp />,
+          path: "/signup",
+          element: <LazyPage Component={SignUp} />,
         },
         {
-          path: '/signin',
-          element: <SignIn />,
+          path: "/signin",
+          element: <LazyPage Component={SignIn} />,
         },
         {
-          path: '/forgot-password',
-          element: <ForgotPassword />,
+          path: "/forgot-password",
+          element: <LazyPage Component={ForgotPassword} />,
         },
         {
-          path: '/auth/action',
-          element: <AuthAction />,
+          path: "/auth/action",
+          element: <LazyPage Component={AuthAction} />,
         },
         {
-          path: '/auth/verify-email',
-          element: <VerifyEmail />,
+          path: "/auth/verify-email",
+          element: <LazyPage Component={VerifyEmail} />,
         },
         {
-          path: '/auth/reset-password',
-          element: <ResetPassword />,
+          path: "/auth/reset-password",
+          element: <LazyPage Component={ResetPassword} />,
         },
         {
-          path: 'dashboard',
+          path: "dashboard",
           element: (
             <AuthenticatedRoute>
               <Outlet />
@@ -127,53 +166,63 @@ const router = sentryCreateBrowserRouter(
                 </ProvisionedUserRoute>
               ),
               children: [
-                { index: true, element: <Dashboard /> },
-                { path: 'payment-methods', element: <PaymentMethods /> },
-                { path: 'subscriptions', element: <Subscriptions /> },
-                { path: 'delivery-tracking', element: <DeliveryTracking /> },
+                { index: true, element: <LazyPage Component={Dashboard} /> },
+                {
+                  path: "payment-methods",
+                  element: <LazyPage Component={PaymentMethods} />,
+                },
+                {
+                  path: "subscriptions",
+                  element: <LazyPage Component={Subscriptions} />,
+                },
+                {
+                  path: "delivery-tracking",
+                  element: <LazyPage Component={DeliveryTracking} />,
+                },
               ],
             },
-            { path: 'packages', element: <DashboardPackages /> },
-            { path: 'edit-details', element: <AccountDetails /> },
+            {
+              path: "packages",
+              element: <LazyPage Component={DashboardPackages} />,
+            },
+            {
+              path: "edit-details",
+              element: <LazyPage Component={AccountDetails} />,
+            },
           ],
         },
         {
-          path: '/contact',
-          element: <Contact />,
+          path: "/contact",
+          element: <LazyPage Component={Contact} />,
         },
         {
-          path: '/terms-and-conditions',
-          element: <TermsAndConditions />,
+          path: "/terms-and-conditions",
+          element: <LazyPage Component={TermsAndConditions} />,
         },
         {
-          path: '/terms',
-          element: <TermsAndConditions />,
+          path: "/terms",
+          element: <LazyPage Component={TermsAndConditions} />,
         },
         {
-          path: '/fair-usage-policy',
-          element: <FairUsagePolicy />,
+          path: "/fair-usage-policy",
+          element: <LazyPage Component={FairUsagePolicy} />,
         },
       ],
     },
   ],
   {
-    basename: (import.meta.env.BASE_URL || '/').replace(/\/$/, ''),
+    basename: (import.meta.env.BASE_URL || "/").replace(/\/$/, ""),
   },
-)
+);
 
 function AuthLoadingScreen() {
-  return (
-    <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-      <div className="size-8 rounded-full border-2 border-white/20 border-t-white animate-spin" aria-hidden />
-      <span className="sr-only">Loading</span>
-    </div>
-  )
+  return <PageLoader />;
 }
 
 export default function App() {
-  const { ready } = useAuthState()
+  const { ready } = useAuthState();
   if (!ready) {
-    return <AuthLoadingScreen />
+    return <AuthLoadingScreen />;
   }
-  return <RouterProvider router={router} />
+  return <RouterProvider router={router} />;
 }
