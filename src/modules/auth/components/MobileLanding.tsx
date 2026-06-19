@@ -1,215 +1,88 @@
 import { Link } from "react-router-dom";
-import { useAuthLandingCtaPath } from "../hooks/useAuthLandingCtaPath";
+import { motion } from "framer-motion";
 
 export default function MobileLanding() {
-  const ctaPath = useAuthLandingCtaPath("/signin");
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        background:
-          "linear-gradient(160deg, #0E0E12 0%, #15151A 40%, #1A1A20 100%)",
-        paddingTop: "env(safe-area-inset-top, 0px)",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {/* ── Background ── */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          overflow: "hidden",
-        }}
-      >
-        {/* Large lime glow top-right */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-15%",
-            right: "-25%",
-            width: "80%",
-            height: "60%",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(171,255,99,0.06) 0%, transparent 70%)",
-          }}
-        />
-        {/* Secondary glow bottom-left */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: "35%",
-            left: "-10%",
-            width: "50%",
-            height: "35%",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(171,255,99,0.04) 0%, transparent 70%)",
-          }}
-        />
-        {/* Accent glow center-right */}
-        <div
-          style={{
-            position: "absolute",
-            top: "30%",
-            right: "-5%",
-            width: "35%",
-            height: "40%",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(205,167,252,0.04) 0%, transparent 70%)",
-          }}
-        />
-      </div>
-
-      {/* ── Logo ── */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        <div
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            borderRadius: "2rem",
-            border: "1px solid rgba(255,255,255,0.06)",
-            padding: "2.5rem 3rem",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "1.25rem",
-          }}
+    <section className="relative h-dvh overflow-hidden bg-[#D995C7]">
+      <div className="mx-auto flex h-dvh max-w-md flex-col items-center px-6 text-center">
+        {/* Logo */}
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="mb-10 mt-6"
         >
           <img
-            src={`${import.meta.env.BASE_URL}images/limes-mobile_horizontal.svg`}
+            src={`${import.meta.env.BASE_URL}images/favicon.svg`}
             alt="Limes"
-            style={{ height: "2rem", width: "auto", opacity: 0.9 }}
+            className="h-24 w-auto"
           />
-          <div
-            style={{
-              width: "2.5rem",
-              height: "1.5px",
-              background: "rgba(171,255,99,0.4)",
-              borderRadius: 1,
-            }}
-          />
-          <p
-            style={{
-              fontFamily:
-                "'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif",
-              fontSize: "0.6875rem",
-              fontWeight: 500,
-              color: "rgba(255,255,255,0.45)",
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              margin: 0,
-            }}
-          >
-            Prepaid · Subscription · eSIM
-          </p>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* ── CTA Card ── */}
-      <div
-        style={{
-          width: "100%",
-          position: "relative",
-          zIndex: 1,
-          padding: "0 1.25rem 1.25rem",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.25rem)",
-        }}
-      >
-        <div
-          style={{
-            background: "#141419",
-            borderRadius: "1.75rem",
-            border: "1px solid rgba(255,255,255,0.06)",
-            padding: "1.75rem 1.5rem",
-          }}
+        {/* Heading */}
+        <motion.h1
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="font-grotesque text-[64px] font-black leading-[0.9] tracking-[-0.06em] text-[#1A1920]"
         >
-          <h1
-            style={{
-              fontFamily:
-                "'Darker Grotesque', ui-sans-serif, system-ui, -apple-system, sans-serif",
-              fontSize: "clamp(26px, 7vw, 34px)",
-              fontWeight: 700,
-              color: "#FFFFFF",
-              letterSpacing: "-0.02em",
-              lineHeight: 1.1,
-              margin: "0 0 0.5rem",
-            }}
-          >
-            The smarter network{"\n"}that gives you more.
-          </h1>
-          <p
-            style={{
-              fontFamily:
-                "'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif",
-              fontSize: "0.875rem",
-              color: "rgba(255,255,255,0.4)",
-              lineHeight: 1.5,
-              margin: "0 0 1.5rem",
-            }}
-          >
-            Build your own plan. Keep your number. Only pay for what you use.
-          </p>
+          Meet Limes
+          <br />
+          Mobile.
+        </motion.h1>
 
-          <Link
-            to={ctaPath}
-            style={{ display: "block", marginBottom: "0.875rem" }}
-          >
-            <button
-              style={{
-                width: "100%",
-                height: "3.25rem",
-                borderRadius: "1rem",
-                border: "2px solid rgba(0,0,0,0.6)",
-                background: "#ABFF63",
-                color: "#0E0E12",
-                fontFamily:
-                  "'Darker Grotesque', ui-sans-serif, system-ui, -apple-system, sans-serif",
-                fontSize: "1rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                letterSpacing: "-0.01em",
-                boxShadow: "4px 4px 0 0 rgba(0,0,0,0.6)",
-              }}
-            >
-              Welcome to Limes
-            </button>
-          </Link>
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="mt-8"
+        >
+          <h2 className="font-grotesque text-[72px] font-bold leading-[0.88] tracking-[-0.06em] text-[#1A1920]">
+            <div>
+              The{" "}
+              <span className="inline-flex items-center rounded-3xl bg-[#ABFF63] px-4 py-1 -rotate-3">
+                smarter
+              </span>
+            </div>
 
-          <Link to="/signin">
-            <p
-              style={{
-                textAlign: "center",
-                fontFamily:
-                  "'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif",
-                fontSize: "0.8125rem",
-                color: "rgba(255,255,255,0.25)",
-                margin: 0,
-              }}
-            >
-              I already have an account
-            </p>
-          </Link>
+            <div>network.</div>
+          </h2>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-6 max-w-xs font-sans text-base font-semibold text-[#1A1920]/75"
+        >
+          Fast, affordable mobile plans designed for modern life.
+        </motion.p>
+
+        <Link to="/signup" className="mt-6 block">
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="w-full rounded-full bg-[#1A1920] px-8 py-4 font-sans text-base font-semibold text-[#ABFF63]"
+          >
+            Get Started →
+          </motion.button>
+        </Link>
+
+        <Link
+          to="/signin"
+          className="mt-3 rounded-full py-3 font-sans text-base font-medium text-[#1A1920]/50 transition-colors active:text-[#1A1920]/70"
+        >
+          I already have an account
+        </Link>
+
+        <div className="mt-auto pb-6 pt-8">
+          <img
+            src={`${import.meta.env.BASE_URL}images/limes-mobile_horizontal.svg`}
+            alt="Limes Mobile"
+            className="h-6 w-auto"
+          />
         </div>
       </div>
-    </div>
+    </section>
   );
 }
