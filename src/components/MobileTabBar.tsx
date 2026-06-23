@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../config/firebase";
+import { motion } from "framer-motion";
 import {
   Home,
   ShoppingBag,
@@ -9,8 +10,6 @@ import {
   Users,
   LogIn,
   LayoutDashboard,
-  PlusCircle,
-  Truck,
   User,
 } from "lucide-react";
 
@@ -42,22 +41,10 @@ const loggedInTabs: Tab[] = [
     Icon: LayoutDashboard,
   },
   {
-    label: "Top Up",
-    path: "/dashboard",
-    matchPattern: "/dashboard/topup",
-    Icon: PlusCircle,
-  },
-  {
     label: "Plans",
     path: "/dashboard/packages",
     matchPattern: "/dashboard/packages",
     Icon: ShoppingBag,
-  },
-  {
-    label: "Delivery",
-    path: "/dashboard/delivery-tracking",
-    matchPattern: "/dashboard/delivery-tracking",
-    Icon: Truck,
   },
   {
     label: "Account",
@@ -71,6 +58,8 @@ export default function MobileTabBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(!!auth.currentUser);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetCountRef = useRef(0);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -79,13 +68,35 @@ export default function MobileTabBar() {
     return unsub;
   }, []);
 
+  // Listen for sheet open/close events with reference counting.
+  // Multiple sheets can be open simultaneously — tab bar only
+  // reappears when ALL sheets have closed.
+  useEffect(() => {
+    const handleOpen = () => {
+      sheetCountRef.current += 1;
+      setSheetOpen(true);
+    };
+    const handleClose = () => {
+      sheetCountRef.current = Math.max(0, sheetCountRef.current - 1);
+      if (sheetCountRef.current === 0) {
+        setSheetOpen(false);
+      }
+    };
+    window.addEventListener("sheet:open", handleOpen);
+    window.addEventListener("sheet:close", handleClose);
+    return () => {
+      window.removeEventListener("sheet:open", handleOpen);
+      window.removeEventListener("sheet:close", handleClose);
+    };
+  }, []);
+
   const tabs = isLoggedIn ? loggedInTabs : loggedOutTabs;
 
   const isActive = (tab: Tab) => {
     if (tab.matchPattern === "/") {
       return pathname === "/" || pathname === "";
     }
-    return pathname.startsWith(tab.matchPattern);
+    return pathname === tab.matchPattern;
   };
 
   const handleTap = (tab: Tab) => {
@@ -107,36 +118,52 @@ export default function MobileTabBar() {
   };
 
   return (
-    <nav
-      className="fixed bottom-0 inset-x-0 z-50 bg-[#1A1920]/95 backdrop-blur-xl border-t border-white/10"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-    >
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-        {tabs.map((tab) => {
-          const active = isActive(tab);
-          return (
-            <button
-              key={tab.label}
-              onClick={() => handleTap(tab)}
-              className="flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 h-full py-1"
-            >
-              <tab.Icon
-                className={`w-5 h-5 transition-colors ${
-                  active ? "text-[#ABFF63]" : "text-neutral-500"
-                }`}
-                strokeWidth={active ? 2.5 : 2}
-              />
-              <span
-                className={`text-[10px] font-medium truncate transition-colors ${
-                  active ? "text-[#ABFF63]" : "text-neutral-500"
-                }`}
+    <>
+      <style>{`
+        /* Hide tab bar when keyboard is up (viewport squashed) */
+        @media (max-height: 450px) {
+          .mobile-tab-bar {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <motion.nav
+        className="mobile-tab-bar select-none fixed bottom-0 inset-x-0 z-50 bg-[#1A1920]/95 backdrop-blur-xl border-t border-white/10"
+        animate={{ y: sheetOpen ? "100%" : 0, opacity: sheetOpen ? 0 : 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 40 }}
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+          {tabs.map((tab) => {
+            const active = isActive(tab);
+            return (
+              <motion.button
+                key={tab.label}
+                whileTap={{ scale: 0.9, opacity: 0.7 }}
+                onClick={() => handleTap(tab)}
+                className="flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 h-full py-1 outline-none"
               >
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+                <tab.Icon
+                  className={`w-5 h-5 transition-colors ${
+                    active ? "text-[#ABFF63]" : "text-neutral-500"
+                  }`}
+                  strokeWidth={active ? 2.5 : 2}
+                />
+                <span
+                  className={`text-[10px] font-medium truncate transition-colors ${
+                    active ? "text-[#ABFF63]" : "text-neutral-500"
+                  }`}
+                >
+                  {tab.label}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.nav>
+    </>
   );
 }

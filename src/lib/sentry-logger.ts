@@ -1,4 +1,6 @@
-import * as Sentry from '@sentry/react'
+import * as Sentry from "@sentry/react";
+
+const isDev = import.meta.env.DEV;
 
 /**
  * Reusable Sentry logger for Limes.
@@ -6,45 +8,74 @@ import * as Sentry from '@sentry/react'
  * Use this for all structured logging so we keep naming consistent.
  * Convention: snake_case for custom attributes.
  *
- * Examples:
- *   log.info('checkout_completed', { order_id, user_id, cart_value })
- *   log.error('payment_failed', { reason: 'card_declined', order_id })
+ * In development mode, all methods are no-ops to avoid
+ * consuming Sentry quota from localhost.
  */
 
-export const log = {
-  trace: (msg: string, attrs?: Record<string, string | number | boolean>) =>
-    Sentry.logger.trace(msg, attrs),
+const noop = () => {};
+const noopLog = {
+  trace: noop,
+  debug: noop,
+  info: noop,
+  warn: noop,
+  error: noop,
+  fatal: noop,
+  fmt: noop,
+} as const;
 
-  debug: (msg: string, attrs?: Record<string, string | number | boolean>) =>
-    Sentry.logger.debug(msg, attrs),
+export const log = isDev
+  ? noopLog
+  : ({
+      trace: (msg: string, attrs?: Record<string, string | number | boolean>) =>
+        Sentry.logger.trace(msg, attrs),
 
-  info: (msg: string, attrs?: Record<string, string | number | boolean>) =>
-    Sentry.logger.info(msg, attrs),
+      debug: (msg: string, attrs?: Record<string, string | number | boolean>) =>
+        Sentry.logger.debug(msg, attrs),
 
-  warn: (msg: string, attrs?: Record<string, string | number | boolean>) =>
-    Sentry.logger.warn(msg, attrs),
+      info: (msg: string, attrs?: Record<string, string | number | boolean>) =>
+        Sentry.logger.info(msg, attrs),
 
-  error: (msg: string, attrs?: Record<string, string | number | boolean>) =>
-    Sentry.logger.error(msg, attrs),
+      warn: (msg: string, attrs?: Record<string, string | number | boolean>) =>
+        Sentry.logger.warn(msg, attrs),
 
-  fatal: (msg: string, attrs?: Record<string, string | number | boolean>) =>
-    Sentry.logger.fatal(msg, attrs),
+      error: (msg: string, attrs?: Record<string, string | number | boolean>) =>
+        Sentry.logger.error(msg, attrs),
 
-  /** Parameterized log — values become searchable attributes automatically */
-  fmt: Sentry.logger.fmt,
-} as const
+      fatal: (msg: string, attrs?: Record<string, string | number | boolean>) =>
+        Sentry.logger.fatal(msg, attrs),
+
+      /** Parameterized log — values become searchable attributes automatically */
+      fmt: Sentry.logger.fmt,
+    } as const);
+
+/**
+ * Capture an exception in Sentry.
+ * No-op in development.
+ */
+export function captureException(
+  error: Error,
+  contexts?: Record<string, unknown>,
+) {
+  if (isDev) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Sentry.captureException(error, { contexts } as any);
+}
 
 /**
  * Set user context globally so every log, error, and trace includes it.
  * Call this after auth state is known.
+ * No-op in development.
  */
 export function setSentryUser(userId: string, email?: string, name?: string) {
-  Sentry.setUser({ id: userId, email, username: name })
+  if (isDev) return;
+  Sentry.setUser({ id: userId, email, username: name });
 }
 
 /**
  * Clear user context on logout.
+ * No-op in development.
  */
 export function clearSentryUser() {
-  Sentry.setUser(null)
+  if (isDev) return;
+  Sentry.setUser(null);
 }

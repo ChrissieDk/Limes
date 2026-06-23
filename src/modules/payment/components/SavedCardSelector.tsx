@@ -1,27 +1,14 @@
-import { useEffect, useState } from 'react'
-import { CreditCard, Loader2, Plus, Star } from 'lucide-react'
-import { paymentService } from '../services/paymentService'
-import { getAxiosErrorMessage } from '../../../utils/errorMessage'
-import type { SavedCard } from '../../../types/payment'
+import { useEffect, useState } from "react";
+import { CreditCard, Loader2, Plus, Star } from "lucide-react";
+import { paymentService } from "../services/paymentService";
+import { getAxiosErrorMessage } from "../../../utils/errorMessage";
+import { deduplicateCards } from "../utils/cardUtils";
+import type { SavedCard } from "../../../types/payment";
 
 interface SavedCardSelectorProps {
-  selectedCardId: string | null // null = "Pay with new card"
-  onSelect: (cardId: string | null) => void
-  disabled?: boolean
-}
-
-function deduplicateCards(cardList: SavedCard[]): SavedCard[] {
-  const cardMap = new Map<string, SavedCard>()
-
-  cardList.forEach((card) => {
-    const key = `${card.last4}-${card.expMonth}-${card.expYear}-${card.bank}`
-    const existing = cardMap.get(key)
-    if (!existing || card.isDefault || card.id > existing.id) {
-      cardMap.set(key, card)
-    }
-  })
-
-  return Array.from(cardMap.values())
+  selectedCardId: string | null; // null = "Pay with new card"
+  onSelect: (cardId: string | null) => void;
+  disabled?: boolean;
 }
 
 export default function SavedCardSelector({
@@ -29,45 +16,47 @@ export default function SavedCardSelector({
   onSelect,
   disabled = false,
 }: SavedCardSelectorProps) {
-  const [cards, setCards] = useState<SavedCard[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [cards, setCards] = useState<SavedCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCards()
-  }, [])
+    loadCards();
+  }, []);
 
   const loadCards = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const data = await paymentService.getSavedCards()
-      const uniqueCards = deduplicateCards(data)
-      setCards(uniqueCards)
+      const data = await paymentService.getSavedCards();
+      const uniqueCards = deduplicateCards(data);
+      setCards(uniqueCards);
 
       // Auto-select default card (or first card) if nothing pre-selected
       if (selectedCardId === undefined) {
-        const defaultCard = uniqueCards.find((c) => c.isDefault)
+        const defaultCard = uniqueCards.find((c) => c.isDefault);
         if (defaultCard) {
-          onSelect(defaultCard.id)
+          onSelect(defaultCard.id);
         } else if (uniqueCards.length > 0) {
-          onSelect(uniqueCards[0].id)
+          onSelect(uniqueCards[0].id);
         }
       }
     } catch (err: unknown) {
-      setError(getAxiosErrorMessage(err, 'Failed to load saved cards'))
+      setError(getAxiosErrorMessage(err, "Failed to load saved cards"));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center gap-3 py-4">
         <Loader2 className="w-4 h-4 animate-spin text-neutral-400" />
-        <span className="text-sm text-neutral-500 font-manrope">Loading saved cards…</span>
+        <span className="text-sm text-neutral-500 font-manrope">
+          Loading saved cards…
+        </span>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -75,18 +64,20 @@ export default function SavedCardSelector({
       <div className="rounded-xl bg-red-500/10 p-3">
         <p className="text-sm text-red-400 font-manrope">{error}</p>
       </div>
-    )
+    );
   }
 
   if (cards.length === 0) {
-    return null
+    return null;
   }
 
-  const isSelected = (cardId: string | null) => selectedCardId === cardId
+  const isSelected = (cardId: string | null) => selectedCardId === cardId;
 
   return (
     <div className="space-y-3">
-      <div className="font-grotesque text-neutral-400 text-sm font-semibold">Payment method</div>
+      <div className="font-grotesque text-neutral-400 text-sm font-semibold">
+        Payment method
+      </div>
 
       <div className="space-y-2">
         {cards.map((card) => (
@@ -96,19 +87,26 @@ export default function SavedCardSelector({
             disabled={disabled}
             className={`w-full flex items-center gap-4 rounded-2xl px-4 py-3.5 text-left transition-all active:scale-[0.98] ${
               isSelected(card.id)
-                ? 'bg-neutral-800 shadow-[0_8px_30px_rgba(0,0,0,0.3)]'
-                : 'bg-neutral-800 hover:bg-neutral-800'
-            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                ? "bg-neutral-800 shadow-[0_8px_30px_rgba(0,0,0,0.3)]"
+                : "bg-neutral-800 hover:bg-neutral-800"
+            } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div
               className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                isSelected(card.id) ? 'border-[#ABFF63] bg-[#ABFF63]' : 'border-white/20'
+                isSelected(card.id)
+                  ? "border-[#ABFF63] bg-[#ABFF63]"
+                  : "border-white/20"
               }`}
             >
-              {isSelected(card.id) && <div className="w-2 h-2 rounded-full bg-neutral-900" />}
+              {isSelected(card.id) && (
+                <div className="w-2 h-2 rounded-full bg-neutral-900" />
+              )}
             </div>
 
-            <div className="flex-shrink-0 grid place-items-center rounded-lg bg-white/5" style={{ width: 36, height: 36 }}>
+            <div
+              className="flex-shrink-0 grid place-items-center rounded-lg bg-white/5"
+              style={{ width: 36, height: 36 }}
+            >
               <CreditCard className="w-5 h-5 text-neutral-300" />
             </div>
 
@@ -137,25 +135,34 @@ export default function SavedCardSelector({
           disabled={disabled}
           className={`w-full flex items-center gap-4 rounded-2xl px-4 py-3.5 text-left transition-all active:scale-[0.98] ${
             isSelected(null)
-              ? 'bg-neutral-800 shadow-[0_8px_30px_rgba(0,0,0,0.3)]'
-              : 'bg-neutral-800 hover:bg-neutral-800'
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              ? "bg-neutral-800 shadow-[0_8px_30px_rgba(0,0,0,0.3)]"
+              : "bg-neutral-800 hover:bg-neutral-800"
+          } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           <div
             className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-              isSelected(null) ? 'border-[#ABFF63] bg-[#ABFF63]' : 'border-white/20'
+              isSelected(null)
+                ? "border-[#ABFF63] bg-[#ABFF63]"
+                : "border-white/20"
             }`}
           >
-            {isSelected(null) && <div className="w-2 h-2 rounded-full bg-neutral-900" />}
+            {isSelected(null) && (
+              <div className="w-2 h-2 rounded-full bg-neutral-900" />
+            )}
           </div>
 
-          <div className="flex-shrink-0 grid place-items-center rounded-lg bg-white/5" style={{ width: 36, height: 36 }}>
+          <div
+            className="flex-shrink-0 grid place-items-center rounded-lg bg-white/5"
+            style={{ width: 36, height: 36 }}
+          >
             <Plus className="w-5 h-5 text-neutral-300" />
           </div>
 
-          <span className="font-grotesque font-bold text-white text-sm">Pay with new card</span>
+          <span className="font-grotesque font-bold text-white text-sm">
+            Pay with new card
+          </span>
         </button>
       </div>
     </div>
-  )
+  );
 }

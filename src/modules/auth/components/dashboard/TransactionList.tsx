@@ -1,31 +1,37 @@
-import { formatDate } from '../../../../utils/dateFormat'
-import { StatusBadge } from './TransactionsComponents'
-import type { Transaction } from './dashboardTypes'
-import type { TransactionSortKey, SortDirection } from './useTransactionSort'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { formatDate } from "../../../../utils/dateFormat";
+import { StatusBadge } from "./TransactionsComponents";
+import type { Transaction } from "./dashboardTypes";
+import type { TransactionSortKey, SortDirection } from "./useTransactionSort";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface SortableHeaderProps {
-  label: string
-  columnKey: TransactionSortKey
-  activeKey: TransactionSortKey | null
-  direction: SortDirection
-  onSort: (key: TransactionSortKey) => void
+  label: string;
+  columnKey: TransactionSortKey;
+  activeKey: TransactionSortKey | null;
+  direction: SortDirection;
+  onSort: (key: TransactionSortKey) => void;
 }
 
-function SortableHeader({ label, columnKey, activeKey, direction, onSort }: SortableHeaderProps) {
-  const active = activeKey === columnKey
+function SortableHeader({
+  label,
+  columnKey,
+  activeKey,
+  direction,
+  onSort,
+}: SortableHeaderProps) {
+  const active = activeKey === columnKey;
   return (
     <button
       type="button"
       onClick={() => onSort(columnKey)}
       className={`group inline-flex cursor-pointer items-center gap-1.5 font-inherit text-sm select-none transition-colors ${
-        active ? 'text-neutral-200' : 'text-neutral-500 hover:text-neutral-300'
+        active ? "text-neutral-200" : "text-neutral-500 hover:text-neutral-300"
       }`}
     >
       <span>{label}</span>
       <span className="flex flex-col leading-none" aria-hidden>
         {active ? (
-          direction === 'asc' ? (
+          direction === "asc" ? (
             <ChevronUp className="w-3.5 h-3.5 shrink-0" />
           ) : (
             <ChevronDown className="w-3.5 h-3.5 shrink-0" />
@@ -38,16 +44,17 @@ function SortableHeader({ label, columnKey, activeKey, direction, onSort }: Sort
         )}
       </span>
     </button>
-  )
+  );
 }
 
 interface TransactionListProps {
-  transactions: Transaction[]
-  sortKey: TransactionSortKey | null
-  sortDir: SortDirection
-  onSort: (key: TransactionSortKey) => void
-  getTransactionTypeLabel: (t: Transaction) => string
-  mobileCardClass?: string
+  transactions: Transaction[];
+  sortKey: TransactionSortKey | null;
+  sortDir: SortDirection;
+  onSort: (key: TransactionSortKey) => void;
+  getTransactionTypeLabel: (t: Transaction) => string;
+  mobileCardClass?: string;
+  hideSortHeaders?: boolean;
 }
 
 export default function TransactionList({
@@ -56,7 +63,7 @@ export default function TransactionList({
   sortDir,
   onSort,
   getTransactionTypeLabel,
-  mobileCardClass = 'rounded-lg border border-neutral-700 bg-neutral-900/40 px-3 py-2.5',
+  mobileCardClass = "rounded-lg border border-neutral-700 bg-neutral-900/40 px-3 py-2.5",
 }: TransactionListProps) {
   return (
     <>
@@ -66,25 +73,54 @@ export default function TransactionList({
           <thead>
             <tr className="text-sm border-b border-neutral-700/60">
               <th className="text-left pb-3 font-medium">
-                <SortableHeader label="Type" columnKey="type" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+                <SortableHeader
+                  label="Type"
+                  columnKey="type"
+                  activeKey={sortKey}
+                  direction={sortDir}
+                  onSort={onSort}
+                />
               </th>
               <th className="text-left pb-3 font-medium">
-                <SortableHeader label="Status" columnKey="status" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+                <SortableHeader
+                  label="Status"
+                  columnKey="status"
+                  activeKey={sortKey}
+                  direction={sortDir}
+                  onSort={onSort}
+                />
               </th>
               <th className="text-left pb-3 font-medium">
-                <SortableHeader label="Date" columnKey="date" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+                <SortableHeader
+                  label="Date"
+                  columnKey="date"
+                  activeKey={sortKey}
+                  direction={sortDir}
+                  onSort={onSort}
+                />
               </th>
               <th className="text-right pb-3 font-medium">
                 <div className="flex justify-end w-full">
-                  <SortableHeader label="Amount" columnKey="amount" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+                  <SortableHeader
+                    label="Amount"
+                    columnKey="amount"
+                    activeKey={sortKey}
+                    direction={sortDir}
+                    onSort={onSort}
+                  />
                 </div>
               </th>
             </tr>
           </thead>
           <tbody>
             {transactions.map((transaction, index) => (
-              <tr key={transaction.id} className={index > 0 ? 'border-t border-neutral-800' : ''}>
-                <td className="py-3 text-sm text-white">{getTransactionTypeLabel(transaction)}</td>
+              <tr
+                key={transaction.id}
+                className={index > 0 ? "border-t border-neutral-800" : ""}
+              >
+                <td className="py-3 text-sm text-white">
+                  {getTransactionTypeLabel(transaction)}
+                </td>
                 <td className="py-3">
                   <StatusBadge status={transaction.status} />
                 </td>
@@ -103,9 +139,14 @@ export default function TransactionList({
       {/* Mobile stacked view */}
       <div className="space-y-2 md:hidden">
         {transactions.map((transaction) => (
-          <div key={transaction.id} className={`${mobileCardClass} flex items-start justify-between gap-3`}>
+          <div
+            key={transaction.id}
+            className={`${mobileCardClass} flex items-start justify-between gap-3`}
+          >
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-white">{getTransactionTypeLabel(transaction)}</div>
+              <div className="text-sm font-medium text-white">
+                {getTransactionTypeLabel(transaction)}
+              </div>
               <div className="font-manrope mt-1 text-xs text-neutral-400">
                 {formatDate(transaction.paidAt || transaction.createdAt)}
               </div>
@@ -120,5 +161,5 @@ export default function TransactionList({
         ))}
       </div>
     </>
-  )
+  );
 }

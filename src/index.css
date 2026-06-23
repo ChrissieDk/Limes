@@ -61,6 +61,15 @@ body {
     overscroll-behavior-y: none;
 }
 
+/* Hide scrollbars globally for a native app feel */
+* {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+*::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+}
+
 /* Kill tap highlight on all interactive elements */
 * {
     -webkit-tap-highlight-color: transparent;

@@ -53,13 +53,19 @@ export default defineConfig(({ mode }) => {
           short_name: "Limes",
           description:
             "Prepaid or subscription. Build your own plan, switch in minutes, and only pay for what you actually use.",
-          theme_color: "#0E0E12",
-          background_color: "#0E0E12",
+          theme_color: "#1A1920",
+          background_color: "#1A1920",
           display: "standalone",
           orientation: "portrait-primary",
           scope: "/",
           start_url: "/",
           icons: [
+            {
+              src: "pwa-icon.svg",
+              sizes: "any",
+              type: "image/svg+xml",
+              purpose: "any",
+            },
             {
               src: "pwa-192x192.png",
               sizes: "192x192",

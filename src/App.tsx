@@ -50,6 +50,7 @@ const FairUsagePolicy = lazy(
 const DeliveryTracking = lazy(
   () => import("./modules/warehouse/pages/DeliveryTracking"),
 );
+const LinesPage = lazy(() => import("./modules/auth/pages/LinesPage"));
 
 function PageLoader() {
   return (
@@ -71,8 +72,9 @@ function LazyPage({ Component }: { Component: React.ComponentType }) {
   );
 }
 
-const sentryCreateBrowserRouter =
-  Sentry.wrapCreateBrowserRouterV6(createBrowserRouter);
+const sentryCreateBrowserRouter = import.meta.env.DEV
+  ? createBrowserRouter
+  : Sentry.wrapCreateBrowserRouterV6(createBrowserRouter);
 
 const router = sentryCreateBrowserRouter(
   [
@@ -184,6 +186,10 @@ const router = sentryCreateBrowserRouter(
             {
               path: "packages",
               element: <LazyPage Component={DashboardPackages} />,
+            },
+            {
+              path: "lines",
+              element: <LazyPage Component={LinesPage} />,
             },
             {
               path: "edit-details",

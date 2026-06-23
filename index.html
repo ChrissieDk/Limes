@@ -6,7 +6,7 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover"
         />
         <meta
             name="description"
@@ -63,9 +63,20 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <!-- Brand fonts: Darker Grotesque (headings) + Manrope (body) -->
         <link
-            href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
-            rel="stylesheet"
+            rel="preload"
+            as="style"
+            href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@700;900&family=Manrope:wght@400;500;600;700&display=swap"
+            onload="
+                this.onload = null;
+                this.rel = 'stylesheet';
+            "
         />
+        <noscript>
+            <link
+                href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@700;900&family=Manrope:wght@400;500;600;700&display=swap"
+                rel="stylesheet"
+            />
+        </noscript>
         <!-- Paystack Inline JS — defer so it doesn't block initial render -->
         <script src="https://js.paystack.co/v2/inline.js" defer></script>
     </head>

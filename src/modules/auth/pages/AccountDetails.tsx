@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { signOut } from "firebase/auth";
 import { auth } from "../../../config/firebase";
 import { crmService } from "../../crm/services/crmService";
 import { getAxiosErrorMessage } from "../../../utils/errorMessage";
@@ -50,11 +52,24 @@ function mapResponseToFormDefaults(
 }
 
 export default function AccountDetails() {
+  const navigate = useNavigate();
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (!window.confirm("Are you sure you want to sign out?")) return;
+    setLoggingOut(true);
+    try {
+      await signOut(auth);
+      navigate("/");
+    } catch {
+      setLoggingOut(false);
+    }
+  };
   const countryRef = useRef<string>("ZA");
 
   const {
@@ -137,8 +152,23 @@ export default function AccountDetails() {
     }
   };
 
+  const handleFieldFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setTimeout(
+      () => e.target.scrollIntoView({ block: "center", behavior: "smooth" }),
+      350,
+    );
+  };
+
   const formContent = (
-    <>
+    <div
+      onPointerDown={(e) => {
+        if (
+          !(e.target as HTMLElement).closest("input,button,a,textarea,select")
+        ) {
+          (document.activeElement as HTMLElement)?.blur();
+        }
+      }}
+    >
       {loading && (
         <p className="font-manrope text-neutral-400 text-sm text-center py-12">
           Loading your details…
@@ -150,91 +180,122 @@ export default function AccountDetails() {
         </p>
       )}
       {!loading && !loadError && (
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Personal section */}
-          <div className="mobile-form-section">
-            <div className="mobile-form-section-title">Personal</div>
-            <div className="grid gap-4">
-              <TextField
-                label="First name"
-                variant="dark"
-                error={errors.firstname?.message}
-                {...register("firstname")}
-              />
-              <TextField
-                label="Last name"
-                variant="dark"
-                error={errors.lastname?.message}
-                {...register("lastname")}
-              />
+        <>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            {/* Personal section */}
+            <div className="mobile-form-section">
+              <div className="mobile-form-section-title">Personal</div>
+              <div className="grid gap-4">
+                <TextField
+                  label="First name"
+                  variant="dark"
+                  error={errors.firstname?.message}
+                  enterKeyHint="next"
+                  onFocus={handleFieldFocus}
+                  {...register("firstname")}
+                />
+                <TextField
+                  label="Last name"
+                  variant="dark"
+                  error={errors.lastname?.message}
+                  enterKeyHint="next"
+                  onFocus={handleFieldFocus}
+                  {...register("lastname")}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Address section */}
-          <div className="mobile-form-section">
-            <div className="mobile-form-section-title">Address</div>
-            <div className="grid grid-cols-2 gap-4">
-              <TextField
-                label="Street number"
-                variant="dark"
-                error={errors.streetNo?.message}
-                {...register("streetNo")}
-              />
-              <TextField
-                label="Street name"
-                variant="dark"
-                error={errors.streetName?.message}
-                {...register("streetName")}
-              />
-              <TextField
-                label="Suburb"
-                variant="dark"
-                error={errors.suburb?.message}
-                {...register("suburb")}
-              />
-              <TextField
-                label="City"
-                variant="dark"
-                error={errors.city?.message}
-                {...register("city")}
-              />
-              <TextField
-                label="Province / state"
-                variant="dark"
-                error={errors.stateOrProvince?.message}
-                {...register("stateOrProvince")}
-              />
-              <TextField
-                label="Postal code"
-                variant="dark"
-                error={errors.postCode?.message}
-                {...register("postCode")}
-              />
+            {/* Address section */}
+            <div className="mobile-form-section">
+              <div className="mobile-form-section-title">Address</div>
+              <div className="grid gap-4">
+                <TextField
+                  label="Street number"
+                  variant="dark"
+                  error={errors.streetNo?.message}
+                  inputMode="numeric"
+                  enterKeyHint="next"
+                  onFocus={handleFieldFocus}
+                  {...register("streetNo")}
+                />
+                <TextField
+                  label="Street name"
+                  variant="dark"
+                  error={errors.streetName?.message}
+                  enterKeyHint="next"
+                  onFocus={handleFieldFocus}
+                  {...register("streetName")}
+                />
+                <TextField
+                  label="Suburb"
+                  variant="dark"
+                  error={errors.suburb?.message}
+                  enterKeyHint="next"
+                  onFocus={handleFieldFocus}
+                  {...register("suburb")}
+                />
+                <TextField
+                  label="City"
+                  variant="dark"
+                  error={errors.city?.message}
+                  enterKeyHint="next"
+                  onFocus={handleFieldFocus}
+                  {...register("city")}
+                />
+                <TextField
+                  label="Province / state"
+                  variant="dark"
+                  error={errors.stateOrProvince?.message}
+                  enterKeyHint="next"
+                  onFocus={handleFieldFocus}
+                  {...register("stateOrProvince")}
+                />
+                <TextField
+                  label="Postal code"
+                  variant="dark"
+                  error={errors.postCode?.message}
+                  inputMode="numeric"
+                  enterKeyHint="done"
+                  onFocus={handleFieldFocus}
+                  {...register("postCode")}
+                />
+              </div>
             </div>
-          </div>
 
-          {submitError && (
-            <p className="text-sm text-red-400 px-4 pt-3">{submitError}</p>
-          )}
-          {success && (
-            <p className="font-manrope text-sm text-[#ABFF63] px-4 pt-3">
-              Your details were saved.
-            </p>
-          )}
+            {submitError && (
+              <p className="text-sm text-red-400 px-4 pt-3">{submitError}</p>
+            )}
+            {success && (
+              <p className="font-manrope text-sm text-[#ABFF63] px-4 pt-3">
+                Your details were saved.
+              </p>
+            )}
 
-          <div className="px-4 pt-6 pb-4">
-            <Button
-              type="submit"
-              disabled={submitting}
-              fullWidth
-              className="h-12 text-sm"
+            <div className="px-4 pt-6 pb-2">
+              <Button
+                type="submit"
+                disabled={submitting}
+                fullWidth
+                className="h-12 text-sm"
+              >
+                {submitting ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </form>
+
+          <div className="px-4 pb-4">
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="w-full h-12 rounded-xl bg-red-600/20 text-red-400 font-semibold text-sm hover:bg-red-600/30 transition-colors disabled:opacity-50"
             >
-              {submitting ? "Saving…" : "Save changes"}
-            </Button>
+              {loggingOut ? "Signing out…" : "Logout"}
+            </button>
           </div>
-        </form>
+        </>
       )}
-    </>
+    </div>
   );
 
   return (
@@ -253,7 +314,7 @@ export default function AccountDetails() {
       </div>
 
       {/* Mobile: iOS-style grouped form */}
-      <MobilePage title="Edit details" backTo="/dashboard/edit-details">
+      <MobilePage title="Edit details" backTo="/dashboard">
         {formContent}
       </MobilePage>
     </>
