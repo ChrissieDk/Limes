@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { catalogService } from '../../catalog/services/catalogService'
 import { inventoryService } from '../../inventory/services/inventoryService'
 import { log } from '../../../lib/sentry-logger'
@@ -63,6 +63,7 @@ export interface PackageSelectionActions {
 
 export function usePackageSelection(): PackageSelectionState & PackageSelectionActions {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [loading, setLoading] = useState(false)
@@ -81,6 +82,25 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
   const [iccidConfirmed, setIccidConfirmed] = useState(false)
   const [iccidSubmitLoading, setIccidSubmitLoading] = useState(false)
   const [iccidError, setIccidError] = useState<string | null>(null)
+
+  const assignToMsisdn = (location.state as Record<string, unknown>)?.assignToMsisdn as string | undefined
+  const incomingPackageType = (location.state as Record<string, unknown>)?.packageType as 'contract' | 'prepaid' | undefined
+  const incomingSimPackageProductId = (location.state as Record<string, unknown>)?.simPackageProductId as string | undefined
+
+  const assignModeInitDone = useRef(false)
+
+  useEffect(() => {
+    if (assignModeInitDone.current) return
+    assignModeInitDone.current = true
+
+    if (assignToMsisdn && incomingPackageType) {
+      setPackageType(incomingPackageType)
+      setSimStatus('has-sim')
+      setSimPackageProductId(incomingSimPackageProductId || null)
+      setIccidConfirmed(true)
+      window.history.replaceState({}, document.title)
+    }
+  }, [assignToMsisdn, incomingPackageType, incomingSimPackageProductId])
 
   const resetFlow = () => {
     setSimStatus(null)
@@ -328,6 +348,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
               allocation.whatsapp > 0 && `WhatsApp: R${allocation.whatsapp}`,
             ].filter(Boolean).join(', ') || 'Custom subscription',
           },
+          assignToMsisdn,
         },
       },
     })
@@ -385,6 +406,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
           features: {
             mobileData: product.description,
           },
+          assignToMsisdn,
         },
       },
     })
@@ -416,6 +438,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
           features: {
             mobileData: product.description,
           },
+          assignToMsisdn,
         },
       },
     })

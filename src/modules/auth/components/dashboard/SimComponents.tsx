@@ -6,13 +6,14 @@ interface SimCardProps {
   onTopUp: (sim: SimCardModel) => void;
   onActivate: (sim: SimCardModel) => void;
   onRename?: (sim: SimCardModel, newName: string) => void;
+  onChoosePlan?: (sim: SimCardModel) => void;
   canActivate?: boolean;
   isActivating?: boolean;
   isActive?: boolean;
   activationStatusLoading?: boolean;
 }
 
-export function SimCard({ sim, onTopUp, onActivate, onRename, canActivate = false, isActivating = false, isActive, activationStatusLoading = false }: SimCardProps) {
+export function SimCard({ sim, onTopUp, onActivate, onRename, onChoosePlan, canActivate = false, isActivating = false, isActive, activationStatusLoading = false }: SimCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(sim.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -128,6 +129,14 @@ export function SimCard({ sim, onTopUp, onActivate, onRename, canActivate = fals
                     {isActivating ? 'Activating...' : 'Activate'}
                   </button>
                 )}
+                {isActive === true && !sim.subscriptionId && (sim.packageType === 'contract' || sim.packageType === 'prepaid') && onChoosePlan && (
+                  <button
+                    onClick={() => onChoosePlan(sim)}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold bg-[#FDDA36] text-neutral-900 hover:brightness-95 transition-colors"
+                  >
+                    Choose Plan
+                  </button>
+                )}
                 {onRename && (
                   <button
                     type="button"
@@ -174,7 +183,7 @@ function BalanceCard({ icon, label, value, bgClass, colSpan }: BalanceCardProps)
   );
 }
 
-export function PlanDetails({ sim, onPortMyNumber, onSwitchToContract, isPortingInProgress = false }: PlanDetailsProps) {
+export function PlanDetails({ sim, onPortMyNumber, isPortingInProgress = false }: PlanDetailsProps) {
   const getBalanceValue = (grouping: string, definitionCode?: string) => {
     if (!sim.balances) return null;
     const balance = sim.balances.find((b) =>
@@ -231,6 +240,7 @@ export function PlanDetails({ sim, onPortMyNumber, onSwitchToContract, isPorting
           </div>
         </div>
 
+        {/* Migrated product switch is redundant while Choose Plan handles real plan assignment.
         <div className="rounded-[24px] bg-white/5 ring-1 ring-white/10 px-6 py-4">
           <div className="flex flex-col justify-between h-full gap-6">
             <div>
@@ -239,10 +249,6 @@ export function PlanDetails({ sim, onPortMyNumber, onSwitchToContract, isPorting
                 You can now change your SIM from Prepaid to Subscription.<br className="hidden sm:block" /> Get everything you need, every month.
               </p>
             </div>
-            {/* BACKEND TODO: sim.packageType should come from MsisdnData.packageType.
-                Until then we fall back to inferPackageType() which only recognises
-                the original SIM-package IDs (ending in P). Users who bought extra
-                bundles will show as enabled even if they are prepaid. */}
             <button
               type="button"
               onClick={onSwitchToContract}
@@ -259,6 +265,7 @@ export function PlanDetails({ sim, onPortMyNumber, onSwitchToContract, isPorting
             </button>
           </div>
         </div>
+        */}
       </div>
     </>
   );

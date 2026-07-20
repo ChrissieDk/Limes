@@ -85,6 +85,8 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
                 hasVoiceTopUp: existing?.hasVoiceTopUp ?? false,
                 productId: msisdnData.productId,
                 packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
+                hasActiveSubscription: msisdnData.hasActiveSubscription,
+                subscriptionId: msisdnData.subscriptionId,
                 plan: existing?.plan ?? {
                   mobileData: '0GB',
                   airtime: 'R0',
@@ -124,6 +126,8 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
               hasVoiceTopUp: false,
               productId: msisdnData.productId,
               packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
+              hasActiveSubscription: msisdnData.hasActiveSubscription,
+              subscriptionId: msisdnData.subscriptionId,
               plan: {
                 mobileData: '0GB',
                 airtime: 'R0',
