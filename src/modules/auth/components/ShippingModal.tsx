@@ -37,6 +37,7 @@ export interface SelectedPackage {
     whatsapp: number
   }
   comboDetails?: any  // Full combo package details (benefits, pricing, etc.)
+  assignToMsisdn?: string  // When assigning a plan to an existing active SIM
   features?: {
     mobileData?: string
     description?: string

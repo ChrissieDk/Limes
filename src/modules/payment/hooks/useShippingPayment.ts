@@ -52,48 +52,75 @@ export function useShippingPayment(
       }
       log.info('payment_verified', { reference, card_saved: verifyResponse.cardSaved ?? false })
 
-      if (!ricaData) throw new Error('RICA data is required for subscriber creation')
+      const assignToMsisdn = selectedPackage?.assignToMsisdn
+      let targetMsisdn: string
 
-      const subscriberPayload = {
-        productId: selectedPackage!.simPackageProductId!,
-        ...(selectedPackage!.simStatus === 'has-sim' && selectedPackage!.iccid ? { iccid: selectedPackage!.iccid } : {}),
-        eSim: false,
-        address: [{
-          referredType: 'SUBSCRIBER' as const,
-          addressType: 'INSTALLATION' as const,
-          ...ricaData.address,
-          oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`,
-        }],
+      if (assignToMsisdn) {
+        // Existing SIM mode: skip subscriber creation and RICA check
+        targetMsisdn = assignToMsisdn
+        log.info('payment_verification_existing_sim', { reference, msisdn: targetMsisdn })
+      } else {
+        // New SIM mode: create subscriber
+        if (!ricaData) throw new Error('RICA data is required for subscriber creation')
+
+        const subscriberPayload = {
+          productId: selectedPackage!.simPackageProductId!,
+          ...(selectedPackage!.simStatus === 'has-sim' && selectedPackage!.iccid ? { iccid: selectedPackage!.iccid } : {}),
+          eSim: false,
+          address: [{
+            referredType: 'SUBSCRIBER' as const,
+            addressType: 'INSTALLATION' as const,
+            ...ricaData.address,
+            oneLineAddress: `${ricaData.address.streetNo} ${ricaData.address.streetName}, ${ricaData.address.city}`,
+          }],
+        }
+
+        try {
+          const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
+          targetMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
+          if (!targetMsisdn) throw new Error('Failed to allocate MSISDN')
+          log.info('subscriber_created', { reference, msisdn: targetMsisdn })
+        } catch (subscriberErr) {
+          log.error('subscriber_creation_failed', { reference, error: String(subscriberErr) })
+          try {
+            await paymentService.requestRefund({ transactionReference: reference, amountInCents: null, reason: 'MVNX subscriber creation failed' })
+            setRefundRequested(true)
+            log.info('refund_requested', { reference, reason: 'subscriber_creation_failed' })
+          } catch (refundErr) {
+            log.error('refund_request_failed', { reference, error: String(refundErr) })
+          }
+          throw new Error('Subscriber creation failed. A refund has been requested and will be processed within 5-7 business days.')
+        }
       }
 
-      let newMsisdn: string
+      let simStatus: Awaited<ReturnType<typeof subscriptionService.checkSimActive>>
       try {
-        const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
-        newMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
-        if (!newMsisdn) throw new Error('Failed to allocate MSISDN')
-        log.info('subscriber_created', { reference, msisdn: newMsisdn })
-      } catch (subscriberErr) {
-        log.error('subscriber_creation_failed', { reference, error: String(subscriberErr) })
+        simStatus = await subscriptionService.checkSimActive(targetMsisdn)
+      } catch (checkErr) {
+        log.error('sim_active_check_failed', { reference, msisdn: targetMsisdn, error: String(checkErr) })
+        throw new Error('Failed to verify SIM status. Please contact support.')
+      }
+
+      try {
+        if (selectedPackage!.isDynamicPlan && selectedPackage!.planAllocation) {
+          await handleDynamicPlanFlow(targetMsisdn, reference, simStatus.isActive)
+        } else {
+          await handleRegularOrderFlow(targetMsisdn, reference, simStatus.isActive)
+        }
+      } catch (orderErr) {
+        log.error('order_creation_failed', { reference, msisdn: targetMsisdn, error: String(orderErr) })
         try {
-          await paymentService.requestRefund({ transactionReference: reference, amountInCents: null, reason: 'MVNX subscriber creation failed' })
+          await paymentService.requestRefund({ transactionReference: reference, amountInCents: null, reason: 'Order creation failed for existing SIM' })
           setRefundRequested(true)
-          log.info('refund_requested', { reference, reason: 'subscriber_creation_failed' })
+          log.info('refund_requested', { reference, reason: 'order_creation_failed_existing_sim' })
         } catch (refundErr) {
           log.error('refund_request_failed', { reference, error: String(refundErr) })
         }
-        throw new Error('Subscriber creation failed. A refund has been requested and will be processed within 5-7 business days.')
-      }
-
-      const simStatus = await subscriptionService.checkSimActive(newMsisdn)
-
-      if (selectedPackage!.isDynamicPlan && selectedPackage!.planAllocation) {
-        await handleDynamicPlanFlow(newMsisdn, reference, simStatus.isActive)
-      } else {
-        await handleRegularOrderFlow(newMsisdn, reference, simStatus.isActive)
+        throw new Error('Order creation failed. A refund has been requested and will be processed within 5-7 business days.')
       }
 
       if (isSubscription && verifyResponse.cardSaved) {
-        await handleRecurringSubscription(newMsisdn)
+        await handleRecurringSubscription(targetMsisdn)
       }
 
       const totalPriceRands = selectedPackage?.price || 0
@@ -119,7 +146,7 @@ export function useShippingPayment(
       setPaymentSuccess(true)
       log.info('payment_success', {
         reference,
-        msisdn: newMsisdn,
+        msisdn: targetMsisdn,
         package_type: selectedPackage?.packageType || 'null',
         plan_charge_type: selectedPackage?.planChargeType || 'null',
         amount_cents: selectedPackage?.priceInCents || selectedPackage?.price ? toCents(selectedPackage!.price) : 0,
@@ -230,13 +257,15 @@ export function useShippingPayment(
         is_combo_bundle: !!selectedPackage.isComboBundle,
       }
 
+      const existingMsisdn = selectedPackage.assignToMsisdn || null
+
       if (selectedPackage.packageType === 'contract' && selectedPackage.isDynamicPlan && selectedPackage.planAllocation) {
-        if (!ricaData) { setVerificationError('RICA data is required for subscriptions'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'rica_data_missing' }); return }
-        if (!selectedPackage.simPackageProductId) { setVerificationError('SIM subscription product ID is required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'sim_package_product_id_missing' }); return }
+        if (!existingMsisdn && !ricaData) { setVerificationError('RICA data is required for subscriptions'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'rica_data_missing' }); return }
+        if (!existingMsisdn && !selectedPackage.simPackageProductId) { setVerificationError('SIM subscription product ID is required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'sim_package_product_id_missing' }); return }
         const services = buildServicesFromAllocation(selectedPackage.planAllocation, selectedPackage.packageType || 'prepaid')
         log.info('payment_initializing', { ...baseLogAttrs, flow: 'dynamic_services' })
         initResponse = await paymentService.initializeDynamicServicesPayment({
-          msisdn: null as unknown as string,
+          msisdn: existingMsisdn as unknown as string,
           services,
           ...(selectedPackage.simStatus === 'needs-sim' && { shippingCostInCents: SHIPPING_COST_CENTS }),
         })
@@ -246,14 +275,14 @@ export function useShippingPayment(
         initResponse = await paymentService.initializeTransaction({
           productId: String(selectedPackage.productId),
           amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0),
-          msisdn: null,
+          msisdn: existingMsisdn,
         })
       } else {
         if (!selectedPackage.productId || !selectedPackage.price) { setVerificationError('Product ID and price are required'); log.warn('payment_init_failed', { ...baseLogAttrs, reason: 'product_id_or_price_missing' }); return }
         log.info('payment_initializing', { ...baseLogAttrs, flow: 'standard' })
         initResponse = await paymentService.initializeTransaction({
           productId: String(selectedPackage.productId),
-          msisdn: null,
+          msisdn: existingMsisdn,
           amount: toCents(selectedPackage.price) + (selectedPackage.simStatus === 'needs-sim' ? SHIPPING_COST_CENTS : 0),
         })
       }

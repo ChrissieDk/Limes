@@ -9,6 +9,12 @@ export interface SimCard {
   productId?: string;
   // Derived from MsisdnData.packageType (backend) or inferred from productId (fallback).
   packageType?: 'prepaid' | 'contract';
+  // Billing subscription status from MsisdnData.hasActiveSubscription.
+  // NOT the same as network activation status (simIsActive).
+  hasActiveSubscription?: boolean;
+  // Ground-truth check for subscription existence. A subscription may exist
+  // (subscriptionId set) but hasActiveSubscription can still be false (e.g. past_due).
+  subscriptionId?: string | null;
   plan: {
     mobileData: string;
     airtime: string;
