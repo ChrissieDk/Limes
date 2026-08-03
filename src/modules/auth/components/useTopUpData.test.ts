@@ -7,8 +7,8 @@ const mockSearchCategoryProducts = vi.fn()
 
 vi.mock('../../catalog/services/catalogService', () => ({
   catalogService: {
-    getCategoryTree: (...args: any[]) => mockGetCategoryTree(...args),
-    searchCategoryProducts: (...args: any[]) => mockSearchCategoryProducts(...args),
+    getCategoryTree: (...args: unknown[]) => mockGetCategoryTree(...args),
+    searchCategoryProducts: (...args: unknown[]) => mockSearchCategoryProducts(...args),
   },
 }))
 

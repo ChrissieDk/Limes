@@ -4,9 +4,10 @@ import { useAuthState } from './useAuthState'
 
 const mockUnsubscribe = vi.fn()
 const mockOnAuthStateChanged = vi.fn()
+type AuthStateCallback = (user: { uid: string; email?: string } | null) => void
 
 vi.mock('firebase/auth', () => ({
-  onAuthStateChanged: (...args: any[]) => mockOnAuthStateChanged(...args),
+  onAuthStateChanged: (...args: [unknown, AuthStateCallback]) => mockOnAuthStateChanged(...args),
 }))
 
 vi.mock('../../../config/firebase', () => ({
@@ -28,7 +29,7 @@ describe('useAuthState', () => {
   })
 
   it('sets ready=true and user when auth state resolves', async () => {
-    const mockUser = { uid: '123', email: 'test@example.com' } as any
+    const mockUser = { uid: '123', email: 'test@example.com' }
     mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
       callback(mockUser)
       return mockUnsubscribe

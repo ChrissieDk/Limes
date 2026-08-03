@@ -11,7 +11,7 @@ const DEFAULT_OG_IMAGE = '/images/hero_new.png'
 export const SITE_NAME = 'Limes'
 
 export function getSiteUrl(): string {
-  const env = (import.meta as any).env?.VITE_SITE_URL as string | undefined
+  const env = import.meta.env.VITE_SITE_URL as string | undefined
   return (env || 'https://limes.network').replace(/\/$/, '')
 }
 

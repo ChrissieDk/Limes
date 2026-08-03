@@ -7,8 +7,19 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_STORAGE_BUCKET: string
   readonly VITE_FIREBASE_MESSAGING_SENDER_ID: string
   readonly VITE_FIREBASE_APP_ID: string
+  readonly DEV: boolean
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+}
+
+declare class PaystackPop {
+  resumeTransaction(
+    accessCode: string,
+    options: {
+      onSuccess: (transaction: Record<string, unknown>) => void | Promise<void>
+      onCancel?: () => void
+    },
+  ): void
 }

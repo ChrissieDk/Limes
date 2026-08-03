@@ -14,8 +14,7 @@ import BundleCategoryGrid from './BundleCategoryGrid'
 import SavedCardSelector from '../../payment/components/SavedCardSelector'
 import type { SavedCard } from '../../../types/payment'
 
-// Paystack Popup
-declare const PaystackPop: any
+
 
 type TopUpKind = 'airtime' | 'bundles'
 

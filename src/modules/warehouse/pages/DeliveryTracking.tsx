@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardNavbar from '../../auth/components/DashboardNavbar'
 import Footer from '../../auth/components/Footer'
@@ -339,6 +339,56 @@ function PodModal({ orderId, onClose }: { orderId: string; onClose: () => void }
   )
 }
 
+function isAxiosErrorWithStatus(err: unknown, status: number): boolean {
+  const e = err as { response?: { status?: number } } | undefined
+  return e?.response?.status === status
+}
+
+function isNoTrackingError(err: unknown): boolean {
+  return isAxiosErrorWithStatus(err, 403) || isAxiosErrorWithStatus(err, 404)
+}
+
+function friendlyWarehouseError(err: unknown): string {
+  const msg = getAxiosErrorMessage(err, '').toLowerCase()
+  if (msg.includes('circuit')) {
+    return 'Our delivery tracking service is temporarily unavailable. Please try again in a few minutes.'
+  }
+  if (msg.includes('unauthorized') || msg.includes('401')) {
+    return 'Your session has expired. Please sign in again to view delivery tracking.'
+  }
+  if (msg.includes('forbidden') || msg.includes('403')) {
+    return "We couldn't verify your account. Please contact support if this continues."
+  }
+  if (msg.includes('network') || !msg) {
+    return "We couldn't connect to our delivery tracking service. Please check your internet connection and try again."
+  }
+  if (msg.includes('500') || msg.includes('internal')) {
+    return "We're experiencing a technical issue with delivery tracking. Please try again shortly."
+  }
+  return 'Something went wrong while loading delivery tracking. Please try again.'
+}
+
+function createSyntheticPendingTracking(msisdn: string): TrackingResponseDTO {
+  return {
+    orderId: 'PENDING',
+    trackingNumber: '',
+    msisdn,
+    currentStatus: 'PAYMENT_RECEIVED',
+    estimatedDeliveryDate: undefined,
+    events: [
+      {
+        eventId: `pending-${msisdn}`,
+        timestamp: new Date().toISOString(),
+        status: 'PAYMENT_RECEIVED',
+        description: 'Your payment has been received. Your order will be processed shortly.',
+        location: 'Online',
+        locationCode: 'WEB',
+        eventType: 'INFO',
+      },
+    ],
+  }
+}
+
 export default function DeliveryTracking() {
   const navigate = useNavigate()
   const [sims, setSims] = useState<SimOption[]>([])
@@ -350,9 +400,7 @@ export default function DeliveryTracking() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    loadSimsWithTracking()
-  }, [])
+
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -365,59 +413,11 @@ export default function DeliveryTracking() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  function isAxiosErrorWithStatus(err: unknown, status: number): boolean {
-    const e = err as { response?: { status?: number } } | undefined
-    return e?.response?.status === status
-  }
 
-  function isNoTrackingError(err: unknown): boolean {
-    return isAxiosErrorWithStatus(err, 403) || isAxiosErrorWithStatus(err, 404)
-  }
-
-  function friendlyWarehouseError(err: unknown): string {
-    const msg = getAxiosErrorMessage(err, '').toLowerCase()
-    if (msg.includes('circuit')) {
-      return 'Our delivery tracking service is temporarily unavailable. Please try again in a few minutes.'
-    }
-    if (msg.includes('unauthorized') || msg.includes('401')) {
-      return 'Your session has expired. Please sign in again to view delivery tracking.'
-    }
-    if (msg.includes('forbidden') || msg.includes('403')) {
-      return "We couldn't verify your account. Please contact support if this continues."
-    }
-    if (msg.includes('network') || !msg) {
-      return "We couldn't connect to our delivery tracking service. Please check your internet connection and try again."
-    }
-    if (msg.includes('500') || msg.includes('internal')) {
-      return "We're experiencing a technical issue with delivery tracking. Please try again shortly."
-    }
-    return 'Something went wrong while loading delivery tracking. Please try again.'
-  }
-
-  function createSyntheticPendingTracking(msisdn: string): TrackingResponseDTO {
-    return {
-      orderId: 'PENDING',
-      trackingNumber: '',
-      msisdn,
-      currentStatus: 'PAYMENT_RECEIVED',
-      estimatedDeliveryDate: undefined,
-      events: [
-        {
-          eventId: `pending-${msisdn}`,
-          timestamp: new Date().toISOString(),
-          status: 'PAYMENT_RECEIVED',
-          description: 'Your payment has been received. Your order will be processed shortly.',
-          location: 'Online',
-          locationCode: 'WEB',
-          eventType: 'INFO',
-        },
-      ],
-    }
-  }
 
   const DELIVERY_PRODUCT_ID = '7023225P'
 
-  const loadSimsWithTracking = async () => {
+  const loadSimsWithTracking = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -481,7 +481,11 @@ export default function DeliveryTracking() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void loadSimsWithTracking()
+  }, [loadSimsWithTracking])
 
   const handleSelectSim = async (msisdn: string) => {
     setSelectedMsisdn(msisdn)

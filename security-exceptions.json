@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "exceptions": [
+    {
+      "id": "root-runtime-advisories-2026-08",
+      "scope": "root production dependencies",
+      "packages": ["react-router", "react-router-dom"],
+      "severity": "high-or-critical",
+      "reachability": "Potentially reachable through browser networking, routing, Firebase, or build/deployment paths; not proven safe.",
+      "reason": "Existing findings require isolated dependency upgrades and regression testing; forced remediation is prohibited.",
+      "owner": "repository-owner",
+      "reviewDate": "2026-08-17",
+      "tracking": "tasks/todo.md#next-engineering-wave"
+    }
+  ]
+}

@@ -37,7 +37,7 @@ export default function ProvisionedUserRoute({ children }: Props) {
     return () => {
       cancelled = true
     }
-  }, [navigate])
+  }, [hasPendingPackage, navigate])
 
   if (!allowed) {
     return (

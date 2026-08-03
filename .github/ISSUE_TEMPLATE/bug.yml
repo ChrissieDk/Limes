@@ -1,0 +1,46 @@
+name: Bug report
+description: Provide a reproducible bug for an agent to fix test-first
+title: "fix: "
+labels: [bug, needs-reproduction]
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      placeholder: |
+        1. Navigate to ...
+        2. Enter synthetic test data ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: browser, device, commit, preview URL
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Sanitized logs/screenshots only. Do not include tokens, customer PII, or production payloads.
+  - type: checkboxes
+    id: sensitivity
+    attributes:
+      label: Risk flags
+      options:
+        - label: Authentication or authorization is involved
+        - label: Payment or refund behavior is involved
+        - label: PII, RICA, or uploaded documents are involved
+        - label: Production data may be affected

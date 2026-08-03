@@ -6,6 +6,7 @@ import { paymentService } from '../../payment/services/paymentService';
 import { SubscriptionCardSkeleton } from '../components/dashboard/SkeletonLoaders';
 import { formatDate } from '../../../utils/dateFormat';
 import type { SubscriptionDetails } from '../../../types/payment';
+import { getAxiosErrorMessage } from '../../../utils/errorMessage';
 import { 
   XCircle, 
   Loader2,
@@ -102,9 +103,9 @@ function Subscriptions() {
       setAvailableMsisdns(uniqueMsisdns);
       
       setSubscriptions(activeSubs);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[Subscriptions] Error:', err);
-      setError(err.response?.data?.message || 'Failed to load subscription data');
+      setError(getAxiosErrorMessage(err, 'Failed to load subscription data'));
     } finally {
       setLoading(false);
     }
@@ -137,12 +138,9 @@ function Subscriptions() {
       } else {
         setError(response.message || 'Failed to cancel subscription');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[Subscriptions] Error cancelling:', err);
-      const errorMessage = err.response?.data?.errors 
-        ? Object.values(err.response.data.errors).flat().join(', ')
-        : err.response?.data?.message || 'Failed to cancel subscription';
-      setError(errorMessage);
+      setError(getAxiosErrorMessage(err, 'Failed to cancel subscription'));
     } finally {
       setCancelling(null);
     }

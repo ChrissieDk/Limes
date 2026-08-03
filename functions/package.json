@@ -6,7 +6,11 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:emulator": "vitest run --config vitest.emulator.config.cjs"
   },
   "engines": {
     "node": "20"
@@ -19,7 +23,10 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "@vitest/coverage-v8": "^4.1.10",
+    "firebase-functions-test": "^3.5.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.10"
   },
   "private": true
 }

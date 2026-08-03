@@ -25,7 +25,7 @@ describe('subscriptionService', () => {
       const response = { detail: { msisdn: '27612345678' } }
       mockPost.mockResolvedValue({ data: response })
 
-      const result = await subscriptionService.createSubscription(payload as any)
+      const result = await subscriptionService.createSubscription(payload as unknown as Parameters<typeof subscriptionService.createSubscription>[0])
 
       expect(mockPost).toHaveBeenCalledWith('/subscriber/create', payload, { timeout: API_TIMEOUT_MS })
       expect(result).toEqual(response)
@@ -99,7 +99,7 @@ describe('subscriptionService', () => {
       const response = { results: [{ success: true, id: 'svc-1' }] }
       mockPost.mockResolvedValue({ data: response })
 
-      const result = await subscriptionService.createDynamicServices('27612345678', payload as any)
+      const result = await subscriptionService.createDynamicServices('27612345678', payload as unknown as Parameters<typeof subscriptionService.createDynamicServices>[1])
 
       expect(mockPost).toHaveBeenCalledWith('/subscriber/27612345678/service/dynamic', payload, { timeout: API_TIMEOUT_MS })
       expect(result).toEqual(response)

@@ -1,5 +1,5 @@
 import { apiClient } from '../../../config/api'
-import type { CatalogCategoryTree, CatalogCategoryId, CatalogProductsResponse, SearchCategoryProductsQuery } from '../../../types'
+import type { CatalogCategoryTree, CatalogCategoryId, CatalogProduct, CatalogProductsResponse, SearchCategoryProductsQuery } from '../../../types'
 
 export interface GetCategoryTreeParams {
   groupCode?: string | number
@@ -19,7 +19,7 @@ export const catalogService = {
     const response = await apiClient.get(`/catalog/products/category/${category}`, { params })
     return response.data
   },
-  async getProductById(productId: string): Promise<any> {
+  async getProductById(productId: string): Promise<CatalogProduct> {
     const response = await apiClient.get(`/catalog/products/${productId}`)
     return response.data
   },
