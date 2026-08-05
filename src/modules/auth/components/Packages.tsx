@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 
 export default function Packages() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import DashboardNavbar from '../components/DashboardNavbar';
 import Footer from '../components/Footer';
 import { paymentService } from '../../payment/services/paymentService';

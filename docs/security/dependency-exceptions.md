@@ -12,4 +12,4 @@
 
 ## Current risk
 
-The root application retains a potentially reachable high-severity React Router finding because the available remediation crosses the currently supported route-runtime range. It is tracked until 2026-08-17 and must be removed, narrowed with evidence, or renewed through an explicit security review. Functions currently have moderate transitive `uuid` findings; the available fix requires a breaking Firebase Admin upgrade and is tracked separately in `tasks/todo.md`.
+The root application has no open high/critical exceptions: the React Router finding tracked through 2026-08-17 was resolved by upgrading to `react-router@8.3.0` ([GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)). Functions currently have moderate transitive `uuid` findings; the available fix requires a breaking Firebase Admin upgrade and is tracked separately in `tasks/todo.md`.

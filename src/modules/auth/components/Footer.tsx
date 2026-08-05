@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 export default function Footer() {
   const base = import.meta.env.BASE_URL

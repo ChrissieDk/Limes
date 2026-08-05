@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router'
 import { userService } from '../services/userService'
 import { userHasProvisionedSim } from '../utils/userProvisioning'
 

@@ -35,6 +35,17 @@ jobs:
     name: Browser journeys
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # Placeholder Firebase config so the app can boot in CI without real secrets.
+      # The Playwright specs never make real Firebase calls (client-side validation only),
+      # but firebase/analytics throws synchronously at import time if the config is malformed.
+      VITE_FIREBASE_API_KEY: AIzaSyTestKeyForCiPreviewOnly00000000
+      VITE_FIREBASE_AUTH_DOMAIN: limes-ci-preview.firebaseapp.com
+      VITE_FIREBASE_PROJECT_ID: limes-ci-preview
+      VITE_FIREBASE_STORAGE_BUCKET: limes-ci-preview.appspot.com
+      VITE_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
+      VITE_FIREBASE_APP_ID: "1:000000000000:web:0000000000000000000000"
+      VITE_FIREBASE_APP_MEASUREMENT_ID: G-0000000000
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

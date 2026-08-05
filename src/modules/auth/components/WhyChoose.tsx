@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 import { getServiceDisplayValue, isServiceAvailable } from '../../payment/utils/dynamicPricing'
 import type { ServiceType } from '../../payment/config/ratingTable'

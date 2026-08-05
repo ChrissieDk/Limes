@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react'
 import { lazy, Suspense } from 'react'
-import { RouterProvider, createBrowserRouter, Outlet } from 'react-router-dom'
+import { createBrowserRouter, Outlet } from 'react-router'
+import { RouterProvider } from 'react-router/dom'
 import RootLayout from './RootLayout'
 import ProvisionedUserRoute from './modules/auth/components/ProvisionedUserRoute'
 import AuthenticatedRoute from './modules/auth/components/AuthenticatedRoute'
@@ -35,7 +36,7 @@ const DeliveryTracking = lazy(() => import('./modules/warehouse/pages/DeliveryTr
 
 import './config/firebase'
 
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV6(createBrowserRouter)
+const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouter(createBrowserRouter)
 
 const router = sentryCreateBrowserRouter(
   [

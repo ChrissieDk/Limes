@@ -8,7 +8,7 @@ import Packages from '../components/Packages'
 import TelecomCta from '../components/TelecomCta'
 import ReviewsMarquee from '../components/ReviewsMarquee'
 import Footer from '../components/Footer'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router'
 
 function scrollToHash(hash: string) {
   if (!hash || hash === '#') return
