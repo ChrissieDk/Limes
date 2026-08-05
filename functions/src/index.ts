@@ -56,8 +56,7 @@ export const onUserSignup = functions.runWith(runtimeOpts).auth.user().onCreate(
     // Extract user name from displayName or email
     const userName = user.displayName || user.email.split('@')[0]
 
-    const frontendUrl = process.env.FRONTEND_URL
-    const emailHtml = getVerificationEmailHtml(userName, verificationLink, frontendUrl)
+    const emailHtml = getVerificationEmailHtml(userName, verificationLink)
 
     // Send email via Resend
     await sendEmail({
@@ -77,7 +76,7 @@ export const onUserSignup = functions.runWith(runtimeOpts).auth.user().onCreate(
  * Cloud Function: Send password reset email
  * Callable from frontend
  */
-export const sendPasswordResetEmail = functions.runWith(runtimeOpts).https.onCall(async (data, context) => {
+export const sendPasswordResetEmail = functions.runWith(runtimeOpts).https.onCall(async (data) => {
   try {
     // Validate input
     const { email } = data
@@ -102,7 +101,7 @@ export const sendPasswordResetEmail = functions.runWith(runtimeOpts).https.onCal
     let user
     try {
       user = await adminAuth.getUserByEmail(email)
-    } catch (error: any) {
+    } catch {
       // If user doesn't exist, don't reveal this to prevent email enumeration
       // Return success anyway for security
       console.log(`User not found for email: ${email}`)
@@ -116,8 +115,7 @@ export const sendPasswordResetEmail = functions.runWith(runtimeOpts).https.onCal
     const userName = user.displayName || email.split('@')[0]
 
     // Generate email HTML
-    const frontendUrl = process.env.FRONTEND_URL
-    const emailHtml = getPasswordResetEmailHtml(userName, resetLink, frontendUrl)
+    const emailHtml = getPasswordResetEmailHtml(userName, resetLink)
 
     // Send email via Resend
     await sendEmail({
@@ -133,7 +131,7 @@ export const sendPasswordResetEmail = functions.runWith(runtimeOpts).https.onCal
       success: true, 
       message: 'If the email exists, a password reset link has been sent.' 
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending password reset email:', error)
     
     // If it's already an HttpsError, re-throw it
@@ -159,7 +157,7 @@ type ContactPayload = {
 }
 
 /** Callable: website contact form → support inbox (Resend) */
-export const submitContactInquiry = functions.runWith(runtimeOpts).https.onCall(async (data: ContactPayload, _context) => {
+export const submitContactInquiry = functions.runWith(runtimeOpts).https.onCall(async (data: ContactPayload) => {
   try {
     const fullNameRaw = typeof data.fullName === 'string' ? data.fullName.trim() : ''
     const emailRaw = typeof data.email === 'string' ? data.email.trim() : ''

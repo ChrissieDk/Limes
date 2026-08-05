@@ -33,7 +33,7 @@ export interface PaystackCustomer {
   email: string
   customer_code: string
   phone: string | null
-  metadata: any
+  metadata: Record<string, unknown>
   risk_action: string
 }
 
@@ -56,16 +56,16 @@ export interface PaystackTransactionData {
       variable_name: string
       value: string
     }>
-    [key: string]: any
+    [key: string]: unknown
   }
   fees: number
   authorization: PaystackAuthorization
   customer: PaystackCustomer
   plan?: string | null
-  plan_object?: any
-  subaccount?: any
-  split?: any
-  order_id?: any
+  plan_object?: unknown
+  subaccount?: unknown
+  split?: unknown
+  order_id?: unknown
   paidAt: string
   createdAt: string
   requested_amount: number
@@ -105,7 +105,7 @@ export type PaystackEventType =
   | 'transfer.success'
   | 'transfer.reversed'
 
-export interface PaystackWebhookEvent<T = any> {
+export interface PaystackWebhookEvent<T = unknown> {
   event: PaystackEventType
   data: T
 }

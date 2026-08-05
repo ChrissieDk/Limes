@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,6 +15,7 @@ import { getPostAuthRedirectPath } from '../utils/getPostAuthRedirect'
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
   password: z.string().min(8, 'Minimum 8 characters'),
+  rememberMe: z.boolean().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -86,7 +87,7 @@ export default function SignIn() {
           />
 
           <div className="flex items-center justify-between pt-1">
-            <Checkbox label="Remember Me" {...register('rememberMe' as any)} />
+            <Checkbox label="Remember Me" {...register('rememberMe')} />
             <Link to="/forgot-password" className="text-sm text-neutral-500 hover:text-neutral-400 transition-colors">
               Forgot your password?
             </Link>

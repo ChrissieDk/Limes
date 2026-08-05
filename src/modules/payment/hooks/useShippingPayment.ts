@@ -8,7 +8,7 @@ import { SHIPPING_COST_CENTS } from '../../../constants/shipping'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import type { SelectedPackage, RicaData } from '../../auth/components/ShippingModal'
 
-declare const PaystackPop: any
+
 
 export interface ShippingPaymentState {
   isInitializing: boolean
@@ -53,7 +53,7 @@ export function useShippingPayment(
       log.info('payment_verified', { reference, card_saved: verifyResponse.cardSaved ?? false })
 
       const assignToMsisdn = selectedPackage?.assignToMsisdn
-      let targetMsisdn: string
+      let targetMsisdn = ''
 
       if (assignToMsisdn) {
         // Existing SIM mode: skip subscriber creation and RICA check
@@ -77,7 +77,11 @@ export function useShippingPayment(
 
         try {
           const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
-          targetMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
+          const detail = subscriberResponse.detail
+          if (detail && typeof detail === 'object') {
+            const subscriberDetail = detail as { msisdn?: string; msisdnDisplay?: string }
+            targetMsisdn = subscriberDetail.msisdn || subscriberDetail.msisdnDisplay || ''
+          }
           if (!targetMsisdn) throw new Error('Failed to allocate MSISDN')
           log.info('subscriber_created', { reference, msisdn: targetMsisdn })
         } catch (subscriberErr) {
@@ -216,7 +220,7 @@ export function useShippingPayment(
     if (!savedCards?.length) return
 
     const expiryDate = getDefaultExpiryDate()
-    let services = selectedPackage!.planAllocation
+    const services = selectedPackage!.planAllocation
       ? buildServicesFromAllocation(selectedPackage!.planAllocation, selectedPackage!.packageType || 'prepaid')
       : []
 

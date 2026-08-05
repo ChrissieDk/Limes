@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react'
-import { StrictMode } from 'react'
+import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
+import { useLocation, useNavigationType, createRoutesFromChildren, matchRoutes } from 'react-router'
 import './index.css'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -20,7 +21,13 @@ Sentry.init({
 
   integrations: [
     // Performance / tracing (page loads, web vitals, navigation)
-    Sentry.browserTracingIntegration(),
+    Sentry.reactRouterBrowserTracingIntegration({
+      useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
+    }),
 
     // Session Replay — free plan = 500 replays/month
     Sentry.replayIntegration({

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router'
 import { auth } from '../../../config/firebase'
 import { confirmPasswordReset, checkActionCode } from 'firebase/auth'
 import { useForm } from 'react-hook-form'

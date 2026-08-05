@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import type { CatalogProduct } from '../../../types/catalog';
 import TopUpModal from '../components/TopUpModal';
 import ShippingModal from '../components/ShippingModal';

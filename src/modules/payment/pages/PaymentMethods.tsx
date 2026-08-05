@@ -1,5 +1,5 @@
 import { ArrowLeft, Lock, Zap } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import DashboardNavbar from '../../auth/components/DashboardNavbar'
 import Footer from '../../auth/components/Footer'
 import SavedCards from '../components/SavedCards'

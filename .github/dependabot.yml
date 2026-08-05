@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      root-development-dependencies:
+        dependency-type: development
+    labels: [dependencies]
+
+  - package-ecosystem: npm
+    directory: /functions
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      functions-development-dependencies:
+        dependency-type: development
+    labels: [dependencies, functions]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies, ci]

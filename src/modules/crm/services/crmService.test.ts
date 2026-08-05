@@ -38,7 +38,7 @@ describe('crmService', () => {
       const response = { success: true, customerId: 'cust-1' }
       mockPost.mockResolvedValue({ data: response })
 
-      const result = await crmService.createAccountCustomer(payload as any)
+      const result = await crmService.createAccountCustomer(payload as unknown as Parameters<typeof crmService.createAccountCustomer>[0])
 
       expect(mockPost).toHaveBeenCalledWith('/crm/store/account/customer', payload)
       expect(result).toEqual(response)
@@ -65,7 +65,7 @@ describe('crmService', () => {
       const payload = { firstname: 'Jane', lastname: 'Doe' }
       mockPatch.mockResolvedValue({ data: undefined })
 
-      await crmService.updateCustomer(payload as any)
+      await crmService.updateCustomer(payload as unknown as Parameters<typeof crmService.updateCustomer>[0])
 
       expect(mockPatch).toHaveBeenCalledWith('/crm/update/customer', payload)
     })

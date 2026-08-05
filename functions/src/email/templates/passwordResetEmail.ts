@@ -9,8 +9,7 @@
  */
 export function getPasswordResetEmailHtml(
   userName: string,
-  resetLink: string,
-  _frontendUrl?: string
+  resetLink: string
 ): string {
   const year = new Date().getFullYear()
   return `

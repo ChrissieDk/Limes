@@ -91,8 +91,9 @@ function calculateUnitsFromTiers(rands: number, tiers: PricingBracket[]): number
 export function convertRandsToServiceValue(
   serviceType: RatingServiceType, 
   rands: number, 
-  _packageType: PackageType = 'prepaid'
+  packageType: PackageType = 'prepaid'
 ): number | null {
+  void packageType
   const tiers = getPricingBrackets(serviceType as RatingServiceType)
   
   if (!tiers || tiers.length === 0) {
@@ -128,8 +129,9 @@ export function convertRandsToServiceValue(
 export function getServiceDisplayValue(
   serviceType: RatingServiceType, 
   rands: number, 
-  _packageType: PackageType = 'prepaid'
+  packageType: PackageType = 'prepaid'
 ): string | null {
+  void packageType
   // All services now use tiered pricing
   const tiers = getPricingBrackets(serviceType as RatingServiceType)
   
@@ -204,7 +206,8 @@ export function validateServiceValue(serviceType: RatingServiceType, value: numb
  * @param packageType - Package type (contract or prepaid)
  * @returns true if the service is available
  */
-export function isServiceAvailable(serviceType: RatingServiceType, _packageType: PackageType): boolean {
+export function isServiceAvailable(serviceType: RatingServiceType, packageType: PackageType): boolean {
+  void packageType
   const tiers = getPricingBrackets(serviceType as RatingServiceType)
   return tiers !== null && tiers.length > 0
 }
