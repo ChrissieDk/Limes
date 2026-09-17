@@ -3,9 +3,21 @@ import { subscriptionService } from '../../subscription/services/subscriptionSer
 import { crmService } from '../../crm/services/crmService'
 import { userService } from '../services/userService'
 import { paymentService } from '../../payment/services/paymentService'
+import { resolveSimSubscriptionId } from '../utils/resolveSimSubscriptionId'
 import type { RicaAddress } from '../../../types'
+import type { Subscription } from '../../../types/payment'
 import type { SimCard, Transaction } from '../components/dashboard/dashboardTypes'
 import { mockSimCards } from '../components/dashboard/dashboardMocks'
+
+async function fetchSubscriptionsSafely(): Promise<Subscription[]> {
+  try {
+    const response = await paymentService.getAllSubscriptions()
+    return Array.isArray(response.subscriptions) ? response.subscriptions : []
+  } catch (err) {
+    console.error('[Dashboard] Error fetching subscriptions:', err)
+    return []
+  }
+}
 
 /**
  * Fallback helper to infer package type from productId until the backend
@@ -70,7 +82,10 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
 
     const fetchUserData = async () => {
       try {
-        const user = await userService.getCurrentUser()
+        const [user, subscriptions] = await Promise.all([
+          userService.getCurrentUser(),
+          fetchSubscriptionsSafely(),
+        ])
 
         if (user.msisdns && user.msisdns.length > 0) {
           setSimCards((prev) =>
@@ -86,7 +101,11 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
                 productId: msisdnData.productId,
                 packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
                 hasActiveSubscription: msisdnData.hasActiveSubscription,
-                subscriptionId: msisdnData.subscriptionId,
+                subscriptionId: resolveSimSubscriptionId(
+                  msisdn,
+                  msisdnData.subscriptionId,
+                  subscriptions
+                ),
                 plan: existing?.plan ?? {
                   mobileData: '0GB',
                   airtime: 'R0',
@@ -113,7 +132,10 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
     let cancelled = false
     const fetchUserData = async () => {
       try {
-        const user = await userService.getCurrentUser()
+        const [user, subscriptions] = await Promise.all([
+          userService.getCurrentUser(),
+          fetchSubscriptionsSafely(),
+        ])
         if (!cancelled) {
           setRicaComplete(user.ricaComplete ?? false)
 
@@ -127,7 +149,11 @@ export function useDashboardData(currentSimIndex: number): DashboardData {
               productId: msisdnData.productId,
               packageType: msisdnData.packageType ?? inferPackageType(msisdnData.productId),
               hasActiveSubscription: msisdnData.hasActiveSubscription,
-              subscriptionId: msisdnData.subscriptionId,
+              subscriptionId: resolveSimSubscriptionId(
+                msisdnData.msisdn,
+                msisdnData.subscriptionId,
+                subscriptions
+              ),
               plan: {
                 mobileData: '0GB',
                 airtime: 'R0',
