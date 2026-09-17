@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
+import { ChevronDown } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
@@ -229,17 +230,17 @@ export default function Faqs() {
     },
   ]
 
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
   return (
     <div className="min-h-screen bg-neutral-900 text-white">
       <Navbar />
 
-      <section className="mx-auto max-w-6xl px-6 pt-10 pb-16">
+      <section className="mx-auto max-w-6xl px-6 pt-10 pb-24">
         <div className="font-manrope flex items-center justify-center text-sm text-neutral-400">
           <span className="size-1.5 rounded-full bg-purple-400 mr-2" /> Frequently Asked Questions
         </div>
-        <h1
-          className="mt-4 font-grotesque font-bold text-center leading-[1.05]"
-        >
+        <h1 className="mt-4 font-grotesque font-bold text-center leading-[1.05]">
           <span className="block text-[36px] sm:text-[48px] md:text-[64px]">We&apos;ve got the answers</span>
         </h1>
         <p className="mt-4 text-center text-neutral-400 text-base md:text-lg font-manrope max-w-2xl mx-auto">
@@ -251,22 +252,29 @@ export default function Faqs() {
           .
         </p>
 
-        <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-8 items-start">
-          <div className="space-y-4">
+        <div className="mt-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] gap-8 lg:gap-12 items-start">
+          <div className="rounded-[24px] bg-white/[0.03] ring-1 ring-white/10 overflow-hidden divide-y divide-white/10">
             {faqs.map((f, idx) => (
-              <Accordion key={idx} title={f.title}>
+              <Accordion
+                key={f.title}
+                title={f.title}
+                open={openIndex === idx}
+                onToggle={() => setOpenIndex((current) => (current === idx ? null : idx))}
+              >
                 {f.content}
               </Accordion>
             ))}
           </div>
 
-          <div className="relative w-full rounded-3xl overflow-hidden border border-neutral-700/60 min-h-[360px]">
-            <img
-              src={`${import.meta.env.BASE_URL}images/faqs.png`}
-              alt="FAQs"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          </div>
+          <aside className="lg:sticky lg:top-28 order-first lg:order-none">
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[24px] ring-1 ring-white/10">
+              <img
+                src={`${import.meta.env.BASE_URL}images/faqs.png`}
+                alt="Someone using Limes on their phone"
+                className="h-full w-full object-cover object-center"
+              />
+            </div>
+          </aside>
         </div>
       </section>
 
@@ -275,29 +283,43 @@ export default function Faqs() {
   )
 }
 
-function Accordion(props: { title: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false)
+function Accordion(props: {
+  title: string
+  children: ReactNode
+  open: boolean
+  onToggle: () => void
+}) {
+  const panelId = `faq-panel-${props.title.replace(/\W+/g, '-').toLowerCase()}`
 
   return (
-    <div className="rounded-xl bg-neutral-900 ring-1 ring-neutral-700/60">
+    <div>
       <button
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
+        type="button"
+        className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-white/[0.04] transition-colors"
+        onClick={props.onToggle}
+        aria-expanded={props.open}
+        aria-controls={panelId}
       >
-        <span className="font-manrope text-sm md:text-base font-medium text-neutral-200">{props.title}</span>
-        <span
-          className={`inline-flex size-6 items-center justify-center rounded-full ring-1 ring-neutral-700/60 text-neutral-300 transition-transform ${
-            open ? 'rotate-180' : ''
-          }`}
-        >
-          ↑
+        <span className="flex-1 font-manrope text-sm md:text-[15px] font-medium leading-snug text-neutral-200">
+          {props.title}
+        </span>
+        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-white/15 text-neutral-300">
+          <ChevronDown
+            className={`size-4 transition-transform duration-200 ${props.open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
         </span>
       </button>
       <div
-        className={`overflow-hidden transition-[max-height] duration-300 ${open ? 'max-h-96' : 'max-h-0'}`}
+        id={panelId}
+        role="region"
+        className={`grid transition-[grid-template-rows] duration-200 ${
+          props.open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        }`}
       >
-        <div className="px-4 pb-4">{props.children}</div>
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5">{props.children}</div>
+        </div>
       </div>
     </div>
   )
