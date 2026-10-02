@@ -206,6 +206,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
         })
         const filteredProducts = response.data.filter(
           (product) =>
+            product.price > 0 &&
             !product.name?.toUpperCase().includes('FWA') &&
             !product.description?.toUpperCase().includes('FWA')
         )
