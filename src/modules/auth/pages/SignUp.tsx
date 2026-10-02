@@ -1,4 +1,4 @@
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react'
 import { firebaseAuthService } from '../services/firebaseAuthService'
 import { userService } from '../services/userService'
 import { getFirebaseAuthErrorMessage, isFirebaseAuthError } from '../utils/firebaseAuthErrorMessage'
+import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 
 const schema = z
   .object({
@@ -69,25 +70,17 @@ export default function SignUp() {
         return
       }
 
-      let message = 'Failed to sign up'
-      if (err && typeof err === 'object') {
-        const anyErr = err as any
-        if (anyErr.response?.data) {
-          const data = anyErr.response.data
-          message = data?.message || data?.error || message
-        } else if (anyErr.message) {
-          message = anyErr.message
-        }
+      const message = getAxiosErrorMessage(err, 'Failed to sign up')
+      const status = err && typeof err === 'object'
+        ? (err as { response?: { status?: number } }).response?.status
+        : undefined
+      const lowerMessage = String(message).toLowerCase()
+      const looksLikeAlreadyExists =
+        lowerMessage.includes('exist') || lowerMessage.includes('duplicate') || lowerMessage.includes('already')
 
-        const status = anyErr.response?.status
-        const lowerMessage = String(message).toLowerCase()
-        const looksLikeAlreadyExists =
-          lowerMessage.includes('exist') || lowerMessage.includes('duplicate') || lowerMessage.includes('already')
-
-        if (status === 409 || (status === 400 && looksLikeAlreadyExists)) {
-          navigate('/dashboard/packages')
-          return
-        }
+      if (status === 409 || (status === 400 && looksLikeAlreadyExists)) {
+        navigate('/dashboard/packages')
+        return
       }
       setSubmitError(message)
     } finally {

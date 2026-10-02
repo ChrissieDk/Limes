@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { CreditCard, Loader2, Plus, Star } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
@@ -33,11 +33,7 @@ export default function SavedCardSelector({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadCards()
-  }, [])
-
-  const loadCards = async () => {
+  const loadCards = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -59,7 +55,11 @@ export default function SavedCardSelector({
     } finally {
       setLoading(false)
     }
-  }
+  }, [onSelect, selectedCardId])
+
+  useEffect(() => {
+    void loadCards()
+  }, [loadCards])
 
   if (loading) {
     return (

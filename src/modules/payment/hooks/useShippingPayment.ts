@@ -8,7 +8,7 @@ import { SHIPPING_COST_CENTS } from '../../../constants/shipping'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 import type { SelectedPackage, RicaData } from '../../auth/components/ShippingModal'
 
-declare const PaystackPop: any
+
 
 export interface ShippingPaymentState {
   isInitializing: boolean
@@ -53,7 +53,7 @@ export function useShippingPayment(
       log.info('payment_verified', { reference, card_saved: verifyResponse.cardSaved ?? false })
 
       const assignToMsisdn = selectedPackage?.assignToMsisdn
-      let targetMsisdn: string
+      let targetMsisdn = ''
 
       if (assignToMsisdn) {
         // Existing SIM mode: skip subscriber creation and RICA check
@@ -77,7 +77,11 @@ export function useShippingPayment(
 
         try {
           const subscriberResponse = await subscriptionService.createSubscription(subscriberPayload)
-          targetMsisdn = subscriberResponse?.detail?.msisdn || subscriberResponse?.detail?.msisdnDisplay
+          const detail = subscriberResponse.detail
+          if (detail && typeof detail === 'object') {
+            const subscriberDetail = detail as { msisdn?: string; msisdnDisplay?: string }
+            targetMsisdn = subscriberDetail.msisdn || subscriberDetail.msisdnDisplay || ''
+          }
           if (!targetMsisdn) throw new Error('Failed to allocate MSISDN')
           log.info('subscriber_created', { reference, msisdn: targetMsisdn })
         } catch (subscriberErr) {
@@ -119,8 +123,17 @@ export function useShippingPayment(
         throw new Error('Order creation failed. A refund has been requested and will be processed within 5-7 business days.')
       }
 
-      if (isSubscription && verifyResponse.cardSaved) {
-        await handleRecurringSubscription(targetMsisdn)
+      if (isSubscription) {
+        if (assignToMsisdn && !verifyResponse.cardSaved) {
+          log.error('recurring_card_not_saved', { reference, msisdn: targetMsisdn })
+          throw new Error(
+            'Your card could not be saved, so the monthly plan was not started. Your first payment went through — please contact support if you need help completing the plan.'
+          )
+        }
+
+        if (verifyResponse.cardSaved) {
+          await handleRecurringSubscription(targetMsisdn)
+        }
       }
 
       const totalPriceRands = selectedPackage?.price || 0
@@ -211,12 +224,14 @@ export function useShippingPayment(
     }
   }
 
-  const handleRecurringSubscription = async (msisdn: string) => {
+  const handleRecurringSubscription = async (msisdn: string): Promise<string> => {
     const savedCards = await paymentService.getSavedCards()
-    if (!savedCards?.length) return
+    if (!savedCards?.length) {
+      throw new Error('A saved card is required to start a monthly plan. Please try again.')
+    }
 
     const expiryDate = getDefaultExpiryDate()
-    let services = selectedPackage!.planAllocation
+    const services = selectedPackage!.planAllocation
       ? buildServicesFromAllocation(selectedPackage!.planAllocation, selectedPackage!.packageType || 'prepaid')
       : []
 
@@ -227,11 +242,30 @@ export function useShippingPayment(
 
     if (selectedPackage!.isComboBundle) {
       const priceInCents = selectedPackage!.priceInCents || selectedPackage!.price * 100
-      await paymentService.subscribeToComboBundle({ productId: selectedPackage!.productId, msisdn, paymentMethodId: savedCards[0].id, amount: priceInCents })
-    } else {
-      if (services.length === 0) throw new Error('No services defined for recurring subscription')
-      await paymentService.createDynamicServicesRecurring({ msisdn, paymentMethodId: savedCards[0].id, services })
+      const response = await paymentService.subscribeToComboBundle({
+        productId: selectedPackage!.productId,
+        msisdn,
+        paymentMethodId: savedCards[0].id,
+        amount: priceInCents,
+      })
+      const subscriptionId = response.subscription?.id
+      if (!response.success || !subscriptionId) {
+        throw new Error(response.message || 'Failed to create monthly subscription')
+      }
+      return subscriptionId
     }
+
+    if (services.length === 0) throw new Error('No services defined for recurring subscription')
+    const response = await paymentService.createDynamicServicesRecurring({
+      msisdn,
+      paymentMethodId: savedCards[0].id,
+      services,
+    })
+    const subscriptionId = response.subscription?.subscriptionId
+    if (!response.success || !subscriptionId) {
+      throw new Error(response.error || response.message || 'Failed to create monthly subscription')
+    }
+    return subscriptionId
   }
 
   const initializePayment = async () => {

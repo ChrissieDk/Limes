@@ -60,6 +60,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      manifest: true,
       // Sentry plugin needs source maps to upload
       sourcemap: hasSentryConfig ? true : undefined,
     },

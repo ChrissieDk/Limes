@@ -10,6 +10,10 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+coverage
+functions/coverage
+playwright-report
+test-results
 *.local
 
 # Firebase Functions build output
@@ -26,4 +30,10 @@ functions/lib
 *.sln
 *.sw?
 .env
+.env.*
+!.env.example
+!functions/.env.example
+*.pem
+*.key
+*service-account*.json
 .env.sentry-build-plugin

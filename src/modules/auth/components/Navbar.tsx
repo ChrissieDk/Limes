@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 
@@ -52,6 +52,7 @@ export default function Navbar() {
     <>
       <div className="fixed top-3 left-0 right-0 z-50 px-3 sm:px-0">
       <nav
+        aria-label="Primary navigation"
         className={`w-full mx-auto max-w-6xl rounded-xl text-white shadow-sm ring-1 transition-all duration-300 ${
           scrolled
             ? 'bg-[#26252C]/75 backdrop-blur-xl ring-white/20 shadow-lg'

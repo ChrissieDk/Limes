@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import type { CatalogCategoryNode } from '../../../../types'
 
 export type PackageFlowBreadcrumbInput = {

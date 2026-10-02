@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { toCents, toRands, getDefaultExpiryDate, isServiceAvailable } from './dynamicPricing'
 
 describe('toCents', () => {
@@ -18,12 +18,15 @@ describe('toRands', () => {
 })
 
 describe('getDefaultExpiryDate', () => {
-  it('returns a date string 30 days from now', () => {
-    const result = getDefaultExpiryDate()
-    const today = new Date()
-    const expiry = new Date(result)
-    const diffDays = Math.round((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    expect(diffDays).toBe(30)
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('returns the calendar date 30 days from now', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'))
+
+    expect(getDefaultExpiryDate()).toBe('2026-02-14')
   })
 })
 

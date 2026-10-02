@@ -64,7 +64,7 @@ describe('userService', () => {
       const response = { success: true, userId: '1' }
       mockPost.mockResolvedValue({ data: response })
 
-      const result = await userService.registerUser(payload as any)
+      const result = await userService.registerUser(payload as unknown as Parameters<typeof userService.registerUser>[0])
 
       expect(mockPost).toHaveBeenCalledWith('/user/register', payload)
       expect(result).toEqual(response)

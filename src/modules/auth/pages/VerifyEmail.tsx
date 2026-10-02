@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router'
 import { auth } from '../../../config/firebase'
 import { applyActionCode, checkActionCode } from 'firebase/auth'
 import AuthLayout from '../layouts/AuthLayout'

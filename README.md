@@ -54,11 +54,28 @@ src/
 
 ---
 
+## AI-only engineering
+
+This repository is designed to be maintained through AI agents. Every agent must start with [`AGENTS.md`](./AGENTS.md), use the workflows from [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills), and satisfy the repository-owned quality gates.
+
+```bash
+# Bootstrap a fresh agent environment
+sh scripts/agent-bootstrap.sh
+
+# Local Definition of Done
+npm run verify
+```
+
+Architecture, testing, security, deployment, specifications, and decision records live under [`docs/`](./docs). See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the complete lifecycle.
+
+---
+
 ## Getting Started
 
 ```bash
-# Install dependencies
-npm install
+# Install locked dependencies for both workspaces
+npm ci
+npm --prefix functions ci
 
 # Start the dev server
 npm run dev
@@ -71,6 +88,13 @@ npm run test
 
 # Run tests once (CI)
 npm run test:run
+
+# Run tests with V8 coverage
+npm run test:coverage
+
+# Run browser journeys and accessibility checks
+npx playwright install chromium
+npm run test:e2e
 
 # Preview production build
 npm run preview
@@ -100,7 +124,11 @@ Copy `.env.example` to `.env` and fill in the required values:
 | `npm run preview` | Preview the production build locally |
 | `npm run test` | Run Vitest in watch mode |
 | `npm run test:run` | Run Vitest once (for CI) |
+| `npm run test:e2e` | Run Chromium journeys and axe accessibility checks |
+| `npm run check:bundle` | Enforce initial JavaScript and CSS gzip budgets |
 | `npm run lint` | Run ESLint |
+| `npm run verify` | Run all required root and Functions quality gates |
+| `npm run verify:coverage` | Run the complete gate plus coverage reports |
 
 ---
 

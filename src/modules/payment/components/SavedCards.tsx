@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { CreditCard, Trash2, Loader2, AlertCircle, CheckCircle2, Star, FileText } from 'lucide-react'
 import { paymentService } from '../services/paymentService'
 import { getAxiosErrorMessage } from '../../../utils/errorMessage'
@@ -10,6 +10,20 @@ interface SavedCardsProps {
   onCardSelected?: (cardId: string) => void
   showChargeButton?: boolean
   chargeAmount?: number
+}
+
+function deduplicateCards(cardList: SavedCard[]): SavedCard[] {
+  const cardMap = new Map<string, SavedCard>()
+
+  cardList.forEach((card) => {
+    const key = `${card.last4}-${card.expMonth}-${card.expYear}-${card.bank}`
+    const existing = cardMap.get(key)
+    if (!existing || card.isDefault || card.id > existing.id) {
+      cardMap.set(key, card)
+    }
+  })
+
+  return Array.from(cardMap.values())
 }
 
 export default function SavedCards({
@@ -25,11 +39,7 @@ export default function SavedCards({
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadCards()
-  }, [])
-
-  const loadCards = async () => {
+  const loadCards = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -41,21 +51,11 @@ export default function SavedCards({
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const deduplicateCards = (cardList: SavedCard[]): SavedCard[] => {
-    const cardMap = new Map<string, SavedCard>()
-
-    cardList.forEach((card) => {
-      const key = `${card.last4}-${card.expMonth}-${card.expYear}-${card.bank}`
-      const existing = cardMap.get(key)
-      if (!existing || card.isDefault || card.id > existing.id) {
-        cardMap.set(key, card)
-      }
-    })
-
-    return Array.from(cardMap.values())
-  }
+  useEffect(() => {
+    void loadCards()
+  }, [loadCards])
 
   const handleSetDefaultCard = async (cardId: string) => {
     setSettingDefaultId(cardId)

@@ -1,4 +1,5 @@
 import { apiClient } from '../../../config/api'
+import { getAxiosErrorMessage } from '../../../utils/errorMessage'
 
 export interface DynamicService {
   value: number
@@ -44,7 +45,7 @@ export interface ProvisionDynamicServicesRequest {
 
 export interface ProvisionDynamicServicesResponse {
   success: boolean
-  data?: any
+  data?: unknown
   error?: string
 }
 
@@ -73,11 +74,11 @@ export const dynamicServicesPaymentService = {
         payload
       )
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DynamicServicesPayment] Initialize error:', error)
       return {
         success: false,
-        error: error.response?.data?.message || error.message || 'Failed to initialize payment',
+        error: getAxiosErrorMessage(error, 'Failed to initialize payment')
       }
     }
   },
@@ -91,11 +92,11 @@ export const dynamicServicesPaymentService = {
         payload
       )
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DynamicServicesPayment] Verify error:', error)
       return {
         success: false,
-        error: error.response?.data?.message || error.message || 'Failed to verify payment',
+        error: getAxiosErrorMessage(error, 'Failed to verify payment')
       }
     }
   },
@@ -110,11 +111,11 @@ export const dynamicServicesPaymentService = {
         { msisdn, services }
       )
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DynamicServicesPayment] Provision error:', error)
       return {
         success: false,
-        error: error.response?.data?.message || error.message || 'Failed to provision services',
+        error: getAxiosErrorMessage(error, 'Failed to provision services')
       }
     }
   },
@@ -128,11 +129,11 @@ export const dynamicServicesPaymentService = {
         payload
       )
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DynamicServicesPayment] Subscribe error:', error)
       return {
         success: false,
-        error: error.response?.data?.message || error.message || 'Failed to create subscription',
+        error: getAxiosErrorMessage(error, 'Failed to create subscription')
       }
     }
   },

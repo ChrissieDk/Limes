@@ -1,39 +1,42 @@
 import * as Sentry from '@sentry/react'
-import { RouterProvider, createBrowserRouter, Outlet } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { createBrowserRouter, Outlet } from 'react-router'
+import { RouterProvider } from 'react-router/dom'
 import RootLayout from './RootLayout'
-import SignUp from './modules/auth/pages/SignUp'
-import SignIn from './modules/auth/pages/SignIn'
-import Dashboard from './modules/auth/pages/Dashboard'
-import DashboardPackages from './modules/auth/pages/DashboardPackages'
-import PaymentMethods from './modules/payment/pages/PaymentMethods'
-import Subscriptions from './modules/auth/pages/Subscriptions'
 import ProvisionedUserRoute from './modules/auth/components/ProvisionedUserRoute'
 import AuthenticatedRoute from './modules/auth/components/AuthenticatedRoute'
-import AccountDetails from './modules/auth/pages/AccountDetails'
-import Landing from './modules/auth/pages/Landing'
-import Contact from './modules/auth/pages/Contact'
-import Faqs from './modules/auth/pages/Faqs'
-import HowItWorks from './modules/auth/pages/HowItWorks'
-import PartnersPage from './modules/auth/pages/PartnersPage'
-import HowToHub from './modules/auth/pages/HowToHub'
-import HowToJoinPage from './modules/auth/pages/HowToJoinPage'
-import HowToActivate from './modules/auth/pages/HowToActivate'
-import HowToTopUp from './modules/auth/pages/HowToTopUp'
-import HowToRica from './modules/auth/pages/HowToRica'
-import HowToDelivery from './modules/auth/pages/HowToDelivery'
-import HowToPort from './modules/auth/pages/HowToPort'
-import ForgotPassword from './modules/auth/pages/ForgotPassword'
-import VerifyEmail from './modules/auth/pages/VerifyEmail'
-import ResetPassword from './modules/auth/pages/ResetPassword'
-import AuthAction from './modules/auth/pages/AuthAction'
-import TermsAndConditions from './modules/auth/pages/TermsAndConditions'
-import FairUsagePolicy from './modules/auth/pages/FairUsagePolicy'
-import DeliveryTracking from './modules/warehouse/pages/DeliveryTracking'
 import { useAuthState } from './modules/auth/hooks/useAuthState'
+
+const SignUp = lazy(() => import('./modules/auth/pages/SignUp'))
+const SignIn = lazy(() => import('./modules/auth/pages/SignIn'))
+const Dashboard = lazy(() => import('./modules/auth/pages/Dashboard'))
+const DashboardPackages = lazy(() => import('./modules/auth/pages/DashboardPackages'))
+const PaymentMethods = lazy(() => import('./modules/payment/pages/PaymentMethods'))
+const Subscriptions = lazy(() => import('./modules/auth/pages/Subscriptions'))
+const AccountDetails = lazy(() => import('./modules/auth/pages/AccountDetails'))
+const Landing = lazy(() => import('./modules/auth/pages/Landing'))
+const Contact = lazy(() => import('./modules/auth/pages/Contact'))
+const Faqs = lazy(() => import('./modules/auth/pages/Faqs'))
+const HowItWorks = lazy(() => import('./modules/auth/pages/HowItWorks'))
+const PartnersPage = lazy(() => import('./modules/auth/pages/PartnersPage'))
+const HowToHub = lazy(() => import('./modules/auth/pages/HowToHub'))
+const HowToJoinPage = lazy(() => import('./modules/auth/pages/HowToJoinPage'))
+const HowToActivate = lazy(() => import('./modules/auth/pages/HowToActivate'))
+const HowToTopUp = lazy(() => import('./modules/auth/pages/HowToTopUp'))
+const HowToRica = lazy(() => import('./modules/auth/pages/HowToRica'))
+const HowToDelivery = lazy(() => import('./modules/auth/pages/HowToDelivery'))
+const HowToPort = lazy(() => import('./modules/auth/pages/HowToPort'))
+const ForgotPassword = lazy(() => import('./modules/auth/pages/ForgotPassword'))
+const VerifyEmail = lazy(() => import('./modules/auth/pages/VerifyEmail'))
+const ResetPassword = lazy(() => import('./modules/auth/pages/ResetPassword'))
+const AuthAction = lazy(() => import('./modules/auth/pages/AuthAction'))
+const TermsAndConditions = lazy(() => import('./modules/auth/pages/TermsAndConditions'))
+const FairUsagePolicy = lazy(() => import('./modules/auth/pages/FairUsagePolicy'))
+const DeliveryTracking = lazy(() => import('./modules/warehouse/pages/DeliveryTracking'))
 
 import './config/firebase'
 
-const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV6(createBrowserRouter)
+const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouter(createBrowserRouter)
 
 const router = sentryCreateBrowserRouter(
   [
@@ -175,5 +178,9 @@ export default function App() {
   if (!ready) {
     return <AuthLoadingScreen />
   }
-  return <RouterProvider router={router} />
+  return (
+    <Suspense fallback={<AuthLoadingScreen />}>
+      <RouterProvider router={router} />
+    </Suspense>
+  )
 }

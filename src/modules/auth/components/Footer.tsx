@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 export default function Footer() {
   const base = import.meta.env.BASE_URL
@@ -58,7 +58,7 @@ export default function Footer() {
 
         <div className="md:justify-self-center">
           <div className="font-grotesque text-sm text-neutral-400 font-semibold">Quick Links</div>
-          <nav className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-300">
+          <nav aria-label="Quick links" className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-300">
             {links.map((l) =>
               l.isRoute ? (
                 <Link key={l.href} to={l.href} className="hover:text-white transition-colors">
@@ -71,7 +71,7 @@ export default function Footer() {
               )
             )}
           </nav>
-          <nav className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-400">
+          <nav aria-label="Legal links" className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-400">
             {legalLinks.map((l) => (
               <Link key={l.href} to={l.href} className="hover:text-white transition-colors">
                 {l.label}

@@ -4,8 +4,7 @@ import TextField from './TextField'
 import { SHIPPING_COST_RANDS } from '../../../constants/shipping'
 import { useShippingPayment } from '../../payment/hooks/useShippingPayment'
 
-// Load Paystack Inline JS
-declare const PaystackPop: any
+
 
 export interface Address {
   streetNo: string
@@ -36,7 +35,7 @@ export interface SelectedPackage {
     voice: number
     whatsapp: number
   }
-  comboDetails?: any  // Full combo package details (benefits, pricing, etc.)
+  comboDetails?: unknown  // Full combo package details (benefits, pricing, etc.)
   assignToMsisdn?: string  // When assigning a plan to an existing active SIM
   features?: {
     mobileData?: string

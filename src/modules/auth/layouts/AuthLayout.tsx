@@ -45,18 +45,19 @@ export default function AuthLayout({
       }
     >
       <Navbar />
-      <div
-        className={
-          isDark
+      <main>
+        <div
+          className={
+            isDark
             ? hasSide
               ? 'mx-auto max-w-6xl px-6 py-12 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center justify-center'
               : 'mx-auto max-w-6xl px-6 py-12 lg:py-16'
             : hasSide
               ? 'mx-auto max-w-6xl px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-start justify-center'
               : 'mx-auto max-w-6xl px-6 py-10'
-        }
-      >
-        <div className="w-full flex justify-center">
+          }
+        >
+          <div className="w-full flex justify-center">
           <div className={isDark ? (hasSide ? 'max-w-[520px] w-full' : 'w-full') : (hasSide ? 'max-w-xl w-full' : 'w-full')}>
             <div
               ref={cardRef}
@@ -111,17 +112,18 @@ export default function AuthLayout({
                 <div className="mt-6">{belowCard}</div>
               ) : null
             ) : (
-              <footer className="mt-6 text-xs text-neutral-500">© 2025 Limes</footer>
+              <p className="mt-6 text-xs text-neutral-500">© 2025 Limes</p>
             )}
           </div>
         </div>
 
-        {hasSide && (
-          <div className="hidden lg:block w-full" style={{ height: cardHeight }}>
-            {side}
-          </div>
-        )}
-      </div>
+          {hasSide && (
+            <div className="hidden lg:block w-full" style={{ height: cardHeight }}>
+              {side}
+            </div>
+          )}
+        </div>
+      </main>
       {footer}
     </div>
   )

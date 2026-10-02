@@ -37,7 +37,7 @@ describe('paymentService', () => {
 
   describe('initializeDynamicServicesPayment', () => {
     it('posts to /payment/dynamic-services/initialize and returns response data', async () => {
-      const payload = { msisdn: '123', services: [] as any[] }
+      const payload = { msisdn: '123', services: [] as never[] }
       const response = { success: true, data: { access_code: 'abc', reference: 'ref-1' } }
       mockPost.mockResolvedValue({ data: response })
 
@@ -114,7 +114,7 @@ describe('paymentService', () => {
 
   describe('createDynamicServicesRecurring', () => {
     it('posts recurring subscription to /payment/dynamic-services/recurring', async () => {
-      const payload = { msisdn: '123', paymentMethodId: 'pm-1', services: [] as any[] }
+      const payload = { msisdn: '123', paymentMethodId: 'pm-1', services: [] as never[] }
       const response = { success: true, subscription: { id: 'sub-1', status: 'active' } }
       mockPost.mockResolvedValue({ data: response })
 
@@ -140,7 +140,7 @@ describe('paymentService', () => {
 
   describe('cancelSubscription', () => {
     it('posts to /payment/paystack/cancel-subscription', async () => {
-      const payload = { subscriptionId: 'sub-1', code: 'code-1', token: 'tok-1' }
+      const payload = { subscriptionCode: 'sub-1', msisdn: '27612345678', productId: 'product-1' }
       const response = { success: true, message: 'Cancelled' }
       mockPost.mockResolvedValue({ data: response })
 

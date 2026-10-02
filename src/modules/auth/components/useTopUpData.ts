@@ -87,6 +87,7 @@ export function useTopUpData(open: boolean, kind: 'airtime' | 'bundles'): TopUpD
 
         const filteredProducts = response.data.filter(
           (product) =>
+            product.price > 0 &&
             !product.name?.toUpperCase().includes('FWA') &&
             !product.description?.toUpperCase().includes('FWA')
         )

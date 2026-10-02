@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { userService } from '../services/userService'
 import { crmService } from '../../crm/services/crmService'
 import { userHasProvisionedSim } from '../utils/userProvisioning'
+
 
 const cacheKey = (uid: string) => `limes:display-name:${uid}`
 
@@ -25,14 +26,7 @@ const writeCachedDisplayName = (uid: string, value: string) => {
   }
 }
 
-/** Call after CRM name changes so the navbar refetches display name. */
-export function clearDashboardDisplayNameCache(uid: string) {
-  try {
-    sessionStorage.removeItem(cacheKey(uid))
-  } catch {
-    // no-op
-  }
-}
+
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard' },

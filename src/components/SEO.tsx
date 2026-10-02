@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router'
 import { getRouteMeta, getSiteUrl, SITE_NAME } from '../config/seo'
 
 export default function SEO() {

@@ -23,7 +23,7 @@ export interface CreateSubscriptionResponse {
   success?: boolean
   subscriptionId?: string
   message?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // Order Types
@@ -41,7 +41,7 @@ export interface CreateOrderResponse {
   success?: boolean
   orderId?: string
   message?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface ProcessPendingOrdersResponse {

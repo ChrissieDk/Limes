@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router'
 import { catalogService } from '../../catalog/services/catalogService'
 import { inventoryService } from '../../inventory/services/inventoryService'
 import { log } from '../../../lib/sentry-logger'
@@ -206,6 +206,7 @@ export function usePackageSelection(): PackageSelectionState & PackageSelectionA
         })
         const filteredProducts = response.data.filter(
           (product) =>
+            product.price > 0 &&
             !product.name?.toUpperCase().includes('FWA') &&
             !product.description?.toUpperCase().includes('FWA')
         )

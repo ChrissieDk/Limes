@@ -7,8 +7,8 @@ const mockSearchCategoryProducts = vi.fn()
 
 vi.mock('../../catalog/services/catalogService', () => ({
   catalogService: {
-    getCategoryTree: (...args: any[]) => mockGetCategoryTree(...args),
-    searchCategoryProducts: (...args: any[]) => mockSearchCategoryProducts(...args),
+    getCategoryTree: (...args: unknown[]) => mockGetCategoryTree(...args),
+    searchCategoryProducts: (...args: unknown[]) => mockSearchCategoryProducts(...args),
   },
 }))
 
@@ -149,6 +149,34 @@ describe('useTopUpData', () => {
     expect(mockSearchCategoryProducts).toHaveBeenCalledWith('data', { page: 1, limit: 100 })
     expect(result.current.products).toHaveLength(2)
     expect(result.current.products[0].name).toBe('1GB Data')
+  })
+
+  it('filters out products with a zero selling price', async () => {
+    mockGetCategoryTree.mockResolvedValue(createCategoryTree())
+    mockSearchCategoryProducts.mockResolvedValue({
+      data: [
+        { id: '40057', name: '500MB WhatsApp - R30', price: 30 },
+        { id: '41253', name: '200MB WhatsApp', price: 0 },
+      ],
+      meta: { total: 2 },
+    })
+
+    const { result } = renderHook(() => useTopUpData(true, 'bundles'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    act(() => {
+      result.current.setSelectedCategory('whatsapp')
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.products).toHaveLength(1)
+    expect(result.current.products[0].id).toBe('40057')
   })
 
   it('filters out FWA products', async () => {
