@@ -253,7 +253,17 @@ export default function Faqs() {
         </p>
 
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] gap-8 lg:gap-12 items-start">
-          <div className="rounded-[24px] bg-white/[0.03] ring-1 ring-white/10 overflow-hidden divide-y divide-white/10">
+          <aside className="order-first lg:order-none lg:sticky lg:top-28">
+            <div className="relative h-48 sm:h-56 lg:h-auto lg:aspect-[4/5] w-full overflow-hidden rounded-[24px] ring-1 ring-white/10">
+              <img
+                src={`${import.meta.env.BASE_URL}images/faqs.png`}
+                alt="Someone using Limes on their phone"
+                className="h-full w-full object-cover object-center"
+              />
+            </div>
+          </aside>
+
+          <div className="rounded-[24px] bg-white/[0.03] ring-1 ring-white/10 overflow-hidden divide-y divide-white/10 lg:order-first">
             {faqs.map((f, idx) => (
               <Accordion
                 key={f.title}
@@ -265,16 +275,6 @@ export default function Faqs() {
               </Accordion>
             ))}
           </div>
-
-          <aside className="lg:sticky lg:top-28 order-first lg:order-none">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[24px] ring-1 ring-white/10">
-              <img
-                src={`${import.meta.env.BASE_URL}images/faqs.png`}
-                alt="Someone using Limes on their phone"
-                className="h-full w-full object-cover object-center"
-              />
-            </div>
-          </aside>
         </div>
       </section>
 
