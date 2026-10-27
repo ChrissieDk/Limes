@@ -1,0 +1,43 @@
+import type { Transaction } from './dashboardTypes';
+
+export const sampleTransactions: Transaction[] = [
+  {
+    id: '1',
+    reference: 'LIM-9X4K2',
+    amountInCents: 19999,
+    amountInRands: 199.99,
+    currency: 'ZAR',
+    status: 'success',
+    channel: 'card',
+    cardLast4: '4242',
+    cardType: 'visa',
+    paidAt: '2026-10-20T10:00:00Z',
+    createdAt: '2026-10-20T10:00:00Z',
+  },
+  {
+    id: '2',
+    reference: 'LIM-8H1M7',
+    amountInCents: 5000,
+    amountInRands: 50,
+    currency: 'ZAR',
+    status: 'pending',
+    channel: 'card',
+    cardLast4: '1234',
+    cardType: 'mastercard',
+    paidAt: '2026-10-22T14:30:00Z',
+    createdAt: '2026-10-22T14:30:00Z',
+  },
+  {
+    id: '3',
+    reference: 'LIM-7Q2N1',
+    amountInCents: 29900,
+    amountInRands: 299,
+    currency: 'ZAR',
+    status: 'failed',
+    channel: 'card',
+    cardLast4: '0005',
+    cardType: 'visa',
+    paidAt: '2026-10-25T09:15:00Z',
+    createdAt: '2026-10-25T09:15:00Z',
+  },
+];
