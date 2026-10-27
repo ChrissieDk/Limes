@@ -16,6 +16,7 @@ Limes is a South African mobile network that lets customers order SIMs, manage p
 | Payments | Paystack |
 | Error Tracking | Sentry |
 | Testing | Vitest + React Testing Library |
+| Visual docs | Storybook 10 |
 
 ---
 
@@ -98,6 +99,9 @@ npm run test:e2e
 
 # Preview production build
 npm run preview
+
+# Visual component docs (designers)
+npm run storybook
 ```
 
 ---
@@ -122,6 +126,8 @@ Copy `.env.example` to `.env` and fill in the required values:
 | `npm run dev` | Start Vite dev server |
 | `npm run build` | Type-check and build for production |
 | `npm run preview` | Preview the production build locally |
+| `npm run storybook` | Open visual component docs at localhost:6006 |
+| `npm run build-storybook` | Build a static Storybook (output is gitignored) |
 | `npm run test` | Run Vitest in watch mode |
 | `npm run test:run` | Run Vitest once (for CI) |
 | `npm run test:e2e` | Run Chromium journeys and axe accessibility checks |

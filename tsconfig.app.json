@@ -23,6 +23,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
+  "include": ["src", ".storybook"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test", "coverage", "functions/coverage"]
 }

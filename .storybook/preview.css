@@ -1,0 +1,12 @@
+/* App index.css paints the product chrome dark. Storybook should read as a
+   white spec sheet so components (especially dark UI) stand out. */
+html,
+body,
+#storybook-root {
+  background: #ffffff !important;
+  color: #171717;
+}
+
+.sbdocs-wrapper {
+  background: #ffffff !important;
+}
