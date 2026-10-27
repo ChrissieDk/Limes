@@ -10,7 +10,7 @@ const meta = {
     purpose:
       'First screen of the marketing site: headline, supporting line, primary join CTA, and product photography. Guest path is what Storybook can show (auth reports logged-out).',
     states: 'Guest.',
-    usage: 'Full-bleed, above the fold. Type is Darker Grotesque; the lime CTA should be the only primary action.',
+    usage: 'Full-bleed, above the fold. Headline is Manrope 700; the lime CTA should be the only primary action.',
     fullBleed: true,
   }),
 } satisfies Meta<typeof Hero>;
