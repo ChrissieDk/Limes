@@ -3,10 +3,9 @@ import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import HowLimesWorks from '../components/HowLimesWorks'
 import WhyChoose from '../components/WhyChoose'
-import HowToJoin from '../components/HowToJoin'
 import Packages from '../components/Packages'
-import TelecomCta from '../components/TelecomCta'
 import ReviewsMarquee from '../components/ReviewsMarquee'
+import TelecomCta from '../components/TelecomCta'
 import Footer from '../components/Footer'
 import { useLocation } from 'react-router'
 
@@ -50,9 +49,8 @@ export default function Landing() {
         <HowLimesWorks />
         <Packages />
         <WhyChoose />
-        <HowToJoin />
-        <TelecomCta />
         <ReviewsMarquee />
+        <TelecomCta />
         <Footer />
       </div>
     </div>

@@ -2,23 +2,23 @@ import { Link } from 'react-router'
 
 export default function TelecomCta() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24">
-      <div className="rounded-[26px] bg-white text-neutral-900 border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] px-6 sm:px-8 py-7 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
+    <section className="px-6 pb-24">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-[26px] bg-[#302F35] px-6 py-7 text-white sm:px-8">
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <h3 className="font-grotesque font-bold text-[30px] sm:text-[34px] md:text-[40px] leading-[1.05] tracking-tight">
+            <h3 className="font-grotesque text-[30px] font-bold leading-[1.05] tracking-tight text-white sm:text-[34px] md:text-[40px]">
               Turn Telecom into a Profit Centre,
               <br />
               without becoming an MVNO.
             </h3>
-            <p className="mt-3 text-neutral-700 text-base md:text-lg font-manrope">
+            <p className="font-manrope mt-3 text-base text-white md:text-lg">
               Let’s help you find the right communication solution for your needs.
             </p>
 
             <div className="mt-5">
               <Link
                 to="/contact"
-                className="inline-flex items-center justify-center h-10 px-5 rounded-xl bg-white text-neutral-900 text-sm font-semibold border border-black/40 hover:bg-neutral-50 transition-colors"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-100"
               >
                 <span className="font-manrope">Contact Us</span>
               </Link>

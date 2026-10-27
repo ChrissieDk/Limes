@@ -150,21 +150,21 @@ export default function WhyChoose() {
               return (
                 <div
                   key={item.key}
-                  className={`flex h-full flex-col justify-center gap-3 rounded-xl px-4 py-5 sm:px-5 sm:py-6 ${item.bgClass} ${
-                    item.wide ? 'sm:col-span-2 sm:flex-row sm:items-center sm:justify-between' : ''
+                  className={`flex h-full items-center justify-between gap-3 overflow-hidden rounded-xl px-4 py-4 sm:px-5 ${item.bgClass} ${
+                    item.wide ? 'sm:col-span-2' : ''
                   }`}
                 >
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
                     <img src={item.iconSrc} alt="" className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14" />
-                    <div className="min-w-0">
-                      <div className="font-manrope text-lg font-bold! leading-tight text-neutral-900 sm:text-xl">{item.label}</div>
-                      <div className="font-manrope whitespace-nowrap text-sm text-neutral-900/70 sm:text-base">You pay R{rands}</div>
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <div className="font-manrope truncate text-lg font-bold! leading-tight text-neutral-900 sm:text-xl">{item.label}</div>
+                      <div className="font-manrope truncate text-sm text-neutral-900/70">You pay R{rands}</div>
                     </div>
                   </div>
 
                   <div
-                    className={`flex h-14 w-full shrink-0 items-center rounded-md bg-white/70 sm:h-16 ${enabled ? '' : 'opacity-70'} ${
-                      item.wide ? 'sm:w-[min(100%,340px)]' : ''
+                    className={`flex h-12 shrink-0 items-center rounded-md bg-white/70 sm:h-14 ${enabled ? '' : 'opacity-70'} ${
+                      item.wide ? 'w-[min(52%,340px)]' : 'w-[min(48%,188px)]'
                     }`}
                   >
                     <button
@@ -172,7 +172,7 @@ export default function WhyChoose() {
                       aria-label={`Decrease ${item.label}`}
                       disabled={!enabled}
                       onClick={() => adjustRands(item.key, -item.step)}
-                      className="grid h-full w-14 place-items-center font-manrope text-5xl font-medium leading-none text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-16 sm:text-6xl"
+                      className="grid h-full w-12 place-items-center font-manrope text-4xl font-medium leading-none text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-14 sm:text-5xl"
                     >
                       −
                     </button>
@@ -189,11 +189,11 @@ export default function WhyChoose() {
                             value={`R${rands}`}
                             onChange={(e) => setRands(item.key, parseRandsInput(e.target.value))}
                             disabled={!enabled}
-                            className="w-full border-0 bg-transparent p-0 text-center font-manrope text-[28px] font-bold! leading-none text-neutral-900 outline-none disabled:opacity-60 sm:text-[30px]"
+                            className="w-full border-0 bg-transparent p-0 text-center font-manrope text-[26px] font-bold! leading-none text-neutral-900 outline-none disabled:opacity-60 sm:text-[28px]"
                           />
                         </>
                       ) : (
-                        <span className="font-manrope text-[28px] font-bold! leading-none text-neutral-900 sm:text-[30px]">
+                        <span className="font-manrope text-[26px] font-bold! leading-none text-neutral-900 sm:text-[28px]">
                           {stepperValue}
                         </span>
                       )}
@@ -203,7 +203,7 @@ export default function WhyChoose() {
                       aria-label={`Increase ${item.label}`}
                       disabled={!enabled}
                       onClick={() => adjustRands(item.key, item.step)}
-                      className="grid h-full w-14 place-items-center font-manrope text-5xl font-medium leading-none text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-16 sm:text-6xl"
+                      className="grid h-full w-12 place-items-center font-manrope text-4xl font-medium leading-none text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-14 sm:text-5xl"
                     >
                       +
                     </button>

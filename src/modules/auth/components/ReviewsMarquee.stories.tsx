@@ -6,11 +6,11 @@ const meta = {
   title: 'Marketing/ReviewsMarquee',
   component: ReviewsMarquee,
   parameters: designerMeta({
-    subtitle: 'Moving social proof',
+    subtitle: 'Customer quotes',
     purpose:
-      'Horizontal marquee of customer quotes. Adds energy after static benefit tiles without asking anyone to click.',
+      'Three static testimonial cards above the business CTA. Short quotes plus a name, no avatars or motion.',
     states: 'Default.',
-    usage: 'Full width. Quotes must remain readable while moving; pause on hover if the implementation allows.',
+    usage: 'Full width, directly above the telecom profit-centre banner. Cards stay equal height in a row on desktop.',
     fullBleed: true,
   }),
 } satisfies Meta<typeof ReviewsMarquee>;
@@ -19,5 +19,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  parameters: designerStory('Default ticker. Watch speed, duplicate seams, and contrast of quote cards on the page background.'),
+  parameters: designerStory('Default three quotes. Check equal card height, wrapping of the longest quote, and contrast of #302F35 cards on the page.'),
 };
