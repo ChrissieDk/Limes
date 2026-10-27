@@ -48,9 +48,8 @@ export default function Landing() {
       <div>
         <Hero />
         <HowLimesWorks />
-        <WhyChoose />
-        
         <Packages />
+        <WhyChoose />
         <HowToJoin />
         <TelecomCta />
         <ReviewsMarquee />
