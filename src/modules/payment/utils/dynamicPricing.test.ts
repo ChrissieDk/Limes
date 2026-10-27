@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { toCents, toRands, getDefaultExpiryDate, isServiceAvailable } from './dynamicPricing'
+import { toCents, toRands, getDefaultExpiryDate, isServiceAvailable, calculateTieredCost, convertRandsToServiceValue } from './dynamicPricing'
+import { dataBrackets, smsBrackets, voiceBrackets } from '../config/ratingTable'
 
 describe('toCents', () => {
   it('converts Rands to cents', () => {
@@ -48,5 +49,22 @@ describe('isServiceAvailable', () => {
   it('returns false when no pricing brackets exist', () => {
     expect(isServiceAvailable('MMS', 'prepaid')).toBe(false)
     expect(isServiceAvailable('UNKNOWN' as 'DATA', 'prepaid')).toBe(false)
+  })
+})
+
+describe('build-your-own slider rates', () => {
+  it('prices data at R0.10 per MB', () => {
+    expect(calculateTieredCost(100, dataBrackets)).toBeCloseTo(10)
+    expect(convertRandsToServiceValue('DATA', 10)).toBe(100 * 1048576)
+  })
+
+  it('prices voice at R0.59 per minute', () => {
+    expect(calculateTieredCost(1, voiceBrackets)).toBeCloseTo(0.59)
+    expect(convertRandsToServiceValue('VOICE', 0.59)).toBe(60)
+  })
+
+  it('prices SMS at R0.25 per message', () => {
+    expect(calculateTieredCost(4, smsBrackets)).toBeCloseTo(1)
+    expect(convertRandsToServiceValue('SMS', 1)).toBe(4)
   })
 })
