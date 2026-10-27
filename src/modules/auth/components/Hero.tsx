@@ -1,69 +1,65 @@
 import { Link } from 'react-router'
-import Button from './Button'
 import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 
 export default function Hero() {
-  const ctaPath = useAuthLandingCtaPath('/signin')
+  const viewSubscriptionsPath = useAuthLandingCtaPath('/signup')
+  const buildYourOwnPath = useAuthLandingCtaPath('/signup')
 
   return (
-    <section
-      id="hero"
-      className="mx-auto max-w-6xl px-6 pt-10 pb-10 grid lg:grid-cols-[1.2fr_0.8fr] gap-10 items-start lg:items-stretch lg:min-h-[calc(100vh-120px)] scroll-mt-24"
-    >
-      <div className="max-w-3xl lg:max-w-none w-full self-center">
-        <h1 className="font-grotesque font-bold leading-[0.88] tracking-tight text-white" style={{ fontWeight: 700 }}>
-          <span className="block text-[40px] sm:text-[52px] md:text-[68px] lg:text-[80px]">
-            Meet Limes Mobile,
-          </span>
-          <span className="block text-[40px] sm:text-[52px] md:text-[68px] lg:text-[80px]">
-            <span className="md:whitespace-nowrap">
-              the{' '}
-              <img
-                src={`${import.meta.env.BASE_URL}images/smarter.png`}
-                alt="smarter"
-                className="inline-block align-middle h-11 sm:h-12 md:h-[64px] lg:h-[72px] mx-1 -rotate-1"
-              />
-              {' '}network
-            </span>
-          </span>
-          <span className="block text-[40px] sm:text-[52px] md:text-[68px] lg:text-[80px]">
-            that gives you
-          </span>
-          <span className="block text-[40px] sm:text-[52px] md:text-[68px] lg:text-[80px]">
-            more.
-          </span>
-        </h1>
-
-        <p className="font-manrope mt-8 max-w-xl text-neutral-400 text-base md:text-lg">
-          Prepaid or subscription. Build your own subscription or pick a subscription. Switch in minutes, not days — and
-          only pay for what you actually use.
-        </p>
-
-        <div className="font-manrope mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-neutral-400">
-          <span>Prepaid or subscription</span>
-          <span className="size-1.5 rounded-full bg-yellow-400" />
-          <span>Flexible subscriptions</span>
-          <span className="size-1.5 rounded-full bg-green-400" />
-          <span>Simple switching</span>
-        </div>
-
-        <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-          <div className="w-full sm:w-44">
-            <Link to={ctaPath}>
-              <Button variant="primary">View subscriptions</Button>
-            </Link>
-          </div>
-          <div className="w-full sm:w-44">
-            <Link to={ctaPath}>
-              <Button variant="secondary">Switch to Limes</Button>
-            </Link>
-          </div>
-        </div>
+    <section id="hero" className="relative -mt-[84px] min-h-[100svh] scroll-mt-0">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <img
+          src={`${import.meta.env.BASE_URL}images/hero-new.jpg`}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-[48%_50%]"
+        />
       </div>
 
-      <div className="hidden lg:flex h-full items-center">
-        <div className="relative w-full h-full min-h-[520px] rounded-3xl overflow-hidden">
-          <img src={`${import.meta.env.BASE_URL}images/hero_new.png`} alt="Limes preview" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="relative mx-auto grid min-h-[100svh] max-w-[90rem] items-center gap-10 px-6 pb-16 pt-32 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-6 lg:px-10 lg:pt-28 lg:pb-12 xl:px-12">
+        <div className="min-w-0">
+          <h1 className="font-manrope text-[40px] font-bold! leading-[1.1] tracking-normal text-white sm:text-[52px] md:text-[64px] lg:text-[74px]">
+            <span className="block">Your airtime should</span>
+            <span className="block">
+              work{' '}
+              <span className="relative inline-block rotate-3 rounded-md bg-[#ABFF63] px-2.5 py-0.5 text-black sm:px-3.5 sm:py-1">
+                harder
+              </span>{' '}
+              for you
+            </span>
+          </h1>
+
+          <p className="font-manrope mt-6 max-w-2xl text-base leading-relaxed text-white md:max-w-3xl md:text-lg">
+            Build a mobile plan that fits your life, your budget and the way you actually use your phone.
+          </p>
+
+          <p className="font-manrope mt-5 text-sm text-white">
+            Flexible subscriptions <span className="mx-1.5">•</span> Simple porting
+          </p>
+
+          <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <Link
+              to={viewSubscriptionsPath}
+              className="inline-flex h-11 items-center justify-center rounded-md bg-[#ABFF63] px-6 font-manrope text-sm font-semibold text-neutral-900 transition-colors hover:bg-[#99FF4D]"
+            >
+              View subscriptions
+            </Link>
+            <Link
+              to={buildYourOwnPath}
+              className="inline-flex h-11 items-center justify-center rounded-md bg-neutral-950 px-6 font-manrope text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
+            >
+              Build your own
+            </Link>
+          </div>
+        </div>
+
+        <div className="flex justify-center lg:justify-end">
+          <img
+            src={`${import.meta.env.BASE_URL}images/hero-device.svg`}
+            alt="Limes Mobile app showing airtime, data, SMS and voice balances"
+            width={281}
+            height={570}
+            className="h-auto w-[240px] drop-shadow-[0_32px_80px_rgba(0,0,0,0.45)] sm:w-[260px] lg:w-[300px]"
+          />
         </div>
       </div>
     </section>

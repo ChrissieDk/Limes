@@ -1,7 +1,7 @@
 import { useLayoutEffect } from 'react'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
-import TrustBar from '../components/TrustBar'
+import HowLimesWorks from '../components/HowLimesWorks'
 import WhyChoose from '../components/WhyChoose'
 import HowToJoin from '../components/HowToJoin'
 import Packages from '../components/Packages'
@@ -47,7 +47,7 @@ export default function Landing() {
 
       <div>
         <Hero />
-        <TrustBar />
+        <HowLimesWorks />
         <WhyChoose />
         
         <Packages />
