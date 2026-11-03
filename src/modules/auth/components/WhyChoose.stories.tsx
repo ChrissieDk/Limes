@@ -6,11 +6,11 @@ const meta = {
   title: 'Marketing/WhyChoose',
   component: WhyChoose,
   parameters: designerMeta({
-    subtitle: 'Reasons to switch',
+    subtitle: 'Build-your-own plan',
     purpose:
-      'Benefit grid (no lock-in, cash back, keep your number, and similar) that sits between social proof and packages.',
-    states: 'Default.',
-    usage: 'Full width. Four-or-so equal tiles; do not promote one benefit as a nested CTA.',
+      'Interactive allocation tiles plus a floating summary. Spend is in rands; the stepper shows converted units (GB, SMS, minutes). Buy now uses the landing auth CTA.',
+    states: 'Default allocation (airtime R30, data R100, SMS/voice/WhatsApp R10). Steppers increment by R5.',
+    usage: 'Full width. Tiles must match the summary height. Data conversion is the live R0.10/MB rate, so R100 reads as 1GB.',
     fullBleed: true,
   }),
 } satisfies Meta<typeof WhyChoose>;
@@ -19,5 +19,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  parameters: designerStory('Default benefit tiles. Check icon + heading + one-line support copy, and wrapping at tablet width.'),
+  parameters: designerStory('Default plan builder. Check icon size, less-rounded stepper chrome, large +/−, and that summary rand values stay large and aligned.'),
 };

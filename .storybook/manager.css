@@ -1,0 +1,7 @@
+/* Selected sidebar rows use colorSecondary as a fill. Keep selection quiet. */
+.sidebar-container [data-selected='true'],
+.sidebar-container [data-selected='true']:hover,
+.sidebar-container [data-selected='true']:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}

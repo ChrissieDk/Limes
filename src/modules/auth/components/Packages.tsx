@@ -1,147 +1,124 @@
 import { Link } from 'react-router'
 import { useAuthLandingCtaPath } from '../hooks/useAuthLandingCtaPath'
 
+const base = import.meta.env.BASE_URL
+const featureIcon = `${base}images/plan_pink.png`
+
+type Feature = {
+  label: string
+  duration: string
+}
+
+type Plan = {
+  name: string
+  badge: string
+  badgeTone: 'lime' | 'pink'
+  features: Feature[]
+  price: string
+}
+
+const plans: Plan[] = [
+  {
+    name: 'Limes35',
+    badge: '20% MORE AIRTIME • 20%',
+    badgeTone: 'lime',
+    features: [{ label: 'R35 airtime', duration: '30 days' }],
+    price: 'R29',
+  },
+  {
+    name: 'Limes130',
+    badge: '30% MORE AIRTIME • 30%',
+    badgeTone: 'lime',
+    features: [{ label: 'R130 airtime', duration: '30 days' }],
+    price: 'R99',
+  },
+  {
+    name: 'LimesUnlimited',
+    badge: '% BEST VALUE',
+    badgeTone: 'pink',
+    features: [
+      { label: 'Unlimited voice', duration: '30 days' },
+      { label: '10GB data', duration: '30 days' },
+    ],
+    price: 'R399',
+  },
+]
+
+function Badge({ label, tone }: { label: string; tone: 'lime' | 'pink' }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded-md px-3 py-1.5 font-manrope text-[11px] font-semibold tracking-wide text-neutral-900 uppercase ${
+        tone === 'lime' ? 'bg-[#ABFF63]' : 'bg-pink-300'
+      }`}
+    >
+      {label}
+    </span>
+  )
+}
+
 export default function Packages() {
   const buyPath = useAuthLandingCtaPath('/signup')
-  const bulletSrc = `${import.meta.env.BASE_URL}images/plan_icon_small.svg`
-  const bulletSrcYellow = `${import.meta.env.BASE_URL}images/plan_icon_yellow_small.svg`
-
-  type Card = {
-    key: string
-    title: string
-    bgClass: string
-    textClass: string
-    bullets: string[]
-    colSpanClass: string
-    minHeightClass: string
-  }
-
-  const cards: Card[] = [
-    {
-      key: 'limes99',
-      title: 'Limes99',
-      bgClass: 'bg-yellow-300',
-      textClass: 'text-neutral-900',
-      bullets: ['R99 airtime + R31 FREE', 'Unlimited WhatsApp text'],
-      colSpanClass: 'lg:col-span-3',
-      minHeightClass: 'lg:min-h-[180px]',
-    },
-    {
-      key: 'limes29',
-      title: 'Limes29',
-      bgClass: 'bg-[#5BA0FF]',
-      textClass: 'text-neutral-900',
-      bullets: ['R29 airtime + R6 FREE'],
-      colSpanClass: 'lg:col-span-3',
-      minHeightClass: 'lg:min-h-[180px]',
-    },
-    {
-      key: 'limes69',
-      title: 'Limes69',
-      bgClass: 'bg-[#CDA7FC]',
-      textClass: 'text-neutral-900',
-      bullets: ['R69 airtime + R21 FREE', 'Unlimited WhatsApp text'],
-      colSpanClass: 'lg:col-span-2',
-      minHeightClass: 'lg:min-h-[150px]',
-    },
-    {
-      key: 'limes169',
-      title: 'Limes169',
-      bgClass: 'bg-pink-300',
-      textClass: 'text-neutral-900',
-      bullets: ['R169 airtime + R31 FREE', 'Unlimited WhatsApp text'],
-      colSpanClass: 'lg:col-span-2',
-      minHeightClass: 'lg:min-h-[150px]',
-    },
-    {
-      key: 'limes199',
-      title: 'Limes199',
-      bgClass: 'bg-lime-300',
-      textClass: 'text-neutral-900',
-      bullets: ['R199 airtime + R31 FREE', 'Unlimited WhatsApp text'],
-      colSpanClass: 'lg:col-span-2',
-      minHeightClass: 'lg:min-h-[150px]',
-    },
-    {
-      key: 'limes-unlimited',
-      title: 'Limes Unlimited',
-      bgClass: 'bg-white',
-      textClass: 'text-neutral-900',
-      bullets: ['Unlimited voice minutes + 10GB data', '10GB data', 'Unlimited WhatsApp text'],
-      colSpanClass: 'lg:col-span-3',
-      minHeightClass: 'lg:min-h-[170px]',
-    },
-    {
-      key: 'limes-one',
-      title: 'LimesOne',
-      bgClass: 'bg-white',
-      textClass: 'text-neutral-900',
-      bullets: ['1GB data', '1GB WhatsApp data', 'R100 Airtime'],
-      colSpanClass: 'lg:col-span-3',
-      minHeightClass: 'lg:min-h-[170px]',
-    },
-  ]
 
   return (
-    <section id="packages" className="relative bg-neutral-900">
-      <div className="mx-auto max-w-6xl px-6 pt-14 pb-24">
-        <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
-          <span className="w-2.5 h-2.5 rounded-full bg-pink-300 mr-3 translate-y-[1px]" /> Our Subscriptions
+    <section id="packages" className="scroll-mt-24 px-6 py-16 md:py-20">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex items-center justify-center gap-2 font-manrope text-sm text-neutral-400">
+          <span className="size-1.5 rounded-full bg-[#ABFF63]" />
+          Subscriptions
         </div>
 
-        <h2 className="mt-4 text-center font-grotesque font-bold text-white text-[34px] sm:text-[44px] md:text-[56px] leading-[1.05]">
-          Flexible subscriptions that suit how you
-          <br />
-          connect
+        <h2 className="font-manrope mt-4 text-center text-[28px] font-bold! leading-[1.15] tracking-normal text-white sm:text-[32px] md:text-[36px]">
+          Flexible subscriptions that suit how you connect
         </h2>
-        <p className="font-manrope mt-4 text-center text-neutral-400 text-base md:text-lg">
-          Choose prepaid or subscription options with better value built in.
+        <p className="font-manrope mt-3 text-center text-sm text-neutral-400 md:text-base">
+          Choose from our monthly subscription options with better value built in. Cancel anytime.
         </p>
 
-        <div className="mt-10 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-6 gap-2 lg:gap-2">
-            {cards.map((card) => (
-              <div
-                key={card.key}
-                className={[
-                  'rounded-[26px] border-2 border-black/70 shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] p-5 flex flex-col',
-                  card.bgClass,
-                  card.textClass,
-                  card.colSpanClass,
-                  card.minHeightClass,
-                ].join(' ')}
-              >
-                <div className="font-grotesque font-bold text-[28px] leading-[1.0] tracking-tight">
-                  {card.title}
-                </div>
-
-                <ul className="mt-2.5 space-y-2 text-[14px] leading-snug font-manrope">
-                  {card.bullets.map((b) => {
-                    const iconSrc = card.key === 'limes-unlimited' || card.key === 'limes-one' ? bulletSrcYellow : bulletSrc
-                    return (
-                      <li key={b} className="flex items-start gap-2">
-                        <img src={iconSrc} alt="" className="h-4 w-5 mt-[2px] object-contain" />
-                        <span>{b}</span>
-                      </li>
-                    )
-                  })}
-                </ul>
-
-                <div className="mt-auto pt-4">
-                  <Link
-                    to={buyPath}
-                    className="inline-flex items-center justify-center h-9 px-4 rounded-xl bg-white text-neutral-900 text-xs font-semibold border border-black/60"
-                  >
-                    Buy now
-                  </Link>
-                </div>
+        <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
+          {plans.map((plan) => (
+            <article
+              key={plan.name}
+              className="flex flex-col rounded-2xl p-5"
+              style={{ backgroundColor: '#302F35' }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-manrope text-[28px] leading-none font-bold! tracking-tight text-white">
+                  {plan.name}
+                </h3>
+                <Badge label={plan.badge} tone={plan.badgeTone} />
               </div>
-            ))}
-          </div>
+
+              <div className="mt-6 flex flex-1 flex-col gap-2.5">
+                {plan.features.map((feature) => (
+                  <div key={feature.label} className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <img src={featureIcon} alt="" className="h-4 w-5 shrink-0 object-contain" />
+                      <span className="font-manrope text-lg font-medium text-white">{feature.label}</span>
+                    </div>
+                    <span className="font-manrope shrink-0 text-base text-neutral-400">{feature.duration}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                to={buyPath}
+                className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-white font-manrope text-sm font-medium text-neutral-900 transition-colors hover:bg-neutral-100"
+              >
+                Buy for {plan.price}
+              </Link>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <Link
+            to={buyPath}
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-[#ABFF63] px-6 font-manrope text-sm font-semibold text-neutral-900 transition-colors hover:bg-[#99FF4D]"
+          >
+            See all our subscriptions
+          </Link>
         </div>
       </div>
     </section>
   )
 }
-
-

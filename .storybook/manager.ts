@@ -1,5 +1,6 @@
 import { addons } from 'storybook/manager-api';
 import { create } from 'storybook/theming';
+import './manager.css';
 
 addons.setConfig({
   theme: create({
@@ -7,7 +8,8 @@ addons.setConfig({
     brandTitle: 'Limes',
     brandTarget: '_self',
     colorPrimary: '#ABFF63',
-    colorSecondary: '#ABFF63',
+    colorSecondary: '#3F3E46',
+    barSelectedColor: '#F4F4F5',
   }),
   sidebar: {
     showRoots: true,

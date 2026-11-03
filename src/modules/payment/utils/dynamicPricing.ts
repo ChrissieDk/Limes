@@ -143,14 +143,15 @@ export function getServiceDisplayValue(
   
   // Format based on service type
   if (serviceType === 'DATA' || serviceType === 'WHATSAPP') {
-    // Units are in MB, convert to GB if appropriate
+    // Units are in MB. 1024 MB = 1 GB; round so R100 of data (1000 MB) reads as 1 GB.
     const mb = units
     const gb = mb / 1024
 
-    if (gb >= 1) {
-      return `${gb.toFixed(2)} GB`
+    if (gb >= 0.95) {
+      const rounded = gb >= 10 ? Math.round(gb) : Math.round(gb * 10) / 10
+      return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded} GB`
     }
-    return `${Math.floor(mb)} MB`
+    return `${Math.round(mb)} MB`
   } else if (serviceType === 'VOICE') {
     // Units are in minutes
     return `${Math.floor(units)} min`
