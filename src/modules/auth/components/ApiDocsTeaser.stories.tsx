@@ -8,9 +8,9 @@ const meta = {
   parameters: designerMeta({
     subtitle: 'Developer docs invite',
     purpose:
-      'A compact teaser that points builders at the public API docs. Lives on marketing, not inside the consumer dashboard.',
+      'Blue-dot "Built for developers" label, "Ready-to-go API documentation" heading, docs video and a "Request API access" button. Sits under the benefits grid on the For Businesses page.',
     states: 'Default.',
-    usage: 'Full-bleed section. One sentence of value plus a docs link — not a code sample dump.',
+    usage: 'Full-bleed section. The CTA links to the contact page.',
     fullBleed: true,
   }),
 } satisfies Meta<typeof ApiDocsTeaser>;

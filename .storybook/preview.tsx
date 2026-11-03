@@ -10,9 +10,9 @@ const preview: Preview = {
   tags: ['autodocs'],
   decorators: [
     withDesignerFrame,
-    (Story) => (
+    (Story, context) => (
       <HelmetProvider>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[(context.parameters.route as string | undefined) ?? '/']}>
           <Story />
         </MemoryRouter>
       </HelmetProvider>
