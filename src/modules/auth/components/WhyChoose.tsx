@@ -7,7 +7,12 @@ import type { PackageType } from '../../payment/config/ratingTable'
 
 const base = import.meta.env.BASE_URL
 
-export default function WhyChoose() {
+type Props = {
+  sectionId?: string
+  title?: string
+}
+
+export default function WhyChoose({ sectionId = 'why', title = 'Build out your plan' }: Props) {
   const ctaPath = useAuthLandingCtaPath('/signup')
   const packageType: PackageType = 'prepaid'
 
@@ -125,7 +130,7 @@ export default function WhyChoose() {
   const totalRands = lineItems.reduce((sum, item) => sum + allocation[item.key], 0)
 
   return (
-    <section id="why" className="scroll-mt-24 px-6 py-16 md:py-20">
+    <section id={sectionId} className="scroll-mt-24 px-6 py-16 md:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="flex items-center justify-center gap-2 font-manrope text-sm text-neutral-400">
           <span className="size-1.5 rounded-full bg-pink-300" />
@@ -133,7 +138,7 @@ export default function WhyChoose() {
         </div>
 
         <h2 className="font-manrope mt-4 text-center text-[28px] font-bold! leading-[1.15] tracking-normal text-white sm:text-[32px] md:text-[36px]">
-          Build out your plan
+          {title}
         </h2>
         <p className="font-manrope mt-3 text-center text-sm text-neutral-400 md:text-base">
           Get only what you need every month. Cancel anytime.

@@ -1,6 +1,6 @@
 import Navbar from '../components/Navbar'
 import SubscriptionPlans from '../components/SubscriptionPlans'
-import BuildYourPlan from '../components/BuildYourPlan'
+import WhyChoose from '../components/WhyChoose'
 import Footer from '../components/Footer'
 
 export default function SubscriptionsPage() {
@@ -8,7 +8,7 @@ export default function SubscriptionsPage() {
     <div className="min-h-screen bg-neutral-900 text-white overflow-x-hidden">
       <Navbar />
       <SubscriptionPlans />
-      <BuildYourPlan />
+      <WhyChoose sectionId="build" title="Or build out your plan" />
       <Footer />
     </div>
   )
