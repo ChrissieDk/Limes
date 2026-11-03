@@ -4,8 +4,8 @@ import Button from './Button'
 export default function ApiDocsTeaser() {
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24">
-      <div className="flex items-center justify-center font-grotesque font-semibold text-neutral-400 text-[24px] sm:text-[30px] md:text-[36px] leading-[1.05]">
-        <span className="w-2.5 h-2.5 rounded-full bg-lime-400 mr-3 translate-y-[1px]" />
+      <div className="flex items-center justify-center font-manrope text-xs text-neutral-400">
+        <span className="w-2 h-2 rounded-full bg-blue-400 mr-2 translate-y-[1px]" />
         <span>Built for developers</span>
       </div>
 
@@ -37,7 +37,7 @@ export default function ApiDocsTeaser() {
 
       <div className="mt-6 flex items-center justify-center">
         <Link to="/contact">
-          <Button variant="primary">Request API Access</Button>
+          <Button variant="primary" fullWidth={false} className="h-10 rounded-lg border-0 shadow-none">Request API access</Button>
         </Link>
       </div>
     </section>

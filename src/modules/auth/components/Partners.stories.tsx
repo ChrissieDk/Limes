@@ -6,11 +6,11 @@ const meta = {
   title: 'Marketing/Partners',
   component: Partners,
   parameters: designerMeta({
-    subtitle: 'Network and brand logos',
+    subtitle: 'For Businesses benefits grid',
     purpose:
-      'Quiet logo row for coverage partners and payment marks. Supports trust without another paragraph of copy.',
+      'Intro and six benefit cards for prospective business partners, ending in an Explore Simpal CTA.',
     states: 'Default.',
-    usage: 'Full width, low contrast against the page. Logos should be optically aligned, not stretched.',
+    usage: 'Dark page background; cards are neutral-800 tiles in a 3-column grid on desktop.',
     fullBleed: true,
   }),
 } satisfies Meta<typeof Partners>;
@@ -19,5 +19,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  parameters: designerStory('Default logo row. Check greyscale treatment, spacing, and that no logo dominates.'),
+  parameters: designerStory('Default grid. Check card copy wrapping and icon alignment.'),
 };

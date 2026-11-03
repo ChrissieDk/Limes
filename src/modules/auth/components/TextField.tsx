@@ -1,16 +1,19 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode, useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { CircleAlert, Eye, EyeOff, Info } from 'lucide-react'
 import clsx from 'classnames'
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
   label?: string
   prefix?: ReactNode
   error?: string
+  /** Non-error helper text shown under the field (info or warning). */
+  message?: string
+  messageState?: 'info' | 'warning'
   variant?: 'light' | 'dark'
 }
 
 const TextField = forwardRef<HTMLInputElement, Props>(
-  ({ label, prefix, type = 'text', error, className, variant = 'light', ...rest }, ref) => {
+  ({ label, prefix, type = 'text', error, message, messageState = 'info', className, variant = 'light', ...rest }, ref) => {
     const [isPasswordVisible, setPasswordVisible] = useState(false)
     const isPassword = type === 'password'
     const inputType = isPassword ? (isPasswordVisible ? 'text' : 'password') : type
@@ -29,7 +32,7 @@ const TextField = forwardRef<HTMLInputElement, Props>(
             isDark
               ? 'h-10 sm:h-11 rounded-lg bg-white/5 border border-white/10 text-white focus-within:border-white/20'
               : 'h-12 rounded-xl bg-white ring-1 ring-neutral-300 focus-within:ring-neutral-500 text-black',
-            error && 'ring-red-500',
+            error && (isDark ? 'border-red-400' : 'ring-red-500'),
           )}
         >
           {prefix && (
@@ -65,7 +68,28 @@ const TextField = forwardRef<HTMLInputElement, Props>(
             </button>
           )}
         </div>
-        {error && <span className="font-manrope text-xs text-red-400">{error}</span>}
+        {error ? (
+          <span role="alert" className="font-manrope text-xs text-red-400 flex items-center gap-1.5">
+            <CircleAlert className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            {error}
+          </span>
+        ) : (
+          message && (
+            <span
+              className={clsx(
+                'font-manrope text-xs flex items-center gap-1.5',
+                messageState === 'warning' ? 'text-yellow-400' : 'text-blue-400',
+              )}
+            >
+              {messageState === 'warning' ? (
+                <CircleAlert className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              ) : (
+                <Info className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              )}
+              {message}
+            </span>
+          )
+        )}
       </label>
     )
   },

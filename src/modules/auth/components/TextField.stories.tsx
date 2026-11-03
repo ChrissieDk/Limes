@@ -13,7 +13,7 @@ const meta = {
     subtitle: 'Form input with light and dark surfaces',
     purpose:
       'Standard text input for sign-in, RICA, shipping, and account forms. Light sits on white cards; dark sits on charcoal marketing/auth panels.',
-    states: 'Light, Dark, Prefix, Error, Password, Password on dark, Disabled.',
+    states: 'Light, Dark, Prefix, Error, Dark error, Info message, Warning message, Password, Password on dark, Disabled.',
     usage: 'Always show a label. Use the error state for validation, not placeholder copy.',
   }),
   render: (args) => (
@@ -68,4 +68,34 @@ export const PasswordDark: Story = {
 export const Disabled: Story = {
   args: { disabled: true, defaultValue: 'Read only' },
   parameters: designerStory('Read-only / locked. Use when a value is prefilled from the account and must not be edited.'),
+};
+
+export const DarkError: Story = {
+  args: { variant: 'dark', label: 'Email*', defaultValue: 'eric@mail', error: 'Enter a valid email address' },
+  parameters: designerStory('Validation failure on a dark panel. Red border plus an icon and message beneath.'),
+  render: (args) => (
+    <div className="w-80 rounded-2xl bg-neutral-900 p-6">
+      <TextField {...args} />
+    </div>
+  ),
+};
+
+export const InfoMessage: Story = {
+  args: { variant: 'dark', label: 'Contact number', message: 'Include your country code', messageState: 'info' },
+  parameters: designerStory('Neutral guidance under a field. Blue, with an info icon.'),
+  render: (args) => (
+    <div className="w-80 rounded-2xl bg-neutral-900 p-6">
+      <TextField {...args} />
+    </div>
+  ),
+};
+
+export const WarningMessage: Story = {
+  args: { variant: 'dark', label: 'Email', defaultValue: 'eric@gmial.com', message: 'Is this address correct?', messageState: 'warning' },
+  parameters: designerStory('Non-blocking caution. Yellow, with an alert icon; the field stays valid.'),
+  render: (args) => (
+    <div className="w-80 rounded-2xl bg-neutral-900 p-6">
+      <TextField {...args} />
+    </div>
+  ),
 };
