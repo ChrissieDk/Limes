@@ -19,6 +19,7 @@ const Contact = lazy(() => import('./modules/auth/pages/Contact'))
 const Faqs = lazy(() => import('./modules/auth/pages/Faqs'))
 const HowItWorks = lazy(() => import('./modules/auth/pages/HowItWorks'))
 const PartnersPage = lazy(() => import('./modules/auth/pages/PartnersPage'))
+const SubscriptionsPage = lazy(() => import('./modules/auth/pages/SubscriptionsPage'))
 const HowToHub = lazy(() => import('./modules/auth/pages/HowToHub'))
 const HowToJoinPage = lazy(() => import('./modules/auth/pages/HowToJoinPage'))
 const HowToActivate = lazy(() => import('./modules/auth/pages/HowToActivate'))
@@ -54,6 +55,10 @@ const router = sentryCreateBrowserRouter(
         {
           path: '/how-it-works',
           element: <HowItWorks />,
+        },
+        {
+          path: '/subscriptions',
+          element: <SubscriptionsPage />,
         },
         {
           path: '/partners',

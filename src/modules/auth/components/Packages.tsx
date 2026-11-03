@@ -112,7 +112,7 @@ export default function Packages() {
 
         <div className="mt-8 flex justify-center">
           <Link
-            to={buyPath}
+            to="/subscriptions"
             className="inline-flex h-11 items-center justify-center rounded-lg bg-[#ABFF63] px-6 font-manrope text-sm font-semibold text-neutral-900 transition-colors hover:bg-[#99FF4D]"
           >
             See all our subscriptions
