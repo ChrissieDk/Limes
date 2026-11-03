@@ -20,15 +20,17 @@ const schema = z.object({
   message: z.string().min(1, 'Enter a message').max(5000, 'Message is too long'),
 })
 
-export type PartnerContactValues = z.output<typeof schema>
+export type ContactFormValues = z.output<typeof schema>
 
 type Props = {
-  onSubmit: (values: PartnerContactValues) => Promise<void>
+  /** Show the optional company name field (business enquiries). */
+  showCompany?: boolean
+  onSubmit: (values: ContactFormValues) => Promise<void>
 }
 
 const fieldBase = 'w-full rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-white outline-none focus:border-white/20'
 
-export default function PartnerContactForm({ onSubmit }: Props) {
+export default function ContactForm({ onSubmit, showCompany = true }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -43,7 +45,7 @@ export default function PartnerContactForm({ onSubmit }: Props) {
     defaultValues: { phone: '', company: '', queryType: '' },
   })
 
-  const submit = async (values: PartnerContactValues) => {
+  const submit = async (values: ContactFormValues) => {
     setSubmitError(null)
     setSubmitting(true)
     try {
@@ -79,7 +81,7 @@ export default function PartnerContactForm({ onSubmit }: Props) {
           </Button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit((v) => submit(v as PartnerContactValues))} className="mt-5 grid gap-4" noValidate>
+        <form onSubmit={handleSubmit((v) => submit(v as ContactFormValues))} className="mt-5 grid gap-4" noValidate>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <TextField
               variant="dark"
@@ -98,22 +100,26 @@ export default function PartnerContactForm({ onSubmit }: Props) {
               error={errors.email?.message}
               {...register('email')}
             />
-            <TextField
-              variant="dark"
-              label="Contact Number*"
-              placeholder="Eg. 012 3456 7890"
-              autoComplete="tel"
-              error={errors.phone?.message}
-              {...register('phone')}
-            />
-            <TextField
-              variant="dark"
-              label="Company name"
-              placeholder="Enter your company name"
-              autoComplete="organization"
-              error={errors.company?.message}
-              {...register('company')}
-            />
+            <div className={showCompany ? '' : 'md:col-span-2'}>
+              <TextField
+                variant="dark"
+                label="Contact Number*"
+                placeholder="Eg. 012 3456 7890"
+                autoComplete="tel"
+                error={errors.phone?.message}
+                {...register('phone')}
+              />
+            </div>
+            {showCompany && (
+              <TextField
+                variant="dark"
+                label="Company name"
+                placeholder="Enter your company name"
+                autoComplete="organization"
+                error={errors.company?.message}
+                {...register('company')}
+              />
+            )}
           </div>
 
           <div>

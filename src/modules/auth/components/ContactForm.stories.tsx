@@ -1,30 +1,35 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { userEvent, within } from 'storybook/test';
 import { designerMeta, designerStory } from '../../../storybook/designerDocs';
-import PartnerContactForm from './PartnerContactForm';
+import ContactForm from './ContactForm';
 
 const meta = {
-  title: 'Marketing/PartnerContactForm',
-  component: PartnerContactForm,
+  title: 'Marketing/ContactForm',
+  component: ContactForm,
   args: { onSubmit: async () => {} },
   parameters: designerMeta({
-    subtitle: 'For Businesses contact form',
-    purpose: 'Lead capture for prospective partners, shown beside the partnership FAQs.',
-    states: 'Default, Validation errors, Send failed.',
+    subtitle: 'Contact form',
+    purpose: 'Enquiry form used on the Contact and For Businesses pages. The company field is optional per page.',
+    states: 'Default, Without company, Validation errors, Send failed.',
     usage: 'Dark panel, two-column fields on desktop. Errors appear under each field with an icon.',
   }),
   render: (args) => (
     <div className="max-w-xl rounded-2xl bg-neutral-900 p-6">
-      <PartnerContactForm {...args} />
+      <ContactForm {...args} />
     </div>
   ),
-} satisfies Meta<typeof PartnerContactForm>;
+} satisfies Meta<typeof ContactForm>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   parameters: designerStory('Empty form with placeholders and the lime Send message button.'),
+};
+
+export const WithoutCompany: Story = {
+  args: { showCompany: false },
+  parameters: designerStory('Contact page variant: company field hidden, contact number spans the full row.'),
 };
 
 export const ValidationErrors: Story = {

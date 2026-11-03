@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react'
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, Outlet } from 'react-router'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import RootLayout from './RootLayout'
 import ProvisionedUserRoute from './modules/auth/components/ProvisionedUserRoute'
@@ -16,7 +16,6 @@ const Subscriptions = lazy(() => import('./modules/auth/pages/Subscriptions'))
 const AccountDetails = lazy(() => import('./modules/auth/pages/AccountDetails'))
 const Landing = lazy(() => import('./modules/auth/pages/Landing'))
 const Contact = lazy(() => import('./modules/auth/pages/Contact'))
-const Faqs = lazy(() => import('./modules/auth/pages/Faqs'))
 const HowItWorks = lazy(() => import('./modules/auth/pages/HowItWorks'))
 const PartnersPage = lazy(() => import('./modules/auth/pages/PartnersPage'))
 const SubscriptionsPage = lazy(() => import('./modules/auth/pages/SubscriptionsPage'))
@@ -50,7 +49,7 @@ const router = sentryCreateBrowserRouter(
         },
         {
           path: '/faqs',
-          element: <Faqs />,
+          element: <Navigate to="/contact" replace />,
         },
         {
           path: '/how-it-works',

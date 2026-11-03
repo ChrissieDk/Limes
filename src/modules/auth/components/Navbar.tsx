@@ -4,11 +4,11 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/how-it-works', label: 'How Limes Works', isRoute: true },
-  { href: '/subscriptions', label: 'Subscriptions', isRoute: true },
-  { href: '/partners', label: 'For Businesses', isRoute: true },
-  { href: '/contact', label: 'Contact', isRoute: true },
+  { href: '/', label: 'Home', activeBg: 'bg-pink-300' },
+  { href: '/how-it-works', label: 'How Limes Works', isRoute: true, activeBg: 'bg-[#ABFF63]' },
+  { href: '/subscriptions', label: 'Subscriptions', isRoute: true, activeBg: 'bg-[#ABFF63]' },
+  { href: '/partners', label: 'For Businesses', isRoute: true, activeBg: 'bg-[#5BA0FF]' },
+  { href: '/contact', label: 'Contact', isRoute: true, activeBg: 'bg-purple-300' },
 ]
 
 function isNavLinkActive(item: typeof navLinks[number], pathname: string, hash: string) {
@@ -20,8 +20,8 @@ function isNavLinkActive(item: typeof navLinks[number], pathname: string, hash: 
 }
 
 const pillBase = 'font-manrope text-[15px] font-medium rounded-full px-3.5 py-1.5 transition-colors duration-200'
-const pillClass = (active: boolean, home = false) =>
-  `${pillBase} ${active ? (home ? 'bg-pink-300' : 'bg-[#ABFF63]') + ' text-black' : 'text-white hover:bg-white/10'}`
+const pillClass = (active: boolean, activeBg: string) =>
+  `${pillBase} ${active ? activeBg + ' text-black' : 'text-white hover:bg-white/10'}`
 
 const loginBtn = 'h-10 px-4 inline-flex items-center text-sm font-manrope font-bold rounded-lg bg-white text-black hover:bg-white/90 transition-colors'
 const registerBtn = 'h-10 px-4 inline-flex items-center text-sm font-manrope font-bold rounded-lg bg-[#ABFF63] text-black hover:bg-[#99FF4D] transition-colors'
@@ -79,9 +79,9 @@ export default function Navbar() {
               return (
                 <li key={item.href}>
                   {item.isRoute || item.href === '/' ? (
-                    <Link to={item.href} className={`inline-block ${pillClass(active, item.href === '/')}`}>{item.label}</Link>
+                    <Link to={item.href} className={`inline-block ${pillClass(active, item.activeBg)}`}>{item.label}</Link>
                   ) : (
-                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className={`inline-block ${pillClass(active, item.href === '/')}`}>{item.label}</a>
+                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className={`inline-block ${pillClass(active, item.activeBg)}`}>{item.label}</a>
                   )}
                 </li>
               )
@@ -114,7 +114,7 @@ export default function Navbar() {
           <ul className="px-5 pb-4 space-y-1">
             {navLinks.map((item) => {
               const active = isNavLinkActive(item, pathname, hash)
-              const cls = `block ${pillClass(active, item.href === '/')} px-4 py-2.5`
+              const cls = `block ${pillClass(active, item.activeBg)} px-4 py-2.5`
               return (
                 <li key={item.href}>
                   {item.isRoute || item.href === '/' ? (
