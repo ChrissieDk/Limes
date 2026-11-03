@@ -5,14 +5,15 @@ import Checkbox from './Checkbox';
 const meta = {
   title: 'Foundations/Checkbox',
   component: Checkbox,
+  decorators: [(Story) => <div className="rounded-2xl bg-neutral-900 p-6"><Story /></div>],
   args: {
     label: 'I accept the terms and conditions',
   },
   parameters: designerMeta({
     subtitle: 'Consent and binary choices',
     purpose:
-      'Terms, marketing opt-in, and “remember this card” choices. Lime tick on a charcoal box, with a quiet grey label.',
-    states: 'Unchecked, Checked, Disabled, Disabled checked.',
+      'Terms, marketing opt-in, and “remember this card” choices. White tick in an outlined rounded box, with a white label.',
+    states: 'Unchecked, Checked, Error, Disabled, Disabled checked.',
     usage: 'The whole row is clickable. Keep the label in plain language; link out for the full legal text.',
   }),
 } satisfies Meta<typeof Checkbox>;
@@ -26,7 +27,12 @@ export const Unchecked: Story = {
 
 export const Checked: Story = {
   args: { defaultChecked: true },
-  parameters: designerStory('On. Lime check on the dark box. This is the selected rest state.'),
+  parameters: designerStory('On. White check in the outlined box. This is the selected rest state.'),
+};
+
+export const WithError: Story = {
+  args: { error: 'Please accept the Terms & Conditions' },
+  parameters: designerStory('Required but unchecked on submit. Red outline plus a message beneath.'),
 };
 
 export const Disabled: Story = {

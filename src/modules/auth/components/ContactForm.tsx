@@ -5,12 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronDown, CircleAlert } from 'lucide-react'
 import Button from './Button'
 import TextField from './TextField'
+import { isEmail, isSaPhone } from '../utils/validation'
 
 const QUERY_TYPES = ['partnership', 'support', 'sales', 'other'] as const
-
-// South African numbers: 0XX XXX XXXX, +27 XX XXX XXXX or 27XX XXX XXXX (spaces, dashes, brackets allowed)
-const SA_PHONE = /^(?:\+27|27|0)[1-8]\d{8}$/
-const EMAIL = /^[^\s@.][^\s@]*@[^\s@.]+(?:\.[^\s@.]+)*\.[A-Za-z]{2,}$/
 
 const schema = z.object({
   fullName: z
@@ -24,12 +21,12 @@ const schema = z.object({
     .trim()
     .min(1, 'Enter your email address')
     .max(254, 'Email address is too long')
-    .regex(EMAIL, 'Enter a valid email address'),
+    .refine(isEmail, 'Enter a valid email address'),
   phone: z
     .string()
     .trim()
     .min(1, 'Enter your contact number')
-    .refine((v) => SA_PHONE.test(v.replace(/[\s\-()]/g, '')), 'Enter a valid South African number, e.g. 012 345 6789'),
+    .refine((v) => isSaPhone(v), 'Enter a valid South African number, e.g. 012 345 6789'),
   company: z.string().trim().max(200, 'Company name is too long').optional(),
   queryType: z
     .string()
