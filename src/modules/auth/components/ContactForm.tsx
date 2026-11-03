@@ -8,16 +8,38 @@ import TextField from './TextField'
 
 const QUERY_TYPES = ['partnership', 'support', 'sales', 'other'] as const
 
+// South African numbers: 0XX XXX XXXX, +27 XX XXX XXXX or 27XX XXX XXXX (spaces, dashes, brackets allowed)
+const SA_PHONE = /^(?:\+27|27|0)[1-8]\d{8}$/
+const EMAIL = /^[^\s@.][^\s@]*@[^\s@.]+(?:\.[^\s@.]+)*\.[A-Za-z]{2,}$/
+
 const schema = z.object({
-  fullName: z.string().min(1, 'Enter your full name').max(200, 'Name is too long'),
-  email: z.string().email('Enter a valid email address'),
-  phone: z.string().max(40, 'Contact number is too long').optional(),
-  company: z.string().max(200, 'Company name is too long').optional(),
+  fullName: z
+    .string()
+    .trim()
+    .min(2, 'Enter your full name')
+    .max(200, 'Name is too long')
+    .regex(/^[\p{L}][\p{L}\s'.-]*$/u, 'Name can only contain letters'),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Enter your email address')
+    .max(254, 'Email address is too long')
+    .regex(EMAIL, 'Enter a valid email address'),
+  phone: z
+    .string()
+    .trim()
+    .min(1, 'Enter your contact number')
+    .refine((v) => SA_PHONE.test(v.replace(/[\s\-()]/g, '')), 'Enter a valid South African number, e.g. 012 345 6789'),
+  company: z.string().trim().max(200, 'Company name is too long').optional(),
   queryType: z
     .string()
     .min(1, 'Select a query type')
     .pipe(z.enum(QUERY_TYPES, { message: 'Select a query type' })),
-  message: z.string().min(1, 'Enter a message').max(5000, 'Message is too long'),
+  message: z
+    .string()
+    .trim()
+    .min(10, 'Message must be at least 10 characters')
+    .max(5000, 'Message is too long'),
 })
 
 export type ContactFormValues = z.output<typeof schema>
@@ -106,6 +128,7 @@ export default function ContactForm({ onSubmit, showCompany = true }: Props) {
                 label="Contact Number*"
                 placeholder="Eg. 012 3456 7890"
                 autoComplete="tel"
+                inputMode="tel"
                 error={errors.phone?.message}
                 {...register('phone')}
               />
@@ -192,7 +215,7 @@ export default function ContactForm({ onSubmit, showCompany = true }: Props) {
       <h2 className="mt-12 font-grotesque font-semibold text-white text-[28px] md:text-[32px] leading-[1.1]">
         Come say hello
       </h2>
-      <a href="/contact" className="mt-5 inline-block">
+      <a href="https://simpal.co.za" target="_blank" rel="noreferrer" className="mt-5 inline-block">
         <Button variant="primary" fullWidth={false} className="h-10 rounded-lg border-0 shadow-none bg-pink-300 hover:bg-pink-300/90 active:bg-pink-300">
           Take me there
         </Button>
