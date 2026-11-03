@@ -4,20 +4,27 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../config/firebase'
 
 const navLinks = [
-  { href: '/#hero', label: 'Home', dot: 'bg-indigo-400' },
-  { href: '/#why', label: 'Why Choose', dot: 'bg-purple-400' },
-  { href: '/how-to', label: "How To's", dot: 'bg-lime-400', isRoute: true },
-  { href: '/#packages', label: 'Subscriptions', dot: 'bg-pink-400' },
-  { href: '/partners', label: 'Partners', dot: 'bg-blue-400', isRoute: true },
+  { href: '/', label: 'Home' },
+  { href: '/how-it-works', label: 'How Limes Works', isRoute: true },
+  { href: '/#packages', label: 'Subscriptions' },
+  { href: '/partners', label: 'For Businesses', isRoute: true },
+  { href: '/contact', label: 'Contact', isRoute: true },
 ]
 
 function isNavLinkActive(item: typeof navLinks[number], pathname: string, hash: string) {
   if (item.isRoute) {
-    return pathname === item.href
+    return pathname === item.href || pathname.startsWith(`${item.href}/`)
   }
-  const expectedHash = item.href.replace(/^.*#/, '#')
+  const expectedHash = item.href.includes('#') ? item.href.replace(/^.*#/, '#') : ''
   return pathname === '/' && hash === expectedHash
 }
+
+const pillBase = 'font-manrope text-[15px] font-medium rounded-full px-3.5 py-1.5 transition-colors duration-200'
+const pillClass = (active: boolean, home = false) =>
+  `${pillBase} ${active ? (home ? 'bg-pink-300' : 'bg-[#ABFF63]') + ' text-black' : 'text-white hover:bg-white/10'}`
+
+const loginBtn = 'h-10 px-4 inline-flex items-center text-sm font-manrope font-bold rounded-lg bg-white text-black hover:bg-white/90 transition-colors'
+const registerBtn = 'h-10 px-4 inline-flex items-center text-sm font-manrope font-bold rounded-lg bg-[#ABFF63] text-black hover:bg-[#99FF4D] transition-colors'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
@@ -66,47 +73,30 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <ul className="hidden md:flex gap-6 text-[15px]">
+          <ul className="hidden md:flex items-center gap-1">
             {navLinks.map((item) => {
               const active = isNavLinkActive(item, pathname, hash)
               return (
                 <li key={item.href}>
-                  {item.isRoute ? (
-                    <Link to={item.href} className="group inline-flex flex-col items-center">
-                      <span className={`font-manrope font-medium transition-colors duration-200 ${active ? 'text-white' : 'group-hover:text-white'}`}>{item.label}</span>
-                      <span className={`mt-1 size-1.5 rounded-full transition-opacity duration-200 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
-                    </Link>
+                  {item.isRoute || item.href === '/' ? (
+                    <Link to={item.href} className={`inline-block ${pillClass(active, item.href === '/')}`}>{item.label}</Link>
                   ) : (
-                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group inline-flex flex-col items-center">
-                      <span className={`font-manrope font-medium transition-colors duration-200 ${active ? 'text-white' : 'group-hover:text-white'}`}>{item.label}</span>
-                      <span className={`mt-1 size-1.5 rounded-full transition-opacity duration-200 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
-                    </a>
+                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className={`inline-block ${pillClass(active, item.href === '/')}`}>{item.label}</a>
                   )}
                 </li>
               )
             })}
-            <li>
-              <Link to="/faqs" className="group inline-flex flex-col items-center">
-                <span className={`font-medium transition-colors duration-200 ${pathname === '/faqs' ? 'text-white' : 'group-hover:text-white'}`}>FAQs</span>
-                <span className={`mt-1 size-1.5 rounded-full bg-purple-400 transition-opacity duration-200 ${pathname === '/faqs' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
-              </Link>
-            </li>
           </ul>
 
           <div className="flex items-center gap-3 justify-self-end">
             <div className="hidden md:flex items-center gap-3">
               {isLoggedIn ? (
-                <Link to="/dashboard">
-                  <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
-                    Dashboard
-                  </button>
-                </Link>
+                <Link to="/dashboard" className={registerBtn}>Dashboard</Link>
               ) : (
-                <Link to="/signin">
-                  <button className="h-12 px-4 text-base font-manrope font-bold border-2 border-black/70 rounded-xl shadow-[4px_4px_0_0_rgba(0,0,0,0.7)] bg-[#ABFF63] text-black hover:bg-[#ABFF63]/90 transition-colors cursor-pointer">
-                    Sign In
-                  </button>
-                </Link>
+                <>
+                  <Link to="/signin" className={loginBtn}>Log in</Link>
+                  <Link to="/register" className={registerBtn}>Register</Link>
+                </>
               )}
             </div>
 
@@ -121,53 +111,28 @@ export default function Navbar() {
         </div>
 
         <div className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? 'max-h-[500px]' : 'max-h-0'}`}>
-          <ul className="px-5 pb-4 space-y-2">
+          <ul className="px-5 pb-4 space-y-1">
             {navLinks.map((item) => {
               const active = isNavLinkActive(item, pathname, hash)
+              const cls = `block ${pillClass(active, item.href === '/')} px-4 py-2.5`
               return (
                 <li key={item.href}>
-                  {item.isRoute ? (
-                    <Link to={item.href} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
-                      <div className="flex items-center gap-3">
-                        <span className={`size-2 rounded-full transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
-                        <span className="font-manrope text-sm font-medium">{item.label}</span>
-                      </div>
-                      <span className="text-white/40">›</span>
-                    </Link>
+                  {item.isRoute || item.href === '/' ? (
+                    <Link to={item.href} className={cls}>{item.label}</Link>
                   ) : (
-                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
-                      <div className="flex items-center gap-3">
-                        <span className={`size-2 rounded-full transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${item.dot}`} />
-                        <span className="font-manrope text-sm font-medium">{item.label}</span>
-                      </div>
-                      <span className="text-white/40">›</span>
-                    </a>
+                    <a href={`${import.meta.env.BASE_URL}${item.href.replace(/^\//,'')}`} className={cls}>{item.label}</a>
                   )}
                 </li>
               )
             })}
-            <li>
-              <Link to="/faqs" className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition">
-                <div className="flex items-center gap-3">
-                  <span className={`size-2 rounded-full transition-opacity ${pathname === '/faqs' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} bg-purple-400`} />
-                  <span className="font-manrope text-sm font-medium">FAQs</span>
-                </div>
-                <span className="text-white/40">›</span>
-              </Link>
-            </li>
-            <li className="pt-2 space-y-2">
+            <li className="pt-2 flex gap-2">
               {isLoggedIn ? (
-                <Link to="/dashboard">
-                  <button className="w-full px-4 py-2.5 text-base font-manrope font-bold text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
-                    Dashboard
-                  </button>
-                </Link>
+                <Link to="/dashboard" className={`${registerBtn} flex-1 justify-center`}>Dashboard</Link>
               ) : (
-                <Link to="/signin">
-                  <button className="w-full px-4 py-2.5 text-base font-manrope font-bold text-black bg-[#ABFF63] hover:bg-[#ABFF63]/90 rounded-xl transition-colors">
-                    Sign In
-                  </button>
-                </Link>
+                <>
+                  <Link to="/signin" className={`${loginBtn} flex-1 justify-center`}>Log in</Link>
+                  <Link to="/register" className={`${registerBtn} flex-1 justify-center`}>Register</Link>
+                </>
               )}
             </li>
           </ul>
